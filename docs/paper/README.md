@@ -47,6 +47,32 @@ the class file and the bibliography's compiled form are not committed; the fetch
 | `https://arxiv.org/pdf/2609.19644v1` (71 pages) | `98fb7802ec28beea159895a3de219307e019867b16296dfe4a79e68daaef9a17` |
 | `https://arxiv.org/html/2609.19644v1` | `23f93180ac10e5b4e1cbdf9f1e532aa80c33351b7968345752ec7c6d12925aa3` |
 
+## Sources the paper delegates to
+
+Where the paper hands a definition to another paper, that paper's text is part of the
+specification by reference, and it is read, not guessed.
+
+- **ScientistOne**, arXiv:2605.26340v1 [Bib: meng2026scientistone], CC BY 4.0.
+  - Why it counts: Table 7 is an evaluation "following Meng et al. (2026)", and §4.2 describes
+    the CoE Integrity Audit only in one clause per check [Tab. 7] [§4.2].
+  - Its TeX is fetched into `.cache/refs/2605.26340v1/src/` by the same script, with its sha256
+    pinned:
+
+    | Download | sha256 |
+    |---|---|
+    | `https://arxiv.org/src/2605.26340v1` (tar.gz) | `0655a648b6dca95979204e19939aedae232e99e98862cc62898f0b8c5e7da9db` |
+
+  - Cite it as `[Ref: meng2026scientistone §5]`, with an anchor
+    `(ref:2605.26340v1:sections/05_coe_audit.tex:25-26)`.
+  - The checker verifies such anchors, and accepts a quote from it only on a line that carries
+    the `[Ref: …]` tag, so a borrowed sentence never passes as ScientistTwo's.
+- **Only what the paper delegates.** Read a delegated source for the part ScientistTwo hands to it,
+  and say so: "specified by reference". Everything else in it is a reuse candidate for TODO task 4,
+  not a specification.
+- **Other papers** (the benchmark tasks' own papers, AutoSOTA, PaperOrchestra, ScholarPeer) are not
+  delegated specifications. A fact taken from them is marked as external, with its source, and
+  its decision goes to the task that owns it.
+
 ## Numbering: cite the PDF's
 
 The PDF is the authors' own rendering of the TeX, so its numbers are the paper's numbers.

@@ -12,7 +12,10 @@ This is the control behind TODO task 1's "every statement there cites its locati
 2. ANCHORS. Every TeX anchor `tex:<path>:<line>[-<line>]` names a file under docs/paper/source/
    and a line range inside it.
 3. QUOTES. Every double-quoted passage of five words or more appears verbatim (letters and
-   digits only, case-folded) in the TeX, in the PDF text, or in the initial note. Separate a
+   digits only, case-folded) in the TeX, in the PDF text, in the initial note, or in the TeX of a
+   source the paper delegates to by reference (.cache/refs/<arXiv id>/src/, fetched by
+   fetch_sources.sh). Anchors into such a source read `ref:<arXiv id>:<path>:<line>[-<line>]`,
+   and a missing cache fails the anchor: a check that cannot run has not passed. Separate a
    quote's parts with "..." or "[...]" and each part is checked on its own.
 
 Usage:
@@ -34,9 +37,11 @@ SOURCE = PAPER / "source"
 PDF_TEXT = ROOT / ".cache/paper/2609.19644v1/paper.pdf.txt"
 NOTE = ROOT / "docs/inputs/2026-09-27-initial-replication-note.md"
 
-TAG = re.compile(r"\[(§|Tab\.|Lst\.|Fig\.|Eq\.|App\.|pp?\.|fn\.|Abstract|Title|Bib:)")
+TAG = re.compile(r"\[(§|Tab\.|Lst\.|Fig\.|Eq\.|App\.|pp?\.|fn\.|Abstract|Title|Bib:|Ref:)")
 OURS = re.compile(r"\[ours\]", re.I)
 ANCHOR = re.compile(r"tex:([\w./-]+\.(?:tex|bib)):(\d+)(?:-(\d+))?")
+REF_ANCHOR = re.compile(r"ref:(\d{4}\.\d{4,5}v\d+):([\w./-]+\.(?:tex|bib)):(\d+)(?:-(\d+))?")
+REFS = ROOT / ".cache/refs"
 # Match every quoted string, however short, so that quotes pair up left to right; a minimum
 # length here would let a short quote's closing mark open a false "quote" of the prose after it.
 QUOTE = re.compile(r"\"([^\"\n]*)\"|“([^”\n]*)”")
@@ -57,13 +62,17 @@ def tex_to_plain(tex: str) -> str:
     return tex
 
 
-def corpus() -> str:
+def corpus() -> tuple[str, str]:
+    """(the paper and the note, the sources it delegates to). A quote is looked up in the second
+    only on a line that cites one of them, so a borrowed sentence cannot pass as the paper's."""
     parts = [tex_to_plain(p.read_text(encoding="utf-8")) for p in sorted(SOURCE.rglob("*.tex"))]
     if PDF_TEXT.exists():
         parts.append(re.sub(r"-\n\s*", "", PDF_TEXT.read_text(encoding="utf-8")))
     if NOTE.exists():
         parts.append(NOTE.read_text(encoding="utf-8"))
-    return "\n".join(alnum(p) for p in parts)
+    refs = [tex_to_plain(t.read_text(encoding="utf-8", errors="replace"))
+            for t in sorted(REFS.glob("*/src/**/*.tex"))]
+    return "\n".join(alnum(p) for p in parts), "\n".join(alnum(r) for r in refs)
 
 
 def units(lines: list[str]):
@@ -102,7 +111,8 @@ def units(lines: list[str]):
     yield from flush()
 
 
-def check_file(path: Path, text_corpus: str) -> list[str]:
+def check_file(path: Path, corpora: tuple[str, str]) -> list[str]:
+    paper_corpus, ref_corpus = corpora
     problems = []
     lines = path.read_text(encoding="utf-8").split("\n")
     for n, unit in units(lines):
@@ -121,11 +131,26 @@ def check_file(path: Path, text_corpus: str) -> list[str]:
             length = len(target.read_text(encoding="utf-8").split("\n"))
             if not 1 <= first <= last <= length:
                 problems.append(f"{path.name}:{n}: anchor outside 1..{length}: {m.group(0)}")
+        for m in REF_ANCHOR.finditer(line):
+            target = REFS / m.group(1) / "src" / m.group(2)
+            first, last = int(m.group(3)), int(m.group(4) or m.group(3))
+            if not target.exists():
+                problems.append(f"{path.name}:{n}: cannot verify {m.group(0)}: no such file in "
+                                f".cache/refs (run playground/paper/fetch_sources.sh)")
+                continue
+            length = len(target.read_text(encoding="utf-8", errors="replace").split("\n"))
+            if not 1 <= first <= last <= length:
+                problems.append(f"{path.name}:{n}: anchor outside 1..{length}: {m.group(0)}")
+        cites_ref = "[Ref:" in line or REF_ANCHOR.search(line) is not None
         for m in QUOTE.finditer(line):
             quote = m.group(1) or m.group(2)
             for part in re.split(r"\.\.\.|…|\[\.\.\.\]", quote):
-                if len(part.split()) >= 5 and alnum(part) not in text_corpus:
-                    problems.append(f"{path.name}:{n}: quote not in the paper or the note: \"{part.strip()[:80]}\"")
+                if len(part.split()) < 5 or alnum(part) in paper_corpus:
+                    continue
+                if cites_ref and alnum(part) in ref_corpus:
+                    continue
+                where = "the paper, the note or the cited reference" if cites_ref else "the paper or the note"
+                problems.append(f"{path.name}:{n}: quote not in {where}: \"{part.strip()[:80]}\"")
     return problems
 
 
@@ -141,6 +166,7 @@ def selftest() -> int:
     """Each check must fail on a planted defect and pass on its corrected twin."""
     text_corpus = corpus()
     cases = {
+        "reference quote without [Ref:]": ('The paper says "We run each evaluator five times" [§4.2].\n', 1),
         "uncited paragraph": ("The subset critic compares the idea with the baseline results.\n", 1),
         "cited paragraph": ("The subset critic compares the idea with the baseline [§3.2].\n", 0),
         "ours paragraph": ("We will define the subset ourselves for every task [ours].\n", 0),
@@ -149,6 +175,10 @@ def selftest() -> int:
         "fake quote": ('It says "the critic always accepts every single idea" [§3.2].\n', 1),
         "real quote": ('It says "If performance is substantially inferior to the baseline" [§3.2].\n', 0),
         "short quotes pair correctly": ('Verdicts "Good" and "Bad" are two of the three it may return [§3.2].\n', 0),
+        "reference quote and anchor": ('ScientistOne says "We run each evaluator five times" [Ref: meng2026scientistone §6] '
+                                       '(ref:2605.26340v1:sections/06a_setup.tex:10).\n', 0),
+        "bad reference anchor": ('ScientistOne defines the audit [Ref: meng2026scientistone §5] '
+                                 '(ref:2605.26340v1:sections/nope.tex:3).\n', 1),
     }
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
@@ -170,6 +200,8 @@ def main(argv: list[str]) -> int:
         print("note: no PDF text; quotes are checked against the TeX and the note only", file=sys.stderr)
     text_corpus = corpus()
     problems = [p for f in files for p in check_file(f, text_corpus)]
+    if not REFS.exists():
+        print("note: no .cache/refs; quotes of delegated sources cannot be checked", file=sys.stderr)
     for p in problems:
         print(p)
     print(f"{len(files)} file(s) checked, {len(problems)} problem(s)")

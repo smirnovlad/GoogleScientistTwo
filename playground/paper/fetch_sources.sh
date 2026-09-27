@@ -77,4 +77,15 @@ while IFS= read -r -d '' committed; do
   fi
 done < <(find "$SOURCE" -type f \( -name '*.tex' -o -name '*.bib' \) -print0)
 [[ "$status" == 0 ]] && echo "ok           docs/paper/source/ matches the archive (main.tex:46 redacted)"
+
+# Sources the paper delegates to by reference (docs/paper/README.md, "Sources the paper delegates
+# to"). ScientistOne defines the integrity audit that Table 7 follows ("following Meng et al.").
+# Its TeX is read for what ScientistTwo delegates to it, and the citation checker verifies quotes
+# from it; it is CC BY 4.0, but not committed, since only a few paragraphs are cited.
+REF_ID="2605.26340v1"
+SHA_REF_SRC="0655a648b6dca95979204e19939aedae232e99e98862cc62898f0b8c5e7da9db"
+mkdir -p "$ROOT/.cache/refs/$REF_ID" && cd "$ROOT/.cache/refs/$REF_ID"
+fetch "https://arxiv.org/src/$REF_ID" src.tar.gz "$SHA_REF_SRC" 1
+rm -rf src && mkdir src && tar -xzf src.tar.gz -C src
+echo "ok           ScientistOne ($REF_ID) extracted to .cache/refs/$REF_ID/src/"
 exit "$status"
