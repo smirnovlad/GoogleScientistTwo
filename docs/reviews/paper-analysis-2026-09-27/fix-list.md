@@ -14,6 +14,7 @@ owner of the document it changes. The reviews themselves are kept verbatim besid
 | EI2 | `evaluation-integrity-engineer-analysis.md`, wave 2 |
 | AE | `agent-engineer.md` |
 | SA | `system-architect.md` |
+| TR | the traceability step's findings (`docs/paper/traceability.md`, section 1.4) |
 | UN | the consolidation step's "Fixes the source documents need" (`docs/paper/unspecified.md`) |
 
 **Where two reviews conflict,** the orchestrating session decides, and says so under the fix.
@@ -54,6 +55,10 @@ recorded as such, and they route decisions to task 5.
 | F-AN-25 | **§3.1: E_best is not among the references a critic reads.** It is the Result Comparison Agent that reads E_best (lines 111–112 and 147). | SA-m3 |
 | F-AN-26 | **§4.1 "Never restarted" and "Reading choices".** Add Figure 3's evidence: the Analyzer's *New Idea* re-enters the critic of the Full-Set Experiment Agent [Fig. 3] (image). Add U-ABL-2 to "Reading choices". | SA-m4 |
 | F-AN-27 | **P-CFG-11: record the other reading as disfavoured.** "with review-based refinement conducted at most once" can be read as two reviews and one rebuttal, which would leave N_meta without a value. The evidence for the main reading: Table 5 shows rebuttals in rounds 1 and 2, and the headings say "Review-Driven" (lines 134 and 142). | SA-m5 |
+| F-AN-28 | **Give element IDs to the parameters App. A.2 leaves unset:** N_seed, N_0, the full-set engineering limit, N_p, N_t and N_a. They are elements of the paper even without a value (P-CFG-12 onwards). | TR |
+| F-AN-29 | **Duplicated elements.** P-LIM-4 and P-CFG-1 are the same limit, and so are P-SUB-4 and P-CFG-3. Either state the relation (the loop's limit as mechanism, against its value in App. A.2) or merge them. | TR |
+| F-AN-30 | **P-ROSTER-13, A_Coder as a composite.** It lists rows 6–11, which includes the Baseline Coder, which §4's own pseudocode runs outside A_Coder. It leaves out the Full-Set Engineer (row 12), which §3.2 places inside. Correct the membership, and link A-BASE-1. | TR |
+| F-AN-31 | **Elements for the parts of the paper that have none:**<br>• Figure 3's group boxes;<br>• the external systems of §7.2, including the coding backend that Table 8 swaps (P-ROSTER-29 onwards);<br>• App. B's attribution rule, that the gain must be "attributable to the proposed mechanism" [Tab. 15];<br>• the chained runs of Table 9, where one run's (P+, C+) is "provided as context in the next discovery cycle" [§4.3]. | TR |
 | F-AN-20 | **U-BASE-1.** Cite "FULL, 6 of 6" [p. 40] (image) and "(subset test split)" [p. 69]. Record that the subset's false-negative rate, meaning Good ideas pruned on the subset, is never measured. | RE2-m9 |
 
 ## claims.md and claims/ (owner: the claims analyst)
