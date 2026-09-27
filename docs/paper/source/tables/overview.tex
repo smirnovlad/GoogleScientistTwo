@@ -1,0 +1,31 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{\sname~overview.} At each stage, \sname~generates a \texttt{candidate} using a specialized AI agent and employs a corresponding \texttt{critic} agent to decide whether to accept the output or invoke a \texttt{refine}ment agent to improve and supplement it.}\label{tab:overview}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llll}
+\toprule
+\texttt{stage} & \texttt{candidate} & \texttt{critic} & \texttt{refine}\\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Generating Novel Seed Ideas ($\S$~\ref{subsec:seed_idea})}}}\\
+Finding limitations & Set of limitations & \textit{Can guide novel improvement?} & \textit{Add missing limitations}\\
+Seed idea generation & Seed ideas & \textit{Is it novel?} & \textit{Add more novel ideas}\\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Evaluating Ideas ($\S$~\ref{subsec:eval_idea})}}}\\
+Reproduce baseline on subset & SOTA baseline result & - & - \\
+Idea experiment on subset & Idea, Code, Results & \textit{Is it better than the reproduced baseline?} & \textit{Refine idea through engineering}\\
+Idea experiment on full-set & Idea, Code, Results & \textit{Is it better than the original SOTA result?} & \textit{Refine idea through engineering}\\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Refining Ideas ($\S$~\ref{subsec:refine_idea}})}}\\
+Idea evolution & Evolved idea & \textit{Idea experiment} & \textit{Evolve idea from traces}\\
+Select best idea & Best idea & \textit{What is the best idea from traces?} & - \\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Ablation Studies ($\S$~\ref{subsec:ablating_idea}})}}\\
+Ablation study & Idea, Ablation results & \textit{Is the component breakdown clean?} & \textit{Refine the method}\\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Drafting \& Meta-Reviewing ($\S$~\ref{subsec:drafting_paper}, $\S$~\ref{subsec:meta-reviewing})}}}\\
+Initial drafting & Manuscript & - & - \\
+Peer-Review & Manuscript & \textit{Is review score good enough?} & \textit{Run rebuttal experiments}\\
+Meta-Review & Manuscript, Review & \textit{Does it meet the venue bar?} & \textit{Refine idea and analyze again}\\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,17 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{Integrity Audit results.} Evaluation of paper and code integrity following \cite{meng2026scientistone}. \textbf{Score Verif.} ($\uparrow$) indicates that every claimed results are reproducible. \textbf{Spec. Violat.} ($\downarrow$) indicates code specification violations or reward hacking issues. \textbf{Ref. Verif.} ($\downarrow$) checks for hallucinated references. \textbf{Method-Code} ($\uparrow$) measures alignment between paper methodology and code implementation.}\label{tab:abl_coe}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+& \multicolumn{3}{c}{\textbf{Refinement Agent}} & \multicolumn{4}{c}{\textbf{Integrity Audit}}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-8}
+\textbf{Framework} & \begin{tabular}[c]{c} \textbf{Spec.}\\\textbf{Violat.}\end{tabular} & \begin{tabular}[c]{c} \textbf{Ref.}\\\textbf{Verif.}\end{tabular} & \begin{tabular}[c]{c} \textbf{Method}\\\textbf{Code}\end{tabular} & \begin{tabular}[c]{c} \textbf{Score}\\\textbf{Verif.}\end{tabular} & \begin{tabular}[c]{c} \textbf{Spec.}\\\textbf{Violat.}\end{tabular} & \begin{tabular}[c]{c} \textbf{Ref.}\\\textbf{Verif.}\end{tabular} & \begin{tabular}[c]{c} \textbf{Method}\\\textbf{Code}\end{tabular}\\
+\midrule
+\sname~(Variant) & \textcolor{Red}{\ding{55}} & \textcolor{Red}{\ding{55}} & \textcolor{Red}{\ding{55}} &  \textbf{50/50} & 1/50 & 19/1840 & 39/50 \\
+\sname~(Variant) & \textcolor{Green}{\ding{51}} & \textcolor{Red}{\ding{55}} & \textcolor{Red}{\ding{55}} &  \textbf{49/49} & \textbf{0/49}& 19/1817 & 38/49 \\
+\sname~(Variant) & \textcolor{Green}{\ding{51}} & \textcolor{Green}{\ding{51}} & \textcolor{Red}{\ding{55}} & \textbf{49/49} & \textbf{0/49}& \textbf{\phantom{0}0/1814} & 38/49 \\
+\rowcolor{Gray}\textbf{\sname~(Ours)} & \textcolor{Green}{\ding{51}} & \textcolor{Green}{\ding{51}} & \textcolor{Green}{\ding{51}} & \textbf{49/49} & \textbf{0/49}& \textbf{\phantom{0}0/1814} & \textbf{49/49} \\
+\bottomrule
+\end{tabular}}
+\end{table}

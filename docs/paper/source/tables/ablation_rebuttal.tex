@@ -1,0 +1,17 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{Effectiveness of peer-review simulation.} Average review ratings (1--10 scale) and acceptance rates (\%) evaluated by ScholarPeer and Stanford Agentic Reviewer. Best score is bolded.}\label{tab:abl_rebuttal}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccc}
+\toprule
+& & & \multicolumn{2}{c}{\textbf{ScholarPeer}} & \multicolumn{2}{c}{\textbf{Stanford Agentic Reviewer}}\\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+\textbf{Framework} & \textbf{Review Round} & \textbf{Rebuttal Agent} & \textbf{Avg. Rating} & \textbf{Accept Rate} & \textbf{Avg. Rating} & \textbf{Accept Rate} \\
+\midrule
+ScientistOne & - & - & 3.8\stdv{1.2} & 14.3 & 4.1\stdv{0.7} & \phantom{0}0.0 \\
+\sname~(Variant) & 0 & \textcolor{Red}{\ding{55}} & 5.2\stdv{2.2} & 46.9 & 5.6\stdv{0.5} & 49.0  \\
+\sname~(Ours) & 1 & \textcolor{Green}{\ding{51}} & 6.9\stdv{1.6} & 79.6 & \textbf{5.8}\stdv{0.6} & \textbf{73.5}  \\
+\rowcolor{Gray}\textbf{\sname~(Ours)} & 2 & \textcolor{Green}{\ding{51}} & \textbf{7.6}\stdv{1.0} & \textbf{93.9} & 5.7\stdv{0.6} & 69.4  \\
+\bottomrule
+\end{tabular}}
+\end{table}

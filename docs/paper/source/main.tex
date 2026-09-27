@@ -1,0 +1,92 @@
+\documentclass[11pt, a4paper, goog]{google}
+
+\usepackage[authoryear, sort&compress, round]{natbib}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{listings}
+
+
+\lstdefinestyle{pseudopython}{
+language=Python,
+basicstyle=\ttfamily\footnotesize,
+keywordstyle=\color{blue!65!black}\bfseries,
+commentstyle=\color{gray}\itshape,
+stringstyle=\color{purple!65!black},
+backgroundcolor=\color{gray!8},
+xleftmargin=6pt, xrightmargin=6pt,
+framexleftmargin=6pt, framexrightmargin=6pt,
+aboveskip=6pt, belowskip=0pt,
+showstringspaces=false,
+keepspaces=true,
+columns=fullflexible,
+breaklines=true,
+tabsize=4,
+}
+
+\bibliographystyle{abbrvnat}
+
+
+% comment out if logo should not be used
+\uselogo{}
+
+\newcommand{\sname}{ScientistTwo}
+\newcommand{\stdv}[2][\tiny]{#1\text{$\pm$}#2}
+\definecolor{Gray}{gray}{0.9}
+
+% Paper Title
+% \title{\sname: Orchestrating AI Agents for Expert-Level Autonomous Research}
+% \title{\sname: Pushing the Human Frontier with Autonomous AI}
+\title{\sname: Pioneering the Human Knowledge Frontier with Autonomous AI}
+
+% Can leave this option out if you do not wish to add a corresponding author.
+\correspondingauthor{[redacted in this copy: two e-mail addresses; see the arXiv original]}
+
+% Use the internally issued paper ID, if available
+\reportnumber{} % Leave blank if n/a
+
+% Assign your own date to the report.
+% Can comment out if not needed or leave blank if n/a.
+% \renewcommand{\today}{2026-07-20}
+
+% Can have as many authors and as many affiliations as needed. Best to indicate joint
+% first-authorship as shown below.
+\author[1]{Jaehyun Nam}
+\author[1]{Jinsung Yoon}
+\author[1]{Yanzhou Pan}
+\author[2]{Yubo Wang}
+\author[1]{Rui Meng}
+\author[1]{Parthasarathy Ranganathan}
+\author[1]{Tomas Pfister}
+% \author[2]{Anonymous Author}
+% \author[2]{Anonymous Author}
+
+% Affiliations *must* come after the declaration of \author[]
+% \affil[*]{Equal contributions}
+\affil[1]{Google Cloud AI Research}
+\affil[2]{University of Waterloo}
+
+\input{sections/0_abstract}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/1_introduction}
+\input{sections/2_related_works}
+\input{sections/3_new_method}
+\input{sections/4_experiment}
+\input{sections/5_discussion}
+\input{sections/6_conclusion}
+
+\newpage
+\bibliography{main}
+
+\newpage
+\appendix
+\input{sections/appendix}
+
+\end{document}

@@ -1,0 +1,21 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{Case Study: Main Results of DynaSpec-RAG developed by \sname.} Zero-shot long-term forecasting performance ($T=512, L=64$) across seven benchmarks, reported as MSE / MAE (lower is better). Best results are in \textbf{bold}, second-best are \underline{underlined}. ``---'' indicates datasets present in a model's pretraining corpus for which zero-shot numbers are omitted.}
+\label{tab:ts_rag}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Method} & \textbf{DynaSpec-RAG} & \textbf{TS-RAG} & \textbf{Chronos-Bolt B} & \textbf{MOMENT} & \textbf{TTM B} & \textbf{Moirai B} & \textbf{TimesFM} & \textbf{Chronos B} \\
+\midrule
+ETTh1 & \textbf{0.3467} / \underline{0.3627} & \underline{0.3557} / \textbf{0.3624} & 0.3616 / 0.3650 & 0.3920 / 0.4110 & 0.3619 / 0.3710 & 0.3686 / 0.3835 & 0.4254 / 0.3825 & 0.4217 / 0.3806 \\
+ETTh2 & \textbf{0.2399} / \textbf{0.2970} & \underline{0.2451} / \underline{0.2982} & 0.2517 / 0.2992 & 0.2742 / 0.3327 & 0.2531 / 0.3032 & 0.2547 / 0.3053 & 0.2894 / 0.3233 & 0.2659 / 0.3136 \\
+ETTm1 & \textbf{0.2803} / \textbf{0.3090} & \underline{0.2906} / \underline{0.3114} & 0.3109 / 0.3185 & 0.3506 / 0.3834 & 0.3152 / 0.3248 & 0.5399 / 0.4322 & 0.3321 / 0.3326 & 0.3935 / 0.3695 \\
+ETTm2 & \textbf{0.1428} / \textbf{0.2219} & \underline{0.1466} / \underline{0.2231} & 0.1487 / 0.2236 & 0.1703 / 0.2579 & 0.1511 / 0.2405 & 0.1958 / 0.2687 & 0.1703 / 0.2552 & 0.1663 / 0.2522 \\
+Weather & \textbf{0.1397} / \textbf{0.1749} & \underline{0.1454} / \underline{0.1771} & 0.1525 / 0.1825 & 0.1801 / 0.2384 & 0.1543 / 0.1893 & 0.1711 / 0.1912 & --- / --- & 0.1897 / 0.2107 \\
+Electricity & 0.1135 / 0.2059 & \textbf{0.1120} / \textbf{0.2002} & \underline{0.1132} / \underline{0.2004} & 0.1967 / 0.3028 & 0.1715 / 0.2643 & 0.1832 / 0.2814 & --- / --- & 0.1460 / 0.2237 \\
+Exchange & \textbf{0.0615} / \textbf{0.1704} & \underline{0.0627} / \underline{0.1718} & 0.0673 / 0.1780 & 0.0979 / 0.2059 & 0.0657 / 0.1725 & 0.0663 / 0.1720 & 0.0695 / 0.1802 & 0.0831 / 0.1879 \\
+\midrule
+\textbf{Average} & \textbf{0.1892} / \textbf{0.2488} & \underline{0.1940} / \underline{0.2492} & 0.2008 / 0.2525 & 0.2374 / 0.3046 & 0.2104 / 0.2665 & 0.2542 / 0.2906 & 0.2573 / 0.2948 & 0.2380 / 0.2769 \\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -66,11 +66,50 @@ without lose of any context using same worktrees and claude sessions."*
 - The GitHub repository is public, so no secret, credential, email address or local path may be
   committed (`CLAUDE.md`).
 
-## HANDOFF, 2026-09-27
+## 2026-09-27: TODO task 1 starts, the rigorous analysis of the paper
 
-- **Done:** the repository is initialised. No design and no code yet.
-- **Next step:** open a Claude session in this repository and give it TODO task 1, the rigorous
-  analysis of the paper, owned by `paper-analyst`.
-  - For one session on `main`: `cd <this repository> && claude`.
-  - For a task branch, start the session inside a worktree
-    ([docs/process/worktrees-and-sessions.md](docs/process/worktrees-and-sessions.md)).
+**Vlad, verbatim:**
+
+> "Read CLAUDE.md, TODO.md and DEVELOPMENT_PROCESS.md, then start TODO task 1."
+
+The session runs in the main checkout, on the branch `claude/paper-analysis` (nothing reaches
+`main` without review).
+
+**The sources, pinned.** arXiv:2609.19644 has one version, v1 of 17 September 2026, under
+CC BY 4.0 (the abstract page's licence link). Its TeX source, PDF and HTML are fetched by
+`playground/paper/fetch_sources.sh` into the gitignored `.cache/`, with each sha256 recorded and
+checked. The licence allows redistribution with attribution, so the paper's TeX text is committed
+under `docs/paper/source/`. The one change is `main.tex` line 46, redacted in place because it
+lists two e-mail addresses; the line count is kept, so line anchors still match the archive.
+
+**Found before any agent ran** (each re-runnable from `playground/paper/`):
+- **"Listing 1" or "Figure 4": the note was right.** The TeX puts the stage pseudocode in a minted
+  `listing` float, and the arXiv PDF prints "Listing 1". The HTML (LaTeXML) turns it into
+  "Figure 4", so HTML Figures 5–12 are PDF Figures 4–11. Tables and sections agree. The analysis
+  cites the PDF's numbers (`float_numbering.py`).
+- **Discussion is §4.3,** a subsection of the experiments, and the conclusion is §5.
+- **The page references of Appendices C and D are wrong by five** in the arXiv PDF: the artifacts
+  said to be on pp. 29–50 are on pp. 34–55, and the case-study draft is on pp. 56–71.
+
+**How the work is organised.** `docs/paper/README.md` is the one brief every analyst and reviewer
+follows: sources and their authority, numbering, citation format, classification, IDs, and which
+file each writer owns. `playground/paper/check_citations.py` enforces the citation rule: every
+statement cites the paper or is marked `[ours]`, every TeX anchor exists, and every quote of five
+words or more is found in the source. Its `--selftest` shows each check failing on a planted
+defect. Four `paper-analyst` agents then write in parallel, each reading the whole paper
+independently: `analysis.md`, `claims.md`, `note-check.md` and `artifacts.md`. A consolidation
+pass builds `unspecified.md` and `traceability.md`. Four personas review in parallel, the owner
+fixes, and a blind reader tests the result.
+
+## HANDOFF, 2026-09-27 (task 1 in progress)
+
+- **Done:** the sources are pinned and committed; the brief, the fetch script, the numbering script
+  and the citation checker are in place.
+- **Running:** four `paper-analyst` agents writing `docs/paper/analysis.md`, `claims.md`,
+  `note-check.md` and `artifacts.md`.
+- **Next steps:**
+  1. consolidate `unspecified.md` and `traceability.md`;
+  2. the four-persona review, saved verbatim to `docs/reviews/paper-analysis-2026-09-27/`;
+  3. fixes, the blind-reader test, then TODO and this file updated.
+- **If this session is lost:** run `bash playground/paper/fetch_sources.sh`, read
+  `docs/paper/README.md`, and check which deliverables exist in `docs/paper/`.

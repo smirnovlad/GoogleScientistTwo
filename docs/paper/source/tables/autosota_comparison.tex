@@ -1,0 +1,16 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{Comparison with AutoSOTA.} We report the number of tasks successfully done by each framework, and performance gain (\%) across successful cases. For NeurIPS 2025 and ICLR 2026, evaluations use the same set of 33 and 4 input papers, respectively. Bold indicates the best score.}\label{tab:vs_autosota}
+% \vspace{-0.1in}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+& \multicolumn{3}{c}{\textbf{Overall}} & \multicolumn{2}{c}{\textbf{NeurIPS 2025}} & \multicolumn{2}{c}{\textbf{ICLR 2026}}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+\textbf{Framework} & \multicolumn{1}{c}{\textbf{\# Papers}} & \multicolumn{1}{c}{\textbf{Med. Gain}} & \multicolumn{1}{c}{\textbf{Avg. Gain}} & \multicolumn{1}{c}{\textbf{Med. Gain}} & \multicolumn{1}{c}{\textbf{Avg. Gain}} & \multicolumn{1}{c}{\textbf{Med. Gain}} & \multicolumn{1}{c}{\textbf{Avg. Gain}} \\
+\midrule
+AutoSOTA \citep{li2026autosota} & 105 & 2.7 & \phantom{0}7.5 & 3.7 & \phantom{0}8.5 & \textbf{5.0} & \textbf{7.2}\\
+\rowcolor{Gray}\textbf{\sname~(Ours)} & \phantom{0}86 & \textbf{7.7} & \textbf{25.2} & \textbf{7.0} & \textbf{13.9} & 2.2 & 3.8 \\
+\bottomrule
+\end{tabular}}
+\end{table}
