@@ -2,7 +2,7 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. The setup behind every §4.1 number: 107 problems, "Gemini 3.6 Flash and Claude Opus 4.8" unless stated otherwise, SP as "an in-distribution evaluation" and SAR as "a held-out evaluator" [§4 "Common Setup"] (tex:sections/4_experiment.tex:5).
 
-Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; closure corrections on 2026-09-28, from `closure-evaluation-integrity-engineer.md` and `closure-research-engineer.md` in the same folder [ours].
+Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; closure corrections on 2026-09-28, from `closure-evaluation-integrity-engineer.md` and `closure-research-engineer.md` in the same folder; and Codex review corrections on 2026-09-28, from `codex-review.md` in the same folder [ours].
 
 ### C-MAIN-1 · SP: 91.9% acceptance, rating 7.5 against ScientistOne's 3.8
 
@@ -74,7 +74,7 @@ Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of 
 - Check: on ICLR, S2's mean is 47% below AutoSOTA's (3.8 vs 7.2) and its median 56% below (2.2 vs 5.0), which is not a slight drop [Tab. 4] [ours].
 - Check, S2's own ICLR cells (F-CL-3): Tab. 16 prints two of S2's four gains as relative numbers, DMSQD +0.61% and T-SAE +3.4%; for a median of 2.2 and a mean of 3.8 the two unprinted gains must be 0.90–1.09% and 9.90–10.48%, and Pinet's printed results (RS up to −69%, CV 4e−4 → 2e−14, training 3.0× faster) hold nothing near 10%, so S2's ICLR cells cannot be rebuilt from the paper (`claims_arithmetic.py` prints the two ranges; the reviewer's `s2_iclr.py` finds the same solutions, printed as one range per unknown, 0.90–10.48%) [Tab. 16] [ours].
 - Falsified by: both systems run on the same tasks and hardware under one gain rule [ours].
-- Assessment [ours]: only NeurIPS is a shared pool, and it keeps only S2's successes, dropping S2's 5 NeurIPS failures for both systems; App. B itself says such deltas are "not a head-to-head" (A-EVAL-7). S2's gains are also measured on the data its search selected on, a winner's-curse inflation no reported variance can size (P-EVAL-2 in claims.md), while AutoSOTA's are self-reported under its own rules.
+- Assessment [ours]: both venue pools are shared, the 33 NeurIPS and the 4 ICLR papers S2 completed (TeCh excluded), and only the overall pools differ (86 against 105); the shared pools keep only S2's successes, dropping S2's 5 NeurIPS failures and TeCh for both systems [Tab. 4]. What limits the venue comparisons is the measurement, not the pool: each delta is self-reported against its own system's reproduced baseline, the metrics differ for Pinet and T-SAE among the four shared ICLR papers, and App. B itself says such deltas are "not a head-to-head" (A-EVAL-7) [Tab. 16]. S2's gains are also measured on the data its search selected on, a winner's-curse inflation no reported variance can size (P-EVAL-2 in claims.md), while AutoSOTA's are self-reported under its own rules.
 
 ### C-MAIN-9 · AutoSOTA's five ICLR changes are small configuration edits
 

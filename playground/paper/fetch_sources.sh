@@ -25,6 +25,9 @@ UA="Mozilla/5.0 (paper replication; source fetch)"
 SHA_SRC="60e05f1188a289bc1ec1fd44f1432b7b2dc4d910effb502dc272953924822980"
 SHA_PDF="98fb7802ec28beea159895a3de219307e019867b16296dfe4a79e68daaef9a17"
 SHA_HTML="23f93180ac10e5b4e1cbdf9f1e532aa80c33351b7968345752ec7c6d12925aa3"   # fetched 2026-09-27
+# The one line of docs/paper/source/ that differs from the archive: main.tex line 46, whose
+# e-mail addresses this public repository must not hold. It is checked to be exactly this text.
+REDACTED_46='\correspondingauthor{[redacted in this copy: two e-mail addresses; see the arXiv original]}'
 
 mkdir -p "$CACHE"
 cd "$CACHE"
@@ -69,6 +72,12 @@ while IFS= read -r -d '' committed; do
   if [[ "$rel" == "main.tex" ]]; then
     diffs="$(diff <(sed '46d' "src/$rel") <(sed '46d' "$committed") || true)"
     [[ "$(wc -l < "src/$rel")" == "$(wc -l < "$committed")" ]] || diffs="line count differs"
+    # Excluding line 46 from the diff is not enough: anything could sit there, the original
+    # addresses included. So the archive's line 46 must be the line redacted, and ours the redaction.
+    [[ "$(sed -n 46p "src/$rel")" == '\correspondingauthor{'* ]] \
+      || diffs="${diffs}${diffs:+$'\n'}the archive's line 46 is not the \\correspondingauthor line"
+    [[ "$(sed -n 46p "$committed")" == "$REDACTED_46" ]] \
+      || diffs="${diffs}${diffs:+$'\n'}line 46 is not the expected redaction (its text is not printed: it may hold an address)"
   else
     diffs="$(diff "src/$rel" "$committed" || true)"
   fi

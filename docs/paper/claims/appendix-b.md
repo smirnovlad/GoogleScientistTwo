@@ -2,7 +2,7 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. App. B runs S2 "on the same five ICLR 2026 submissions (Table 13) that AutoSOTA reports" [App. B] (tex:sections/appendix.tex:194-195); every number here concerns those five tasks, Pinet, DMSQD, TeCh, T-SAE and RALI [Tab. 16].
 
-Revised 2026-09-27 after the persona review: fix F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+Revised 2026-09-27 after the persona review: fix F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; Codex review corrections on 2026-09-28, from `codex-review.md` in the same folder [ours].
 
 **How the numbers were made.** Each side's delta "is self-reported by each system against its own reproduced baseline" [Tab. 16] (tex:sections/appendix.tex:263), "on different hardware" [App. B] (tex:sections/appendix.tex:202); none of the deltas carries a run count, and the two ± values do not say what they range over [ours].
 
@@ -65,7 +65,8 @@ Revised 2026-09-27 after the persona review: fix F-CL-3 of `docs/reviews/paper-a
 - Claim: S2's DisCoRe-IQA, trained on KonIQ only and tested on "full splits of all 7 datasets (6 zero-shot): PLCC +0.006, SRCC +0.008", with "content probe 0.935 → 0.130; worst-region hit rate 0.899" [Tab. 16] (tex:sections/appendix.tex:320-322).
 - Claim: "an earlier variant was rejected by our own critic as statistically inert" [Tab. 16] (tex:sections/appendix.tex:324-325).
 - Checks: 0.8012 / 0.7803 = 1.0268, +2.68% ✓ [ours]; S2's PLCC +0.006 is absolute, about +0.8% relative if the baseline is near AutoSOTA's 0.78 [Tab. 16] [ours; the baseline level is our assumption].
-- Assessment [ours]: "statistically inert" implies a significance test inside the critic that §3 never states (engine side: analysis.md, SUB and FULL) [§3.2].
+- Assessment [ours]: "statistically inert" is a critic's verdict worded as a statistical one. No page shows a test, and the one run the appendices show in full uses seed=0, with Procrustes-DS reusing that single checkpoint (image) [p. 40]; so whether any critic runs a test is unknown, and so is which critic rejected the variant (artifacts.md A-ART-13; engine side: analysis.md, SUB and FULL) [Tab. 16] [§3.2].
+- Withdrawn reading [ours]: this entry first said the phrase *implies a significance test inside the critic*; that went beyond the evidence, since the phrase shows only a critic's judgement, and analysis.md withdraws the same inference (Codex review) [Tab. 16].
 
 ### C-APPB-10 · "Not a head-to-head"
 

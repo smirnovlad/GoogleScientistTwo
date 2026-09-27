@@ -50,5 +50,7 @@ for t in (6, 7, 8):
             print(f"   {lab:22s} INFEASIBLE (mean cannot be reached)")
         else:
             s = math.sqrt(best)
-            flag = "CONTRADICTS" if s >= sd + 0.05 else "ok"
+            # A minimum SD below the printed one is necessary, not sufficient: "not ruled out" is not
+            # "feasible" (S2 ICLR at t = 7 passes this bound, yet needs all four ratings at 7, SD 0).
+            flag = "CONTRADICTS" if s >= sd + 0.05 else "not ruled out by this bound"
             print(f"   {lab:22s} min pop SD {s:5.2f} vs printed {sd} (<{sd+0.05:.2f})  {flag}")
