@@ -75,3 +75,46 @@ All seven [P2] findings were fixed before the PR. None was dismissed.
 7. **The shared pools** (`claims/main-results.md` and `claims.md`). Both venue pools are shared,
    and only the overall pools differ. The comparability caveats stay, recast as limits of
    measurement.
+
+---
+
+## Second pass (2026-09-28), on commit `28100fc`
+
+Same tool and settings. **Gate: PASS** (no [P1]; five [P2], all in `check_citations.py`). Verbatim, with paths shortened as above:
+
+The committed checks and self-tests pass, and the pinned source hashes and exact redaction match. However, targeted tests expose remaining citation false passes and an empty-quotation crash; the note-isolation and complete-location fixes are incomplete.
+
+Full review comments:
+
+- [P2] Restrict note matches to explicitly identified note quotations — playground/paper/check_citations.py:236-237
+  In `note-check.md`, an N-claim ID enables the note corpus for the entire row, including its Evidence cell. A row containing `The paper requires "Self-contained scripts plus an LLM validation filter" [§4.2]` passes, although those words occur only in the note. Even prose beginning `The paper notes...` enables this exception through the substring check. Separate note quotations from paper evidence rather than granting the whole unit access to both corpora; otherwise the original isolation fix remains incomplete under [CLAUDE.md:17–19](CLAUDE.md#L17-L19).
+
+- [P2] Validate the remaining locations inside each citation tag — playground/paper/check_citations.py:193-197
+  The new inventory check validates only the leading location and, optionally, the first equation. Both `[Tab. 1–999]` and `[§3.2, Fig. 999]` return zero problems because the remaining text is ignored. Thus nonexistent targets still pass despite the recorded fix for complete-tag validation. Parse and validate every structured location or range endpoint before accepting an explanatory suffix, preserving the paper-location requirement in [CLAUDE.md:17–19](CLAUDE.md#L17-L19).
+
+- [P2] Bind reference quotations to the validated source identity — playground/paper/check_citations.py:210-218
+  Any raw `[Ref:` substring unlocks every cached reference. Consequently, the ScientistOne quotation `"We run each evaluator five times"` passes with `[Ref: jiang2026incremental §999]`, an unrelated bibliography entry. It also passes as a ScientistTwo quotation when the paragraph merely includes the code example `` `[Ref:]` ``. Derive permitted corpora from validated, non-code reference tags or anchors and match their source identities, rather than using one pooled corpus. This preserves the primary-source attribution required by [CLAUDE.md:17–19](CLAUDE.md#L17-L19).
+
+- [P2] Handle empty quotations before splitting their contents — playground/paper/check_citations.py:213-215
+  A legitimate statement such as `An empty result is represented as "" [ours].` crashes the checker with `TypeError` instead of passing the short-quotation exemption. For an empty straight-quoted match, group 1 is an empty string and group 2 is `None`, so the `or` expression supplies `None` to `re.split`. Select the participating group using an explicit `is not None` check and cover empty straight and curly quotations in the self-test.
+
+- [P2] Enforce the declared source root for citation anchors — playground/paper/check_citations.py:243-246
+  Anchor paths allow `..`, but joining them to `SOURCE` does not enforce containment. With the fetched cache present, `tex:../../../.cache/refs/2605.26340v1/src/sections/06a_setup.tex:10` passes as a paper-source anchor even though it points into ScientistOne. Resolve targets and require containment under the appropriate source root before checking existence and line bounds; apply the same restriction to reference anchors. Otherwise the primary-source boundary in [CLAUDE.md:17–19](CLAUDE.md#L17-L19) can be bypassed.
+
+### Outcome of the second pass
+
+All five were fixed. Two of them showed that first-pass fixes were incomplete.
+
+1. **The note, again.** It now counts only in the claim cell of an N- row, or in a heading of
+   `note-check.md`. The evidence cells of the same rows are excluded, and so is any unit that
+   merely contains "note".
+2. **Every location in a tag.** Both ends of a range are checked, and so is every further
+   location after the first, such as `, Fig. 5`. Names in quotes are titles, not locations.
+3. **References bound to their source.** A `[Ref: key …]` tag must name a key whose `main.bib`
+   entry gives the arXiv id of a cached source. Its § or App. must exist in that source's own
+   TeX, and only that source's text can match a quote. A `[Ref:]` shown as code unlocks nothing.
+4. **Empty quotes** no longer crash the checker.
+5. **Anchors** must resolve inside `docs/paper/source/`, or inside their reference's `src/`.
+
+**Tests.** The self-test grows to 37 cases, among them one planted defect for each finding
+above. The documents pass unchanged: 18 files, 0 problems.

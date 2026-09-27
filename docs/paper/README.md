@@ -64,9 +64,11 @@ specification by reference, and it is read, not guessed.
 
   - Cite it as `[Ref: meng2026scientistone §5]`, with an anchor
     `(ref:2605.26340v1:sections/05_coe_audit.tex:25-26)`.
-  - The checker verifies such anchors. It accepts a quote from the delegated source only in a
-    unit (a paragraph, a list item or a table row) that carries the `[Ref: …]` tag or a `ref:`
-    anchor, so a borrowed sentence never passes as ScientistTwo's.
+  - **The checker verifies such anchors.** It accepts a quote from the delegated source only
+    in a unit (a paragraph, a list item or a table row) that cites that very source: by its
+    `ref:` anchor, or by a `[Ref: key …]` tag whose key's `main.bib` entry gives the source's
+    arXiv id. The section or appendix the tag names must exist in that source. So a borrowed
+    sentence never passes as ScientistTwo's, nor as another reference's.
 - **Only what the paper delegates.** Read a delegated source for the part ScientistTwo hands to it,
   and say so: "specified by reference". Everything else in it is a reuse candidate for TODO task 4,
   not a specification.
@@ -123,8 +125,9 @@ Every statement in these documents carries its location. The checker enforces it
     - a page, in the PDF;
     - an equation or a footnote, in the TeX;
     - a key, in `main.bib`.
-    So `[§999.999]` fails, and so does an unclosed tag. A tag written as code, in backticks, is an
-    example and not a citation.
+    Every location in a tag is checked: both ends of a range, and a second location such as
+    `[§3.3, Eq. 4]`. So `[§999.999]` fails, and so does `[Tab. 1–99]` or an unclosed tag. A
+    tag written as code, in backticks, is an example and not a citation.
   - The PDF numbers four equations, all in §3: Eq. 1, the engine (P+, C+) = A(G) [§3];
     Eq. 2, the unified coder A_Coder [§3.2]; Eq. 3, the round's traces R_k [§3.3]; Eq. 4, the
     Selector [§3.3]. Cite one with its section: `[§3.3, Eq. 3]`. (An earlier version of this
@@ -136,9 +139,9 @@ Every statement in these documents carries its location. The checker enforces it
 - **Quote exactly,** in double quotes, and keep quotes short: a clause, never a paragraph.
   - The checker looks for every quote of five or more words in the TeX and the PDF text. It
     matches within a whole paragraph, list item or table row, so a quote may wrap across lines.
-  - **A quote of the initial note counts only in `note-check.md`,** in a unit that names its
-    N- claim or the note, or in a heading. Anywhere else the note's words would pass as the
-    paper's.
+  - **A quote of the initial note counts only in `note-check.md`,** in the claim cell of an
+    N- row, or in a heading. Anywhere else, the evidence cells of the same rows included, the
+    note's words would pass as the paper's.
   - Where math makes the TeX unquotable, quote the PDF's wording, or paraphrase and say so:
     `(paraphrase)`.
 - **Content that is only in an image** (a diagram's arrows, a plot's values) is marked `(image)`,
