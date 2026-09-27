@@ -173,6 +173,7 @@ listed for it, so that parallel writers never collide.
 | `DRAFT`, `PEER`, `META` | §3.5 initial drafting; review–rebuttal loop; §3.6 meta-review | analysis.md |
 | `INT` | integrity mechanisms in the pipeline (§4.2 "CoE Integrity Audit") | analysis.md |
 | `CFG`, `ROSTER` | App. A.2 configuration and loop limits; the agent roster and model routing | analysis.md |
+| `STATE` | the data objects that cross stages: the ideas, the traces, the codebase versions, the core state | analysis.md |
 | `MAIN`, `ABLX`, `DISC`, `APPB`, `HEAD` | claims of §4.1, §4.2, §4.3, Appendix B, and the abstract, introduction, teaser and conclusion | claims.md |
 | `EVAL`, `BENCH`, `COST` | how the paper measures (reviewers, gains, success); the benchmark (App. A.1); cost | claims.md |
 | `ART` | what Appendices C–D show | artifacts.md |
