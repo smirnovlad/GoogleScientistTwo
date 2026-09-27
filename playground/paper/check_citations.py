@@ -133,7 +133,8 @@ def default_files() -> list[Path]:
     names = ["analysis.md", "traceability.md", "unspecified.md", "claims.md", "note-check.md",
              "artifacts.md"]
     files = [PAPER / n for n in names if (PAPER / n).exists()]
-    return files + sorted((PAPER / "stages").glob("*.md"))
+    # Documents split into a folder keep their parts there (README: "Keep a file under about 600 lines").
+    return files + sorted((PAPER / "stages").glob("*.md")) + sorted((PAPER / "claims").glob("*.md"))
 
 
 def selftest() -> int:
