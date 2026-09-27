@@ -2,7 +2,7 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. The setup behind every §4.1 number: 107 problems, "Gemini 3.6 Flash and Claude Opus 4.8" unless stated otherwise, SP as "an in-distribution evaluation" and SAR as "a held-out evaluator" [§4 "Common Setup"] (tex:sections/4_experiment.tex:5).
 
-Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; closure corrections on 2026-09-28, from `closure-evaluation-integrity-engineer.md` and `closure-research-engineer.md` in the same folder [ours].
 
 ### C-MAIN-1 · SP: 91.9% acceptance, rating 7.5 against ScientistOne's 3.8
 
@@ -11,7 +11,7 @@ Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of 
 - Sample: S2's 86 papers on its own successful tasks; for each baseline "the number of publicly released AI-generated papers" (7, 6, 3, 4, 2, 3, 21), released by each agent's authors rather than run by this paper on the 107 tasks [Tab. 2] (tex:tables/ai_scientist_comparison.tex:3) [inferred].
 - Produced by: SP scoring each paper; the acceptance rule is undefined (A-EVAL-3) [Tab. 2].
 - Checks: 91.9% of 86 is 79 papers and 14.3% of 21 is 3 ✓; 7.5 / 3.8 = 1.97, "nearly doubling" ✓ [Tab. 2] [ours].
-- Checks on the acceptance rule (F-CL-1): if a paper is accepted when the rating the table averages is 8 or more, S2's ICLR row (4 of 4 accepted at a mean of 7.0) is impossible outright [Tab. 3], and 9 of the other 10 SP rows with acceptances fail the minimum-SD test, this row among them (79 of 86 at a mean of 7.5 forces an SD of at least 1.51 against a printed 1.3) [Tab. 2] [ours].
+- Checks on the acceptance rule (F-CL-1): if a paper is accepted when the rating the table averages is 8 or more, S2's ICLR row (4 of 4 accepted at a mean of 7.0) is impossible outright [Tab. 3], and 9 of the other 10 SP rows with acceptances fail the minimum-SD test, this row among them (79 of 86 at a mean of 7.5 forces an SD of at least 1.51 against a printed 1.3); one of the nine, S2 NeurIPS, counts only by a hair under the population SD (1.7502 against below 1.75) and by 0.027 under the sample SD that P-EVAL-4 favours (1.78) [Tab. 2] [ours].
 - What fits instead [inferred]: with one integer rating per paper and the sample SD, only a threshold of 6 fits all 11 rows (`claims_arithmetic.py`, re-running `sp_integer.py`); if SP averages several reviews and accepts by majority, neither result holds (A-EVAL-3) [Tab. 3].
 - Falsified by: re-scoring the same papers with SP and getting materially different numbers [ours].
 - Assessment [ours]: in-distribution by the paper's own account, since S2's drafts are revised until SP scores 8 [App. A.2] and the baselines' are not; strong but expected.

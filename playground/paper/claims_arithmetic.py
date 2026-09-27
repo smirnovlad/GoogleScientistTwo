@@ -197,19 +197,30 @@ def min_sd_accept_at(t, n, m, k):
 
 
 section("F-CL-1: 'accept <=> rating >= 8' against all 11 ScholarPeer rows with acceptances")
-ruled_out = 0
+# The bound is the infimum over the printed mean's rounding interval, reached at its upper limit; the
+# sample SD (ddof = 1) of the same ratings is the population SD times sqrt(n / (n - 1)).
+ruled = {"population": 0, "sample": 0}
 for label, n, mean, sd, k in SP_ROWS:
-    sds = [s for s in (min_sd_accept_at(8, n, m, k) for m in (mean - 0.05, mean + 0.0499)) if s is not None]
-    if not sds:
-        verdict = f"impossible: {k} of {n} accepted at >= 8 needs a mean >= 8, printed {mean}"
-        ruled_out += 1
-    else:
-        smallest = min(sds)
-        bad = smallest >= sd + 0.05
-        ruled_out += bad
-        verdict = f"smallest SD {smallest:.2f} vs printed {sd} (below {sd + 0.05:.2f}): {'rules out >= 8' if bad else 'allows >= 8'}"
-    print(f"  {label:36s} {verdict}")
-print(f"  rows that rule out '>= 8': {ruled_out} of {len(SP_ROWS)}")
+    pops = [s for s in (min_sd_accept_at(8, n, m, k) for m in (mean - 0.05, mean + 0.05)) if s is not None]
+    if not pops:
+        for convention in ruled:
+            ruled[convention] += 1
+        print(f"  {label:36s} impossible: {k} of {n} accepted at >= 8 needs a mean >= 8, printed {mean}")
+        continue
+    pop = min(pops)
+    bounds = (("population", pop), ("sample", pop * math.sqrt(n / (n - 1))))
+    limit = sd + 0.05
+    for convention, value in bounds:
+        ruled[convention] += value >= limit
+    margins = {c: v - limit for c, v in bounds}
+    if label == "Tab.3 S2 NeurIPS":
+        edge = margins
+    shown = ", ".join(f"{c} {v:.4f} {'rules out' if v >= limit else 'allows'}" for c, v in bounds)
+    print(f"  {label:36s} smallest SD: {shown}; printed {sd}, so below {limit:.2f}")
+print(f"  rows that rule out '>= 8': population SD {ruled['population']} of {len(SP_ROWS)}, "
+      f"sample SD {ruled['sample']} of {len(SP_ROWS)}")
+print(f"  knife edge: S2 NeurIPS rules it out by {edge['population']:.4f} under the population SD, "
+      f"by {edge['sample']:.4f} under the sample SD")
 with contextlib.redirect_stdout(io.StringIO()):          # the reviewer's script prints on import
     sp = runpy.run_path(str(REVIEW / "sp_integer.py"))
 for sample in (True, False):
@@ -228,6 +239,9 @@ for i in range(0, 3001):         # the two unprinted gains (RALI, Pinet), smalle
             pairs.append((i / 100, j / 100))
 small, large = [p[0] for p in pairs], [p[1] for p in pairs]
 print(f"  the unprinted gains must be {min(small):.2f}-{max(small):.2f}% and {min(large):.2f}-{max(large):.2f}%")
+rali = (100 * 0.0055 / 0.7803, 100 * 0.0065 / 0.7803)   # RALI's PLCC +0.006 on AutoSOTA's printed 0.7803
+print(f"  RALI's printed PLCC gain is {rali[0]:.2f}-{rali[1]:.2f}%, outside that range: with Pinet above 3.4 the "
+      f"median is {(rali[0] + 3.4) / 2:.2f}-{(rali[1] + 3.4) / 2:.2f}, not 2.2, so no Pinet value fits")
 print("  Pinet's printed S2 results: RS lower on 3/4 (up to -69%), CV 4e-4 -> 2e-14, training 3.0x faster")
 
 section("F-CL-5, F-CL-7, F-CL-8, F-CL-9, F-CL-10")

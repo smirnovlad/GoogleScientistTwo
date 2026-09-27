@@ -2,7 +2,7 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours].
 
-Revised 2026-09-27 after the persona review: fixes F-CL-4, F-CL-5, F-CL-6, F-CL-8 and F-CL-11 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+Revised 2026-09-27 after the persona review: fixes F-CL-4, F-CL-5, F-CL-6, F-CL-8 and F-CL-11 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; closure corrections on 2026-09-28, from `closure-evaluation-integrity-engineer.md` and `closure-research-engineer.md` in the same folder [ours].
 
 **Scope of every §4.2 number.** §4.2 evaluates "on the 49 target problems sourced from ICML 2026 Spotlight papers" [§4.2] (tex:sections/4_experiment.tex:25), which are exactly S2's ICML successes, 49 of 64 [Tab. 3]. Every ablation is therefore conditioned on the full system succeeding, and none reports a seed or a spread across runs (U-EVAL-4) [ours]. The exceptions are Tab. 6, one task, and Tab. 8, five ICLR tasks [Tab. 6] [Tab. 8].
 
@@ -70,7 +70,7 @@ Revised 2026-09-27 after the persona review: fixes F-CL-4, F-CL-5, F-CL-6, F-CL-
 - Checks: method–code alignment goes 39/50 → 38/49 (the removed paper was aligned) → 49/49, so the last agent fixed 11 papers; about 37 references per paper [Tab. 7] [ours].
 - Falsified by: an independent re-audit of the 49 repositories finding a violation [ours].
 - What Score Verif. shows (F-CL-11) [ours]: Tab. 7's first row passes a reward-hacked codebase, 50/50 on Score Verif. with 1/50 specification violations, the codebase that "contains reward hacking" [fn. 2] (tex:sections/4_experiment.tex:43); so the check, as run, shows the code is deterministic, not that its number is valid [Tab. 7].
-- The delegated protocol re-runs on a fixed evaluator: ScientistOne's I1 compares with "scores obtained by re-running the submitted solution on the golden evaluator" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:25-26); ScientistTwo's tasks name no such evaluator (U-EVAL-5).
+- The delegated definition re-runs the solution on a golden evaluator: ScientistOne's I1 compares with "scores obtained by re-running the submitted solution on the golden evaluator" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:25-26); ScientistTwo's tasks name no such evaluator (U-EVAL-5).
 - Assessment [ours]: internally consistent, but a check of determinism rather than validity (above); whether the variants are separate runs or stages switched off in one run is not said; it covers 49 of 86 successes; and the pipeline's own fix uses "the Coding Agent audits the repository against the manuscript" [§4.2] (tex:sections/4_experiment.tex:43), so if Tab. 7's auditor is the same kind of agent, 49/49 is in-distribution.
 
 ### C-ABLX-8 · Another coding agent still works (Tab. 8)
