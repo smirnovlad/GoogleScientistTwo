@@ -121,24 +121,62 @@ load-bearing claims against the PDF myself):
 - **`analysis.md`: its first run stalled** on a stream watchdog (a single very long write). It
   was resumed with its context, and told to write in chunks of at most about 120 lines.
 
-## HANDOFF, 2026-09-27 (task 1 in progress)
+**The review, and what it changed.** Six persona reviews ran in two waves, each through one lens,
+and each is saved verbatim in `docs/reviews/paper-analysis-2026-09-27/`:
+- research engineer, twice;
+- evaluation-integrity engineer, twice;
+- agent engineer;
+- system architect.
+
+They raised one blocker, and many overlapping majors. The blocker: `analysis.md` concluded that
+Listing 1 is "a family resemblance, not a contract". Every way a stage departs from Listing 1 is
+a parameter value, and the paper says it abstracts every stage with it. That conclusion would have
+pushed the design towards one loop per stage, the monolith this project rules out.
+
+Facts the reviews established, each checked here against its source:
+- **Table 7's integrity audit is ScientistOne's, by reference.** Its protocol (five runs of a golden
+  evaluator, an adaptive tolerance, a majority of three of five judges) is quoted from ScientistOne
+  v1's TeX. That protocol assumes each task "provides a fixed evaluator"; ScientistTwo's tasks
+  provide none, and the agents' own scripts compute every metric. ScientistOne is now pinned by
+  the fetch script. The checker accepts a quote from it only on a line that cites it.
+- **ScholarPeer's reported acceptance fits only "accept if the rating is at least 6"** on every row
+  of the tables, assuming one integer rating per paper. It does not fit the threshold of 8 that
+  §3.5 calls acceptance.
+- **Every gain and success count is measured on the data the search selected on,** and nothing in
+  the paper's loop separates validation from test.
+
+`fix-list.md` merges all findings into 80 changes, each assigned to the owner of its document.
+Where the reviews disagreed, the list records how they were reconciled.
+
+**Consolidation.**
+- **`unspecified.md` is the decision register.** It merges 133 gap items into 88 questions,
+  each with the decision it forces, its owner and its priority: 27 block the design.
+- **`traceability.md` maps all 127 paper elements.** It found duplicated and missing IDs.
+- **Both come with coverage scripts** that fail on a missing or duplicated ID.
+- **The register settled six disagreements between the analyses** from the paper itself. It also
+  found that task 6 owns four blocking decisions, which must therefore come before task 3.
+
+## HANDOFF, 2026-09-27 (task 1: the fix phase)
 
 - **Done and pushed** on `claude/paper-analysis`:
-  - the sources, the brief, and the scripts in `playground/paper/`;
-  - `artifacts.md`, `note-check.md`, `claims.md` with `claims/`.
-- **Running:**
-  - the `paper-analyst` finishing `docs/paper/analysis.md`, with its stage detail in
-    `docs/paper/stages/`;
-  - wave-1 reviews of the three finished documents by `research-engineer` and
-    `evaluation-integrity-engineer`.
+  - all six deliverables in `docs/paper/`;
+  - six review records and `fix-list.md`;
+  - the checkers in `playground/paper/`, all passing on the committed state.
+- **Running:** the four original analysts applying their fixes from `fix-list.md`, each only to
+  their own documents.
 - **Next steps:**
-  1. Consolidate `unspecified.md` (merge about 120 gap items, many found twice) and
-     `traceability.md`.
-  2. Wave-2 review of the analysis by `system-architect` and `agent-engineer`.
-  3. Save every review verbatim to `docs/reviews/paper-analysis-2026-09-27/`.
-  4. Fixes, then the blind-reader quiz. The quiz and its answer key are kept out of the repository
-     until the test runs.
-  5. Tick TODO task 1, then open a PR after a `/codex` review.
-- **If this session is lost:** run `bash playground/paper/fetch_sources.sh`, read
-  `docs/paper/README.md`, and see which deliverables exist in `docs/paper/`.
-  `python3 playground/paper/check_citations.py` must print 0 problems.
+  1. Check the fixed documents against the fix list, fix by fix.
+  2. The register and traceability owners register the new IDs, and both coverage scripts pass.
+  3. The blind-reader quiz. Its questions and answer key stay out of the repository until it runs.
+  4. The orchestrator's independent reading and coverage marking go into
+     `docs/reviews/paper-analysis-2026-09-27/`.
+  5. Tick TODO task 1. Add the discovered work to `TODO.md`:
+     - task 6's four blocking decisions (A-INT-1, A-INT-3, U-NOTE-1, U-ART-16; see
+       `docs/paper/unspecified.md`) come before task 3;
+     - two of them are already settled by the integrity rules in `CLAUDE.md`.
+  6. A `/codex` review of the branch, then a PR for Vlad.
+- **If this session is lost:**
+  - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md` and
+    `fix-list.md`.
+  - Each fixed document carries a "Revised … after the persona review" line naming the fixes it
+    applied. A document without that line has not been fixed yet.
