@@ -125,9 +125,10 @@ Every statement in these documents carries its location. The checker enforces it
     - a page, in the PDF;
     - an equation or a footnote, in the TeX;
     - a key, in `main.bib`.
-    Every location in a tag is checked: both ends of a range, and a second location such as
-    `[§3.3, Eq. 4]`. So `[§999.999]` fails, and so does `[Tab. 1–99]` or an unclosed tag. A
-    tag written as code, in backticks, is an example and not a citation.
+    Every location in a tag is checked, and so is a figure's panel: both ends of a range, and a
+    second location such as `[§3.3, Eq. 4]`. So `[§999.999]` fails, and so do `[Tab. 1–99]`,
+    `[Tab. 1, 99]`, `[Fig. 9c]` and an unclosed tag. A tag written as code, in backticks, is an
+    example and not a citation.
   - The PDF numbers four equations, all in §3: Eq. 1, the engine (P+, C+) = A(G) [§3];
     Eq. 2, the unified coder A_Coder [§3.2]; Eq. 3, the round's traces R_k [§3.3]; Eq. 4, the
     Selector [§3.3]. Cite one with its section: `[§3.3, Eq. 3]`. (An earlier version of this
@@ -139,6 +140,7 @@ Every statement in these documents carries its location. The checker enforces it
 - **Quote exactly,** in double quotes, and keep quotes short: a clause, never a paragraph.
   - The checker looks for every quote of five or more words in the TeX and the PDF text. It
     matches within a whole paragraph, list item or table row, so a quote may wrap across lines.
+    In a quote cut with "..." or "[...]", every fragment must be found, however short.
   - **A quote of the initial note counts only in `note-check.md`,** in the claim cell of an
     N- row, or in a heading. Anywhere else, the evidence cells of the same rows included, the
     note's words would pass as the paper's.

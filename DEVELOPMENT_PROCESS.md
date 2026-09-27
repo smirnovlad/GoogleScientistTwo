@@ -229,20 +229,49 @@ four reports are kept verbatim as `closure-*.md`.
 - **All three defects it found are fixed.** The quiz, the marking and the answers are in
   `docs/reviews/paper-analysis-2026-09-27/blind-reader-quiz.md` and `blind-reader-answers.md`.
 
-## HANDOFF, 2026-09-28 (task 1 done; next, the /codex review and the PR)
+**The Codex review of the branch.** The parent `CLAUDE.md` requires a `/codex` review before a PR.
+- **Setup.** The configured Codex model was refused for this account (`gpt-6-sol`), so the review
+  ran on `gpt-6-astra`, the model of the earlier config, passed with `-c` for these runs only.
+- **Three passes gated PASS,** with no [P1], and raised 16 findings at [P2] (7, 5 and 4). Each
+  pass, its verdict and its fixes are recorded verbatim in
+  `docs/reviews/paper-analysis-2026-09-27/codex-review.md`.
+- **The first pass found three false passes in the citation checker:**
+  - a location that does not exist, such as `[§999.999]`;
+  - a fabricated quote wrapped across two lines;
+  - the initial note's wording, which passed as the paper's.
+- **It also found three more:**
+  - a redaction check that would not have noticed the e-mail addresses coming back;
+  - a reviewer's script that called an infeasible row "ok";
+  - two claims that contradicted the rest of the analysis.
+- **The second pass found that two of those fixes stopped short,** and three more gaps: any
+  `[Ref:` text unlocked every cached source; an empty quote crashed the checker; an anchor could
+  climb out of its folder.
+- **The third pass found smaller edge cases:** a bare number after a location, a figure panel
+  that does not exist, a fabricated fragment inside a quote cut with an ellipsis, and a false
+  failure on page tags.
+- **All were fixed.** The checker now verifies every location and figure panel a tag names, and
+  binds `[Ref: key]` to that key's own cached source. Its self-test grew from 11 cases to 46.
+  The documents passed the stricter checker unchanged.
+- **The stopping rule was set before the third pass:** fix any [P1] before the PR, and fix
+  further [P2] edge cases when cheap. No pass can settle whether a cited location supports its
+  statement. That remains the job of the persona reviews and the blind reader.
 
-- **Done and pushed** on `claude/paper-analysis`: TODO task 1, ticked in `TODO.md` with its proof.
+## HANDOFF, 2026-09-28 (task 1 done; next, the PR)
+
+- **Done and pushed** on `claude/paper-analysis`:
+  - TODO task 1, ticked in `TODO.md` with its proof;
+  - the Codex review's fixes.
 - **All checks pass:**
-  - `check_citations.py`: 18 files, 0 problems;
-  - `register_coverage.py` and `trace_coverage.py`: 0 problems each;
-  - `claims_arithmetic.py`: exits 0.
+  - `check_citations.py`: 18 files, 0 problems, and its self-test's 46 cases;
+  - `register_coverage.py` and `trace_coverage.py`: 0 problems each, with their self-tests;
+  - `claims_arithmetic.py`: exits 0;
+  - `fetch_sources.sh`: the sources match their sha256, and the redaction is exact.
 - **Next steps:**
-  1. A `/codex` review of the branch against `main`, as the parent `CLAUDE.md` requires. Report
-     its blockers to Vlad before the PR.
-  2. A PR for Vlad. Merge to `main` only with his approval.
-  3. Then task 2 (requirements), and task 6's `P0` part (the four blocking decisions) before
+  1. A PR for Vlad, with the Codex verdict in its description. Merge to `main` only with his
+     approval.
+  2. Then task 2 (requirements), and task 6's `P0` part (the four blocking decisions) before
      task 3.
 - **If this session is lost:**
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
-  - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`:
-    its last section records the outcome of every fix.
+  - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
+    whose last section records the outcome of every fix, and from `codex-review.md`.

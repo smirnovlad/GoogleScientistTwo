@@ -118,3 +118,50 @@ All five were fixed. Two of them showed that first-pass fixes were incomplete.
 
 **Tests.** The self-test grows to 37 cases, among them one planted defect for each finding
 above. The documents pass unchanged: 18 files, 0 problems.
+
+---
+
+## Third pass (2026-09-28), on commit `6e52d54`
+
+Same tool and settings. **Gate: PASS** (no [P1]; four [P2], all in `check_citations.py`). Verbatim, with paths shortened as above:
+
+The existing checks and all 37 citation self-tests pass, and the pinned source hashes and exact redaction match. However, targeted tests expose three remaining citation/quotation false passes and a valid-citation false failure.
+
+Full review comments:
+
+- [P2] Reject unparsed locations in citation suffixes — playground/paper/check_citations.py:239-243
+  Both `[Tab. 1, 99]` and `[§3.2, Eq. 4, 99]` return zero problems because the suffix scanner ignores numbers without a repeated location prefix. `[§3.2, Fig.]` also passes. The second-pass complete-tag fix therefore still accepts nonexistent or incomplete citations, contrary to the paper-location requirement in [CLAUDE.md:17–19](CLAUDE.md#L17-L19). Parse the entire structured suffix, or reject unconsumed location syntax.
+
+- [P2] Validate figure panels before removing their suffixes — playground/paper/check_citations.py:230-231
+  `[Fig. 9c]` passes although Figure 9 has only panels (a) and (b); the backwards range `[Fig. 9b–9a]` also passes. Removing the suffix before checking existence and ordering makes any panel letter valid whenever its parent figure exists. Preserve and validate panel identities so panel-level citation mistakes are caught under the location requirement in [CLAUDE.md:17–19](CLAUDE.md#L17-L19).
+
+- [P2] Check short fragments within long ellipsized quotations — playground/paper/check_citations.py:306-308
+  `It says "If performance is substantially inferior [...] the critic always approves" [§3.2].` returns zero problems: the first fragment exists, but the fabricated four-word conclusion is skipped. Applying the five-word exemption separately to fragments leaves substantial portions of long quotations unchecked, contrary to the [quotation convention](docs/paper/README.md#L139-L141). Apply the length threshold to the complete quotation, then verify every nonempty fragment.
+
+- [P2] Normalize plural page tags before inventory lookup — playground/paper/check_citations.py:240-242
+  A valid combined citation such as `[§3.2, pp. 7–8]` fails with `no such location`, while `[§3.2] [pp. 7–8]` passes. The inventory contains `p.`, not `pp.`, so this membership check rejects plural page tags before `locations_ok()` can normalize them. Normalize the kind before testing inventory membership.
+
+### Outcome of the third pass, and where the reviews stop
+
+All four were fixed:
+1. **Unparsed text after a tag's locations** may be prose, but never a bare number or a location
+   keyword, so `[Tab. 1, 99]` and `[§3.2, Fig.]` fail. A name such as ScientistOne's "I2" still
+   passes.
+2. **Figure panels are checked.**
+   - The TeX names the panels of three figures, in the caption or the body; the panels printed
+     only in Figure 1's image are declared, with their printed labels.
+   - The TeX's figure order is matched to the PDF's captions before any panel is trusted.
+   - A panel range must run forward.
+3. **The five-word threshold applies to the whole quotation,** and then every fragment between
+   ellipses is checked.
+4. **`pp.` after a first location** is no longer a false failure.
+
+**Tests.** The self-test has 46 cases. The documents pass unchanged: 18 files, 0 problems.
+
+**The stopping rule.** It was set before this pass ran: fix any [P1] before the PR, and fix
+further [P2] edge cases when cheap, or record them. All passes gated PASS, and every finding was
+fixed. A fourth pass could still find regex edge cases.
+
+**What no pass can settle.** The checker verifies that every cited location, anchor and quote
+exists. It cannot tell whether the location supports the statement. That is the job of the six
+persona reviews, their closure checks and the blind reader.

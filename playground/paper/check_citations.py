@@ -46,7 +46,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from float_numbering import pdf_floats  # noqa: E402  (the one reader of the PDF's float captions)
+from float_numbering import norm, pdf_floats  # noqa: E402  (the one reader of the PDF's float captions)
 
 ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
 PAPER = ROOT / "docs/paper"
@@ -63,6 +63,11 @@ LOCATION = {"§": r"\d+(?:\.\d+)?", "Tab.": r"\d+", "Fig.": r"\d+[a-z]?", "Lst."
 LOCATION_TOKEN = re.compile(r"(§|Tab\.|Fig\.|Lst\.|Eq\.|App\.|pp?\.|fn\.)\s*([^\s,;\]]+(?:\s*[–-]\s*[^\s,;\]]+)?)")
 QUOTED = re.compile(r"\"[^\"]*\"|“[^”]*”")
 NOTE_ROW = re.compile(r"^\|\s*N-\d+\s*\|((?:\\\||[^|])*)\|")   # the claim cell of a note-check row
+# What a tag may leave unparsed after its locations: prose, never a bare number or a location keyword.
+UNPARSED_LOCATION = re.compile(r"(?<![\w.])\d+(?!\w)|§|\b(?:Tab|Fig|Lst|Eq|App|pp?|fn)\.")
+# Panels printed only in a figure's image, which the TeX never names (read from the rendered page):
+# Fig. 1, "(a) Expanded Frontier by ScientistTwo" and "(b) Relative Gain compared to Human SOTA".
+IMAGE_PANELS = {"1": {"a", "b"}}
 OURS = re.compile(r"\[ours\]", re.I)
 ANCHOR = re.compile(r"tex:([\w./-]+\.(?:tex|bib)):(\d+)(?:-(\d+))?")
 REF_ANCHOR = re.compile(r"ref:(\d{4}\.\d{4,5}v\d+):([\w./-]+\.(?:tex|bib)):(\d+)(?:-(\d+))?")
@@ -116,7 +121,30 @@ def structure(root: Path) -> dict[str, set[str]]:
     return found
 
 
-def inventory() -> dict[str, set[str]]:
+def figure_panels(doc: str) -> dict[str, set[str]]:
+    """The panel letters of each figure, by its PDF number. The TeX names a figure's panels in its
+    caption or body, "(a)", "(b)"; panels printed only in the image are in IMAGE_PANELS. Figures are
+    numbered in source order, as LaTeX numbers them, and each caption is matched to the PDF's caption
+    of that number: if the two orders ever disagree, the panel check stops rather than guess."""
+    pdf = {label.split()[1]: norm(caption) for label, caption in pdf_floats() if label.startswith("Figure")}
+    panels, number = {}, 0
+    for env in re.finditer(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", doc, re.S):
+        caption = re.search(r"\\caption\{(.*)", env.group(1), re.S)
+        if not caption:
+            continue
+        number += 1
+        if pdf and norm(tex_to_plain(caption.group(1))) != pdf.get(str(number)):
+            raise SystemExit(f"figure {number}: the TeX and the PDF number their figures differently; "
+                             "the panel check cannot run")
+        letters = set(re.findall(r"\(([a-h])\)", env.group(1)))
+        if letters:
+            panels[str(number)] = letters
+    for figure, letters in IMAGE_PANELS.items():
+        panels.setdefault(figure, set()).update(letters)
+    return panels
+
+
+def inventory() -> dict:
     """Every location a tag may name. Sections, appendices, equations and footnotes are counted in
     the TeX as LaTeX numbers them; floats come from the PDF's own captions (float_numbering.py) and
     pages from the PDF text; keys from main.bib. Without the PDF text those kinds stay empty, and
@@ -128,6 +156,7 @@ def inventory() -> dict[str, set[str]]:
     inv["fn."] = {str(i) for i in range(1, len(re.findall(r"\\footnote\{", doc)) + 1)}
     bib = (SOURCE / "main.bib").read_text(encoding="utf-8")
     inv["Bib:"] = set(re.findall(r"@\w+\s*\{\s*([^,\s]+)\s*,", bib))   # the key may sit on the next line
+    inv["panels"] = figure_panels(doc)
     if PDF_TEXT.exists():
         pages = PDF_TEXT.read_text(encoding="utf-8").split("\f")
         count = len(pages) - (1 if not pages[-1].strip() else 0)
@@ -227,8 +256,12 @@ def locations_ok(head: str, text: str, inv: dict[str, set[str]]) -> bool:
         m = re.fullmatch(rf"\s*({pattern})(?:\s*[–-]\s*({pattern}))?\s*", item)
         if not m:
             return False
-        ends = [re.sub(r"[a-z]$", "", e) if kind == "Fig." else e for e in (m.group(1), m.group(2) or m.group(1))]
-        if not set(ends) <= inv[kind] or rank(ends[0]) > rank(ends[1]):
+        ends = [m.group(1), m.group(2) or m.group(1)]
+        for end in ends:
+            number, panel = re.fullmatch(r"(\w+?(?:\.\d+)?)([a-z]?)", end).groups() if kind == "Fig." else (end, "")
+            if number not in inv[kind] or (panel and panel not in inv["panels"].get(number, set())):
+                return False
+        if rank(ends[0]) > rank(ends[1]):
             return False
     return True
 
@@ -238,9 +271,10 @@ def further_locations_ok(rest: str, allowed: dict[str, set[str]]) -> bool:
     A name in quotes ("Common Setup") is a title, not a location."""
     rest = QUOTED.sub(" ", rest)
     for t in LOCATION_TOKEN.finditer(rest):
-        if t.group(1) not in allowed or not locations_ok(t.group(1), t.group(2), allowed):
+        kind = "p." if t.group(1) == "pp." else t.group(1)
+        if kind not in allowed or not locations_ok(t.group(1), t.group(2), allowed):
             return False
-    return True
+    return not UNPARSED_LOCATION.search(LOCATION_TOKEN.sub(" ", rest))   # [Tab. 1, 99], [§3.2, Fig.]
 
 
 def ref_ids(src: dict, key: str) -> list[str]:
@@ -303,8 +337,11 @@ def quote_problems(where: str, text: str, src: dict, note_span: tuple[int, int] 
     for m in QUOTE.finditer(text):
         quote = m.group(1) if m.group(1) is not None else m.group(2)
         note_ok = note_span is not None and note_span[0] <= m.start() < note_span[1]
-        for part in re.split(r"\.\.\.|…|\[\.\.\.\]", quote):
-            if len(part.split()) < 5:
+        parts = re.split(r"\.\.\.|…|\[\.\.\.\]", quote)
+        if sum(len(part.split()) for part in parts) < 5:   # the whole quotation, not each fragment
+            continue
+        for part in parts:
+            if not alnum(part):
                 continue
             a = alnum(part)
             if a in src["paper"] or any(a in src["refs"][r]["corpus"] for r in refs) or (note_ok and a in src["note"]):
@@ -408,6 +445,15 @@ def selftest() -> int:
         "a [Ref:] shown as code unlocks nothing": ('Tags look like `[Ref:]`, and "We run each evaluator five times" [§4.2].\n', 1, "case.md"),
         "empty straight quotes": ('An empty result is written as "" in the log [ours].\n', 0, "case.md"),
         "empty curly quotes": ("An empty result is written as “” in the log [ours].\n", 0, "case.md"),
+        "a bare number after the location": ("The table shows the whole matter [Tab. 1, 99].\n", 1, "case.md"),
+        "a bare number after a second location": ("The coder is defined there in full [§3.2, Eq. 4, 99].\n", 1, "case.md"),
+        "a location keyword with no location": ("The figure shows the whole matter [§3.2, Fig.].\n", 1, "case.md"),
+        "a panel the figure lacks": ("The panel shows the whole matter [Fig. 9c].\n", 1, "case.md"),
+        "a panel range written backwards": ("The panels show the whole matter [Fig. 9b–9a].\n", 1, "case.md"),
+        "real panels": ("The panels show the whole matter [Fig. 9a–9b] [Fig. 1b] [Fig. 10a].\n", 0, "case.md"),
+        "pages after a section": ("The section and its pages show it [§3.2, pp. 7–8].\n", 0, "case.md"),
+        "a fabricated fragment in a long quote": ('It says "If performance is substantially inferior [...] the critic always approves" [§3.2].\n', 1, "case.md"),
+        "a long quote whose fragments are real": ('It says "If performance is substantially inferior [...] baseline" [§3.2].\n', 0, "case.md"),
         "anchor climbing out of the source": ("The setup is quoted from there [§4.2] "
                                               "(tex:../../../.cache/refs/2605.26340v1/src/sections/06a_setup.tex:10).\n", 1, "case.md"),
         "reference quote and anchor": ('ScientistOne says "We run each evaluator five times" [Ref: meng2026scientistone §6] '
