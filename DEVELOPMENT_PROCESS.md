@@ -256,7 +256,7 @@ four reports are kept verbatim as `closure-*.md`.
   further [P2] edge cases when cheap. No pass can settle whether a cited location supports its
   statement. That remains the job of the persona reviews and the blind reader.
 
-## HANDOFF, 2026-09-28 (task 1 done; next, the PR)
+## HANDOFF, 2026-09-28 (task 1 done; PR #1 awaits review)
 
 - **Done and pushed** on `claude/paper-analysis`:
   - TODO task 1, ticked in `TODO.md` with its proof;
@@ -266,9 +266,11 @@ four reports are kept verbatim as `closure-*.md`.
   - `register_coverage.py` and `trace_coverage.py`: 0 problems each, with their self-tests;
   - `claims_arithmetic.py`: exits 0;
   - `fetch_sources.sh`: the sources match their sha256, and the redaction is exact.
+- **Open:** PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1), `claude/paper-analysis`
+  into `main`. Its description carries the Codex verdict. The repository has no CI yet, so no
+  checks run on it.
 - **Next steps:**
-  1. A PR for Vlad, with the Codex verdict in its description. Merge to `main` only with his
-     approval.
+  1. Vlad reviews PR #1. Merge to `main` only with his approval.
   2. Then task 2 (requirements), and task 6's `P0` part (the four blocking decisions) before
      task 3.
 - **If this session is lost:**
