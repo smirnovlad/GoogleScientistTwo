@@ -1,6 +1,6 @@
 # Integrity mechanisms in the pipeline [§4.2 "CoE Integrity Audit"]
 
-Revised 2026-09-28 after the persona review: fixes F-AN-3, F-AN-11, F-AN-12, F-AN-13 and F-17 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+Revised 2026-09-28 after the persona review: fixes F-AN-3, F-AN-11, F-AN-12, F-AN-13 and F-17 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; then the closure corrections from the `closure-*.md` reports in that folder [ours].
 
 Part of [analysis.md](../analysis.md). These are the mechanisms §4.2 adds to the engine; none of them is a Table 1 row [§4.2] [Tab. 1] [ours].
 
@@ -37,7 +37,7 @@ Each mechanism is filed under one of five fixed enforcement classes: prompt, LLM
 Table 7 evaluates integrity "following" ScientistOne, and §4.2 gives each check one clause, so ScientistOne's definition of the audit is part of the specification by reference; whether ScientistTwo's runs used ScientistOne's settings is not stated [Tab. 7] (tex:tables/ablation_audit.tex:3) [§4.2] [ours].
 
 - **I1, score verification.** The reported score is compared with "scores obtained by re-running the submitted solution on the golden evaluator", passing "within an adaptive tolerance that accounts for evaluator noise" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:25-26).
-- **I1, its settings in ScientistOne's own runs.** "We run each evaluator five times and compare against the adaptive tolerance" max(1%, 3σ/|s̄|) (paraphrase of the math), and there "Each task provides a fixed evaluator, starter code, and scoring metric" [Ref: meng2026scientistone §6.1] (ref:2605.26340v1:sections/06a_setup.tex:8) (ref:2605.26340v1:sections/06a_setup.tex:10).
+- **I1, its settings in ScientistOne's own runs.** "We run each evaluator five times and compare against the adaptive tolerance" max(1%, 3σ/|s̄|) (paraphrase of the math), and there "Each task provides a fixed evaluator, starter code, and scoring metric" [Ref: meng2026scientistone §6] (ref:2605.26340v1:sections/06a_setup.tex:8) (ref:2605.26340v1:sections/06a_setup.tex:10).
 - **I2, specification violation.** "LLMs inspect the solution code against the golden evaluator and task specification to detect such violations, with majority vote across multiple runs", counted by majority vote of 3 out of 5 judges [Ref: meng2026scientistone §5, appendix table on I2] (ref:2605.26340v1:sections/05_coe_audit.tex:32) (ref:2605.26340v1:sections/012c_coe_audit_details.tex:302).
 - **I3, reference verification.** "Each bibliography entry is resolved by querying multiple academic APIs (Semantic Scholar, arXiv, OpenAlex, CrossRef) using arXiv ID, DOI, and title" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:36).
 - **I4, method–code alignment, a lenient rule.** "only cases where the paper describes a fundamentally different algorithm count as misaligned", judged over "multiple independent runs with majority vote" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:43-44).

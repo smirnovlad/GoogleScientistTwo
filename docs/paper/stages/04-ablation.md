@@ -1,6 +1,6 @@
 # Stage 4 · Ablation studies: sources of gain, and one more refinement [§3.4]
 
-Revised 2026-09-28 after the persona review: fixes F-AN-3, F-AN-5, F-AN-9, F-AN-31, F-7 and F-17 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+Revised 2026-09-28 after the persona review: fixes F-AN-3, F-AN-5, F-AN-9, F-AN-31, F-7 and F-17 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; then the closure corrections from the `closure-*.md` reports in that folder [ours].
 
 Part of [analysis.md](../analysis.md). This file covers the Table 1 row "Ablation study" [Tab. 1] [ours].
 
@@ -28,7 +28,7 @@ Part of [analysis.md](../analysis.md). This file covers the Table 1 row "Ablatio
 - **Stopping rule:** "This refinement loop repeats for a maximum of" N_abl "iterations or until" the critic emits `Good` (paraphrase) [§3.4] (tex:sections/3_new_method.tex:114).
 - **On exhaustion:** the text moves to drafting, "ensuring a fully optimized hypothesis prior to manuscript generation" [§3.4] (tex:sections/3_new_method.tex:114); Figure 7 sends a failed comparison to *Initial Drafter* [Fig. 7] (image); Listing 1 and Appendix B point the other way (A-ABL-1, A-ABL-2) [Lst. 1] [App. B].
 - **On failure:** UNSPECIFIED (U-TOP-2) [§3.4].
-- **What the critic did in the paper's own runs:** for DMC-TeCh "the ablation critic rejected it because" the gain came from EMA and label smoothing [App. B] (tex:sections/appendix.tex:222-224); for LC-FTT "The ablation critic stripped" the extra machinery "down to the lone component that carried the gain" [App. B] (tex:sections/appendix.tex:291-292).
+- **What the critic did in the paper's own runs:** for DMC-TeCh "the ablation critic rejected it because" the gain came from EMA and label smoothing [App. B] (tex:sections/appendix.tex:222-224); for LC-FTT "The ablation critic stripped" the extra machinery "down to the lone component that carried the gain" [Tab. 16] (tex:sections/appendix.tex:291-292).
 - **Gaps:** A-ABL-1, A-ABL-2, A-ABL-3, U-ABL-1, U-ABL-2, U-ABL-3, U-ABL-4, U-ABL-5, U-ABL-6, A-CFG-1 [§3.4].
 
 ## Gaps found here
