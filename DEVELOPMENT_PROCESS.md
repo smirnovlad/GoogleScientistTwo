@@ -156,27 +156,93 @@ Where the reviews disagreed, the list records how they were reconciled.
 - **The register settled six disagreements between the analyses** from the paper itself. It also
   found that task 6 owns four blocking decisions, which must therefore come before task 3.
 
-## HANDOFF, 2026-09-27 (task 1: the fix phase)
+## 2026-09-28: the fixes, the closure checks, and the blind reader
 
-- **Done and pushed** on `claude/paper-analysis`:
-  - all six deliverables in `docs/paper/`;
-  - six review records and `fix-list.md`;
-  - the checkers in `playground/paper/`, all passing on the committed state.
-- **Running:** the four original analysts applying their fixes from `fix-list.md`, each only to
-  their own documents.
+**Vlad, verbatim.** He typed this on 2026-09-27, while two analyst agents had stalled on the stream
+watchdog. It is quoted here late: the rule is to quote in the same turn.
+
+> "contnue"
+
+**The fixes.** Each analyst applied the fix list to its own documents, and each fixed document names
+its fixes in a revision line. I checked every document against the list, fix by fix, before
+committing it.
+- **The blocker is fixed.** One primitive, with parameters per stage, covers every stage.
+  `analysis.md` §3.4 gives each Table 1 row's values:
+  - the generator;
+  - what the critic judges, and what gets refined;
+  - the assessor and its rule;
+  - the verdict map;
+  - the guard;
+  - what the limit counts, and what happens at the limit;
+  - nesting and fan-out.
+
+  Listing 1 is one set of those values, and no stage takes it exactly. The earlier "only the
+  subset row fits exactly" is withdrawn.
+- **What crosses stages has its own table,** P-STATE-1 to 17. Each object has its producer, its
+  consumers, its lifetime, and whether it may change.
+- **Eight new gaps,** among them:
+  - which data split each decision reads (U-TOP-5);
+  - that no fixed evaluator exists (U-INT-4);
+  - whether a stage at its limit keeps its last candidate or its best (U-TOP-7).
+- **One fix was declined with evidence.** F-CL-7 said Figure 10b's smallest slice has no printed
+  label. The raster prints 0.6% and 0.3% there, and `fig10_seed_labels.py` finds them. The
+  reviewer accepted the decline.
+
+**The closure checks.** Each reviewer then checked its own findings against the fixed documents. The
+four reports are kept verbatim as `closure-*.md`.
+- **Most fixes held.** The architect rated the blocker only partly fixed: the subset stage was still
+  called an exact fit to Listing 1, in four places.
+- **The checks found errors in the fix list:**
+  - ScientistOne's five runs and its 1%/3σ tolerance are the settings of its own experiments (its
+    §6). They are not part of the audit definition that ScientistTwo delegates to (its §5), and
+    the fix list had merged the two.
+  - One session span mixed two counting bases.
+  - One citation did not bear on the claim it supported.
+- **They also found two errors of mine:**
+  - I had accepted "§6.1" from a TeX comment, in a file whose `\subsection` command is itself
+    commented out.
+  - My correction of a Table 4 argument did not follow. The corrected argument is stronger: at
+    RALI's printed gain, no value for Pinet reproduces the table's median.
+- **Every correction went back to the owner of its document,** and none was contested.
+
+**The register and the map.**
+- **The register:** `unspecified.md` holds 143 IDs in 93 rows.
+  - Each blocking row carries its rank in the architect's list of what task 3 needs decided first.
+    The primitive's parameters come first.
+  - Task 6 owns four blocking rows: U-INT-4, U-TOP-5, A-INT-1 and A-INT-3. The integrity rules in
+    `CLAUDE.md` already settle the first two in principle: a locked harness computes every metric,
+    and every number an agent sees while searching is a validation number. `TODO.md` now puts
+    these four decisions before task 3.
+- **The map:** `traceability.md` maps all 177 paper elements. Its component column holds only
+  candidates for task 3 to confirm, one stage primitive with per-stage configuration among them.
+- **The pointers:** every gap entry points at its register row, and `register_coverage.py` fails
+  when a pointer goes stale.
+
+**The blind reader.**
+- **Setup:** a `technical-writer` persona with no project context answered 28 questions. It read
+  only a copy of `docs/paper/`, with the paper's source removed.
+- **Result:** it answered 27 correctly from the documents alone, none wrong and none unanswered.
+- **The one partial answer was a conflict between documents.** The "exact fit" correction had
+  reached `analysis.md` but not three other documents.
+- **It found a gap in my answer key as well:** the cheapest task is one that fails, at 10 or 11
+  coding sessions, and only note-check.md said so.
+- **All three defects it found are fixed.** The quiz, the marking and the answers are in
+  `docs/reviews/paper-analysis-2026-09-27/blind-reader-quiz.md` and `blind-reader-answers.md`.
+
+## HANDOFF, 2026-09-28 (task 1 done; next, the /codex review and the PR)
+
+- **Done and pushed** on `claude/paper-analysis`: TODO task 1, ticked in `TODO.md` with its proof.
+- **All checks pass:**
+  - `check_citations.py`: 18 files, 0 problems;
+  - `register_coverage.py` and `trace_coverage.py`: 0 problems each;
+  - `claims_arithmetic.py`: exits 0.
 - **Next steps:**
-  1. Check the fixed documents against the fix list, fix by fix.
-  2. The register and traceability owners register the new IDs, and both coverage scripts pass.
-  3. The blind-reader quiz. Its questions and answer key stay out of the repository until it runs.
-  4. The orchestrator's independent reading and coverage marking go into
-     `docs/reviews/paper-analysis-2026-09-27/`.
-  5. Tick TODO task 1. Add the discovered work to `TODO.md`:
-     - task 6's four blocking decisions (A-INT-1, A-INT-3, U-NOTE-1, U-ART-16; see
-       `docs/paper/unspecified.md`) come before task 3;
-     - two of them are already settled by the integrity rules in `CLAUDE.md`.
-  6. A `/codex` review of the branch, then a PR for Vlad.
+  1. A `/codex` review of the branch against `main`, as the parent `CLAUDE.md` requires. Report
+     its blockers to Vlad before the PR.
+  2. A PR for Vlad. Merge to `main` only with his approval.
+  3. Then task 2 (requirements), and task 6's `P0` part (the four blocking decisions) before
+     task 3.
 - **If this session is lost:**
-  - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md` and
-    `fix-list.md`.
-  - Each fixed document carries a "Revised … after the persona review" line naming the fixes it
-    applied. A document without that line has not been fixed yet.
+  - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
+  - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`:
+    its last section records the outcome of every fix.
