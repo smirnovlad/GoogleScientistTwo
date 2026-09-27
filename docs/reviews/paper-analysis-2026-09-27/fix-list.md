@@ -105,6 +105,32 @@ recorded as such, and they route decisions to task 5.
 | F-NC-4 | **N-87 and N-89: the writer can pick a better row.** PaperOrchestra "compiles unconstrained experiment logs" [§2]; the Drafter reads E_best and E_abl [§3.5]; the Draft Enhancer runs on Claude Code [App. A.2]; and a better variant than the one shipped existed (γ = 3.0 against the shipped 2.0, [p. 44]). N-89's assessment becomes: a harness-built table with labelled main, ablation and rebuttal rows, where the writer cannot choose which row is "ours" [ours]. | EI1-M5 |
 | F-NC-5 | **N-15 and A-NOTE-10.** Link the enforcement classes of `stages/07` (F-AN-11). | EI1-M7 |
 
+## From the decision register: its "Fixes the source documents need"
+
+`docs/paper/unspecified.md` ends with 17 fixes, F-1 to F-17, each motivated by an entry D-n of its
+"Where the analyses disagree". Six overlap fixes above and are applied together with them; the rest
+are assigned here. Apply the register's wording; it is the more precise.
+
+| Register fix | Owner | Overlaps | Change, in one line |
+|---|---|---|---|
+| F-1 | note-check.md | F-NC-3 | A-NOTE-8: Figure 9's labels, and 4 of 49 tasks picking an idea from *Round 4*, favour reading 1; "up to 10 ideas" assumes N_0 = 2, and N_0 = 1 gives 9 |
+| F-2 | note-check.md | F-NC-2 | Special case C and N-106: 81 + 4N_t or 87 + 4N_t (93 or 99 at N_t = 3); 10–55 or 11–61 sessions without a success; name the two assumptions left; point to analysis.md §9 |
+| F-3 | analysis.md | F-AN-24 | A-TOP-2: App. A.2 counts refinements for three loops, not two (engineering, ablation, meta-review) |
+| F-4 | analysis.md, stages/03 | F-AN-19 | A-EVO-1 becomes AMBIGUOUS, in stages/03 and in §10.2 |
+| F-5 | note-check.md, analysis.md | none | A-NOTE-2 and special case B: §3.4 and §3.6 *imply* keeping, with the closing clauses quoted [inferred], not "not stated"; A-TOP-1: §3.5 explicit, §3.4 and §3.6 implied |
+| F-6 | note-check.md, artifacts.md | F-AR-9 | One ablation-critic rejection, TeCh's: fix A-NOTE-4's heading and its App. B bullet, special case B's ablation row, and A-ART-4 |
+| F-7 | stages/04 | none | A-ABL-2: TeCh supports reading 2 only under A-ABL-1's reading 2; decide the two together |
+| F-8 | note-check.md | none | Mark *wall-clock* as [inferred] in summary item 6, N-60 and special case C |
+| F-9 | analysis.md, note-check.md, artifacts.md | F-AN-8, F-AR-10 | A-CFG-1: quote "Unless otherwise specified" and Figure 3's experiment boxes as evidence for reading 2; show the inference in N-9 and P-ART-3, citing A-CFG-1 |
+| F-10 | stages/05 | none | "Evidence on the rounds": give the other readings of "did not undergo this process" |
+| F-11 | artifacts.md | none | A-ART-5: reading 2 exceeds the trigger's wording, not §3.2's, since the engineer also refines h and Eq. 2 returns h |
+| F-12 | claims.md | none | Align the decisions of U-EVAL-1 and A-EVAL-2 with the merged register row U-EVAL-1 |
+| F-13 | note-check.md | none | A-NOTE-9: number the readings as A-FULL-2 does |
+| F-14 | note-check.md, and any document that says it | none | "Consolidation moves them into unspecified.md" is wrong now: the entries stay, and the register indexes them |
+| F-15 | claims.md | none | U-BENCH-1: the subset's gap is U-BASE-1, not a SUB item |
+| F-16 | analysis.md | F-AN-17 | §9: add the lower bound, 16 at N_0 = 2 and N_p = 5, 18 at N_0 = 1 with an end-of-round stop test |
+| F-17 | every gap section | none | Add to each full entry the register row it maps to, e.g. *Register: A-TOP-1* |
+
 ## unspecified.md and traceability.md (after the fixes above)
 
 | ID | Change | From |
