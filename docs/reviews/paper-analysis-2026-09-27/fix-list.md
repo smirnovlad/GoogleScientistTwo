@@ -137,3 +137,31 @@ are assigned here. Apply the register's wording; it is the more precise.
 |---|---|---|
 | F-UN-2 | **The "blocks" priority for task 3 follows the architect's ranked list** ("What task 3 needs decided first" in `system-architect.md`). The parameters of the stage primitive, and the unit of work and its failure, come first. | SA |
 | F-UN-1 | Register the new IDs (U-TOP-5, U-TOP-6, U-ABL-5, U-SUB-2, U-INT-4, the last-or-best item, the new `P-STATE` elements, the new artifacts items, the input-bound items) and the reclassifications (A-EVO-1, A-ART-3, A-EVAL-6). Re-run `register_coverage.py` and `trace_coverage.py`. | all |
+
+## Verification, by the orchestrating session
+
+Each fixed document is checked against this list, fix by fix, before it is committed. Each one
+also carries a "Revised … after the persona review" line naming the fixes it applied.
+
+| Document | Commit | Outcome |
+|---|---|---|
+| note-check.md | `5ac78ea` | F-NC-1 to F-NC-5, and the register's F-1, F-2, F-5, F-6, F-8, F-9, F-13, F-14 and F-17, applied |
+| artifacts.md | `f0823be` | F-AR-1 to F-AR-11, and the register's F-6, F-9, F-11 and F-17, applied |
+| claims.md and claims/ | the commit that adds this section | F-CL-1 to F-CL-6, F-CL-8 to F-CL-13, and the register's F-12, F-15 and F-17, applied. **F-CL-7 declined, rightly:** see below. One line corrected during the check: see below |
+| analysis.md and stages/ | pending | |
+
+**F-CL-7 was declined with evidence.** The fix said Figure 10b's Seed Idea Generation slice "has no
+printed label". The figure is a raster, and it prints 0.6% (time) and 0.3% (cost) above that
+slice. `playground/paper/fig10_seed_labels.py` finds the label text (43 and 36 dark pixels, at
+y 154–159) and writes an enlarged crop. The crop was read, and it shows both labels. The six
+printed labels sum to 100.0% and 100.1%, and C-DISC-2 now says so.
+
+**Corrected during the check (C-APPB-6).** It said RALI's PLCC gain of +0.006 "fits" the smaller
+of the two unprinted gains (0.90–1.09%). Within rounding, +0.006 is 0.70–0.83% of 0.7803, the only
+RALI baseline printed, and that is just below the range. The conclusion stands: RALI is nowhere near
+10%, so Pinet must be.
+
+**A correction to this list: F-16's lower bound at N_0 = 1 is 17, not 18.** The register's D-2
+counts the fifth idea of round 2 as `Good`. That idea can instead fail at once on the subset, which
+costs one session: 1 + 9 + 5 = 15 sessions, or 17 with note-check.md's two integrity sessions.
+`analysis.md` §9 carries 17. The register corrects D-2 and F-16 under F-UN-1.

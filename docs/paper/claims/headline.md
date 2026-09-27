@@ -2,6 +2,8 @@
 
 Part of [claims.md](../claims.md), which holds the summary, the measurement definitions (P-EVAL, P-BENCH, P-COST) and the gaps cited here [ours]. S2 is ScientistTwo, SP is ScholarPeer (in the loop), SAR is the Stanford Agentic Reviewer (held out) [§4].
 
+Revised 2026-09-27 after the persona review: fixes F-CL-2 and F-CL-9 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+
 ### C-HEAD-1 · 86 of 107 tasks succeed (80.4%)
 
 - Claim: S2 "improves 86 out of 107 papers (an 80.4% success rate)" [Fig. 1] (tex:figures/problem_setup.tex:10); also "successfully advances 80.4% of the target problems" [§1] (tex:sections/1_introduction.tex:21) and "successfully advanced 80.4% of target problems" [§5] (tex:sections/6_conclusion.tex:3).
@@ -10,7 +12,7 @@ Part of [claims.md](../claims.md), which holds the summary, the measurement defi
 - Produced by: a count of the papers S2 generated [Tab. 3]; what counts as a success has three readings (A-EVAL-1) [ours].
 - Checks: 86/107 = 80.37% ✓; 4 + 33 + 49 = 86 and 5 + 38 + 64 = 107 ✓ [Tab. 3]; Fig. 1b's ring holds 107 slots, 86 bars and 21 empty `Failed to Improve` slots (image) [Fig. 1b], counted by `playground/paper/fig1b_bars.py` [ours]; the TeX, the PDF and the HTML print 80.4 in the same four places [ours].
 - Falsified by: a per-task list in which one of the 86 has no gain over the human SOTA, or a re-run with a materially different count [ours].
-- Assessment [ours]: consistent wherever it appears; its meaning hangs on the success criterion; the 21 failures are never analyzed (U-BENCH-3); one run per task, so no interval.
+- Assessment [ours]: consistent wherever it appears; its meaning hangs on the success criterion; the 21 failures are never analyzed (U-BENCH-3); one run per task, so no interval. A success is declared on the data the search selected on, the best of up to 8–10 candidates passed through two "strictly better" gates, all on the full benchmark, so the count carries a winner's-curse inflation no reported variance can size; see P-EVAL-2 in claims.md, U-NOTE-1, U-ART-5 and U-TOP-5, and task 6's decision there, a held-out test set and a null-idea control.
 
 ### C-HEAD-2 · Mean relative gain 25.2%
 
@@ -22,7 +24,7 @@ Part of [claims.md](../claims.md), which holds the summary, the measurement defi
 - Check, Fig. 1b by bar colour: about 52 bars in 0–10%, 15 in 10–25%, 10 in 25–50%, 3 in 50–75%, 1 in 75–100% and 5 above 100% (image) [Fig. 1b]; the colour scale is continuous, so a bar near a bin edge may sit one bin off [ours].
 - Check, the tail: at the bins' lower edges the mean is at least 13.1%; with the 81 bars below 100% at their bin midpoints, the five largest must average about 199% for a mean of 25.2% [Fig. 1b] [ours].
 - Falsified by: recomputing the 86 gains from the papers' tables under any fixed rule and finding a mean far from 25.2%, or a median far from 7.7% [ours].
-- Assessment [ours]: a success-only mean pulled up by about five outliers and by the ICML subset; the typical task gains under 10%; it is the system's own reported result as read by an LLM, not a harness measurement; a replication should report the median and a failure-inclusive mean from harness numbers.
+- Assessment [ours]: a success-only mean pulled up by about five outliers and by the ICML subset; the typical task gains under 10%; it is the system's own reported result as read by an LLM, not a harness measurement; a replication should report the median and a failure-inclusive mean from harness numbers. It is also measured on the data the search selected on, so it carries a winner's-curse inflation that cannot be sized without variance (P-EVAL-2), and the undefined gain rule alone can move one task's gain more than 100-fold (U-EVAL-1).
 
 ### C-HEAD-3 · "Consistently outperform human state-of-the-art"
 
@@ -68,6 +70,7 @@ Part of [claims.md](../claims.md), which holds the summary, the measurement defi
 - Sample: one task, Incremental BPE Tokenization, an ICML 2026 Spotlight [Tab. 14] [Bib: jiang2026incremental]; the pages shown are the VD-STrans paper (image) [p. 3].
 - Check: the embedded abstract says VD-STrans "achieves a geometric mean throughput speedup of 1.123" over the incremental SOTA (image) [p. 3], and its introduction reports a "12.3% average throughput boost" [p. 3].
 - Check: 1 − 1/1.123 = 10.95% (10.91–10.99% for a speedup between 1.1225 and 1.1235), so 10.9% matches the time reduction, not the paper's own 12.3% [ours]; 10.9% and 6.5 recur in [Tab. 9] and [§4.3] ✓.
+- Two conventions for Tab. 9's chain [ours]: if its three gains are time reductions, as this one appears to be, they compound to 1 − 0.891 × 0.904 × 0.918 = 26.1%, a 1.35× speedup; read as ratio gains they compound to 31.5% (C-DISC-4) [Tab. 9].
 - Falsified by: the task's main table giving a different gain under the paper's rule [ours].
 - Assessment [ours]: the undefined gain rule moves this one result by 1.4 points (U-EVAL-1); SP's 8.0 is exactly the in-loop stopping threshold [App. A.2]; "accepted" is defined for neither reviewer (A-EVAL-3, U-EVAL-3).
 

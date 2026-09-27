@@ -2,6 +2,8 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. App. B runs S2 "on the same five ICLR 2026 submissions (Table 13) that AutoSOTA reports" [App. B] (tex:sections/appendix.tex:194-195); every number here concerns those five tasks, Pinet, DMSQD, TeCh, T-SAE and RALI [Tab. 16].
 
+Revised 2026-09-27 after the persona review: fix F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+
 **How the numbers were made.** Each side's delta "is self-reported by each system against its own reproduced baseline" [Tab. 16] (tex:sections/appendix.tex:263), "on different hardware" [App. B] (tex:sections/appendix.tex:202); none of the deltas carries a run count, and the two ± values do not say what they range over [ours].
 
 ### C-APPB-1 · Papers with a reported gain: 5/5 against 4/5 (Tab. 15)
@@ -39,7 +41,9 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Claim: AutoSOTA's 3-line configuration change gives "Latency −16.7%; feasibility unreported" [Tab. 16] (tex:sections/appendix.tex:272-273).
 - Claim: S2's ANSE, over the 4 DC3 sets, has "RS lower on 3/4 (up to −69%)", constraint violation from 4e−4 to 2e−14 on all four, and training 3.0 times faster [Tab. 16] (tex:sections/appendix.tex:274-277).
 - Checks: none possible, since no baseline values are given [Tab. 16] [ours].
-- Assessment [ours]: S2's result is multi-metric with no single relative gain, and the paper never says how Tab. 4's ICLR mean (3.8%) turned it into one number (U-EVAL-1).
+- Check (F-CL-3) [ours]: with Tab. 4's S2 ICLR median of 2.2 and mean of 3.8, and Tab. 16's two relative S2 gains, DMSQD +0.61% and T-SAE +3.4%, the two unprinted gains must be 0.90–1.09% and 9.90–10.48% (`claims_arithmetic.py` prints the two ranges; the reviewer's `s2_iclr.py` finds the same solutions, printed as one range per unknown) [Tab. 4] [Tab. 16].
+- Which is which [inferred]: RALI's absolute PLCC +0.006 is 0.70–0.83% within rounding of 0.7803, the only RALI baseline printed (AutoSOTA's, on one split), so it sits just below the smaller range but nowhere near 10%; that leaves Pinet near 10%, yet none of Pinet's printed results (RS up to −69%, CV 4e−4 → 2e−14, training 3.0× faster) is near 10% [Tab. 16].
+- Assessment [ours]: S2's result is multi-metric with no single relative gain, the paper never says how Tab. 4's ICLR mean (3.8%) turned it into one number, and Tab. 4's S2 ICLR cells cannot be rebuilt from anything the paper prints (U-EVAL-1).
 
 ### C-APPB-7 · T-SAE
 

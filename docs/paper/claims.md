@@ -2,41 +2,43 @@
 
 Every quantitative claim of arXiv:2609.19644v1, with its location, its sample, the checks we ran and our assessment [ours]. Conventions (citation, classification, IDs) are those of [README.md](README.md) [ours]. The claim entries live in five files under [claims/](claims/); this file holds the summary, how the paper measures, the App. A.1 benchmark counts and the gaps [ours].
 
+Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2, F-CL-4, F-CL-5, F-CL-8, F-CL-10, F-CL-12, F-CL-13, F-12, F-15 and F-17 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+
 ## How to read this
 
 - Abbreviations: S2 is ScientistTwo; SP is ScholarPeer, the reviewer inside the loop; SAR is the Stanford Agentic Reviewer, the "held-out evaluator" [§4 "Common Setup"].
 - Each claim `C-<KEY>-n` gives the quote with its location, its sample, how the number was produced, the checks with their arithmetic, what would falsify it, and our assessment [ours].
 - A value read from a figure image is marked (image); the TeX does not contain it [ours].
-- The arithmetic re-runs with `python3 playground/paper/claims_arithmetic.py`, and the Fig. 1b bar count with `python3 playground/paper/fig1b_bars.py` [ours].
+- The arithmetic re-runs with `python3 playground/paper/claims_arithmetic.py`, which also re-runs the reviewer's `playground/paper/reviews/research-engineer/sp_integer.py`; the Fig. 1b bar count with `python3 playground/paper/fig1b_bars.py`; the Fig. 10b seed labels with `python3 playground/paper/fig10_seed_labels.py` [ours].
 - A count like 79/86 behind a printed percentage is the only k that rounds to it, computed by the arithmetic script [ours].
 
 ## Summary: the headline claims
 
 | ID | Headline claim and location | Sample, and how the number was made | Our assessment [ours] |
 |---|---|---|---|
-| C-HEAD-1 | S2 improves 86 of 107 tasks, 80.4% [Fig. 1] [§1] [§4.1] [§5] | 38 NeurIPS + 5 ICLR + 64 ICML tasks [App. A.1]; no repeats or seeds reported [§4] | 86/107 = 80.37%, and Fig. 1b shows 86 bars and 21 empty slots (image); what counts as a success is ambiguous (A-EVAL-1) |
-| C-HEAD-2 | mean relative gain 25.2% over human SOTA [§1] [Fig. 1] [Tab. 4] [§5] | the 86 successes only; gains parsed by Gemini 3.6 Flash from S2's own paper tables, 10 parses averaged [§4.1] | median 7.7% [Tab. 4]; about 52 of 86 gains lie in 0–10% and 5 exceed +100% (image); the gain rule is undefined (U-EVAL-1); 20.3% if the 21 failures count as 0 |
-| C-MAIN-1 | 91.9% acceptance, rating 7.5 vs ScientistOne's 3.8, under SP [Tab. 2] | SP is the reviewer S2 revises against [§4] [App. A.2]; baselines are 2–21 public papers each [Tab. 2] | in-distribution by the paper's own account; the acceptance rule is undefined and cannot be the in-loop threshold of 8 (A-EVAL-3) |
+| C-HEAD-1 | S2 improves 86 of 107 tasks, 80.4% [Fig. 1] [§1] [§4.1] [§5] | 38 NeurIPS + 5 ICLR + 64 ICML tasks [App. A.1]; no repeats or seeds reported [§4] | 86/107 = 80.37%, and Fig. 1b shows 86 bars and 21 empty slots (image); what counts as a success is ambiguous (A-EVAL-1), and the count is made on the data the search selected on |
+| C-HEAD-2 | mean relative gain 25.2% over human SOTA [§1] [Fig. 1] [Tab. 4] [§5] | the 86 successes only; gains parsed by Gemini 3.6 Flash from S2's own paper tables, 10 parses averaged [§4.1] | median 7.7% [Tab. 4]; about 52 of 86 gains lie in 0–10% and 5 exceed +100% (image); the gain rule is undefined (U-EVAL-1); 20.3% if the 21 failures count as 0; measured on the data the search selected on, so inflated by an amount no variance lets us size |
+| C-MAIN-1 | 91.9% acceptance, rating 7.5 vs ScientistOne's 3.8, under SP [Tab. 2] | SP is the reviewer S2 revises against [§4] [App. A.2]; baselines are 2–21 public papers each [Tab. 2] | in-distribution by the paper's own account; the acceptance rule is undefined, cannot be the in-loop threshold of 8, and is consistent only with a rating of 6 or more [inferred] (A-EVAL-3) |
 | C-MAIN-2 | 72.1% acceptance under SAR, every baseline 0% [Tab. 2] | held-out reviewer [§4]; the baselines' papers are their own public releases, not runs on the 107 tasks [Tab. 2] [inferred] | the strongest evidence in the paper; SAR's acceptance rule is unknown (U-EVAL-3) and the task pools differ |
 | C-HEAD-4 | "higher average review ratings than human-authored papers" [Abstract] | [Tab. 3]: S2's successes vs all 107 input papers | false under SAR for ICML (5.7 vs 6.1) and pooled over venues (5.65 vs 5.85, computed); true under SP |
 | C-MAIN-5 | S2 beats accepted ICLR 2026 and NeurIPS 2025 papers under both reviewers [§4.1] [Tab. 3] | n = 4 vs 5 and 33 vs 38 papers | true as stated; the SAR margins are 0.1–0.2 points, about 0.6 standard errors; S2's SAR acceptance on NeurIPS is lower (75.8% vs 76.3%) |
-| C-MAIN-8 | S2's gains beat AutoSOTA's on mean and median [§4.1] [Tab. 4] | overall pools differ (86 vs 105 tasks); AutoSOTA's deltas are its own reports [App. B] | only NeurIPS (33 tasks) is a shared pool; AutoSOTA leads on ICLR (7.2% vs 3.8%); App. B calls such deltas "not a head-to-head" (A-EVAL-7) |
-| C-ABLX-4 | the review loop also raises SAR acceptance [§4.2] [Tab. 5] | 49 ICML successes, review rounds 0–2 | round 2 lowers SAR acceptance, 36 → 34 of 49; the shipped two-round setting is the one that maximizes the in-loop reviewer |
-| C-ABLX-6 | review-driven refinement is "essential" [§4.2] [Tab. 6] | one task (AI Engram) | n = 1; the refined method is 17.75 times worse than the human baseline on EM (0.071 vs 0.004) |
+| C-MAIN-8 | S2's gains beat AutoSOTA's on mean and median [§4.1] [Tab. 4] | overall pools differ (86 vs 105 tasks); AutoSOTA's deltas are its own reports [App. B] | only NeurIPS (33 tasks) is a shared pool; AutoSOTA leads on ICLR (7.2% vs 3.8%); S2's own ICLR cells cannot be rebuilt from Tab. 16; App. B calls such deltas "not a head-to-head" (A-EVAL-7) |
+| C-ABLX-4 | the review loop also raises SAR acceptance [§4.2] [Tab. 5] | 49 ICML successes, review rounds 0–2 | no held-out gain in round 2 (36 → 34 of 49; exact McNemar p ≥ 0.50), while SP rises to 46 of 49; the shipped two-round setting is the one that maximizes the in-loop reviewer |
+| C-ABLX-6 | review-driven refinement is "essential" [§4.2] [Tab. 6] | one task (AI Engram) | n = 1; the refined method is worse than the human baseline on EM by +0.067 (0.071 vs 0.004, lower is better) |
 | C-ABLX-7 | S2 passes all four integrity audits [§4.2] [Tab. 7] | 49 ICML successes; the auditor is unspecified (U-EVAL-5) | internally consistent (50 → 49; 19/1840 → 0/1814); covers 49 of the 86 successes |
 | C-DISC-1, C-DISC-3 | 2.5 days and $3765 per task [Fig. 10] [§4.3]; about $3,800 [§5] | 33 NeurIPS tasks, apparently the successes only [inferred] | failed runs' cost is unreported (U-COST-2); prices and machines are unspecified (U-COST-1) |
 | C-DISC-5 | human reviewers rate S2 at parity overall [§4.3] [Tab. 10] | 33 papers, 9 reviewers | means only, no dispersion or agreement; protocol unspecified (U-EVAL-6) |
 
 ## The eight findings that matter most
 
-1. **Acceptance is never defined, and SP's `Accept Rate` cannot mean a rating of 8 or more** (A-EVAL-3). §3.5 calls 8 "the acceptance threshold" [§3.5], but 46 of 49 ICML papers at 8 or more with a mean of 7.6 forces an SD of at least 1.37, and the table prints 1.0 [Tab. 3] [Tab. 5]; the Overall row (79 of 86, mean 7.5) forces at least 1.51 against a printed 1.3 [ours].
-2. **The held-out reviewer does not follow the in-loop one** (C-ABLX-4). Over review rounds 0, 1, 2 SAR accepts 24, 36, 34 of 49 papers while SP accepts 23, 39, 46 [Tab. 5]; the reported system is the round-2 one [Tab. 3].
+1. **Acceptance is never defined, and SP's `Accept Rate` cannot mean a rating of 8 or more** (A-EVAL-3). §3.5 calls 8 "the acceptance threshold" [§3.5], yet S2's ICLR row accepts 4 of 4 papers at a mean of 7.0, impossible under "≥ 8" without any SD argument [Tab. 3]; the minimum-SD test rules out "≥ 8" on 9 of the other 10 rows with acceptances, for example human NeurIPS (at least 2.43 against a printed 1.9) and S2 ICML (1.37 against 1.0) [Tab. 3] [Tab. 5]. With one integer rating per paper and the sample SD, only "≥ 6" fits all 11 rows (`sp_integer.py`), so the rule is consistent only with ≥ 6 [inferred]; if SP averages several reviews and accepts by majority, the argument fails [ours].
+2. **The held-out reviewer does not follow the in-loop one** (C-ABLX-4). Over review rounds 0, 1, 2 SAR accepts 24, 36, 34 of 49 papers while SP accepts 23, 39, 46 [Tab. 5]: round 2 brings no held-out gain (exact McNemar p ≥ 0.50 for 36 → 34), yet it is the reported system [Tab. 3] [ours].
 3. **Under SAR, S2's papers are accepted less often than the human papers they start from**: 62/86 = 72.1% against 94/107 = 87.9% [Tab. 3], and 62/107 = 57.9% per input task [ours]. The abstract's "higher average review ratings" holds only under SP (C-HEAD-4) [Abstract].
-4. **The 25.2% is a skewed, success-only, LLM-extracted mean** (C-HEAD-2). Its median is 7.7% [Tab. 4]; the implied ICML mean is 34.4–34.7% against 13.9% (NeurIPS) and 3.8% (ICLR) [Tab. 4]; about 52 of 86 bars fall in 0–10% and 5 exceed +100% (image) [Fig. 1]. The same VD-STrans result is 10.9% in [Fig. 2] and "12.3% average throughput boost" in its own paper [p. 3], so the undefined gain rule moves numbers (U-EVAL-1, A-EVAL-2).
+4. **The 25.2% is a skewed, success-only, LLM-extracted mean, measured on the data the search selected on** (C-HEAD-2). Its median is 7.7% [Tab. 4]; the implied ICML mean is 34.4–34.7% against 13.9% (NeurIPS) and 3.8% (ICLR) [Tab. 4]; about 52 of 86 bars fall in 0–10% and 5 exceed +100% (image) [Fig. 1]. The gain rule is undefined, and it decides the number: on p. 41's averages, AUROC gives +0.26% to +0.40% and relative FPR95 gives 42.3% to 48.0%, more than 100-fold apart (image) [p. 41]; VD-STrans is 10.9% in [Fig. 2] and a "12.3% average throughput boost" in its own paper [p. 3] (U-EVAL-1) [ours].
 5. **Success has three readings** (A-EVAL-1): at least one `Good` idea [§3.3], an improvement over human SOTA [Fig. 1], or a gain the ablation critic attributes to the new mechanism [Tab. 15]; yet the ablation critic of §3.4 has no reject verdict [§3.4].
 6. **Tab. 4 is framed head-to-head; App. B says such deltas are not comparable** (A-EVAL-7) [App. B]. Tab. 4's AutoSOTA ICLR figures do reproduce from Tab. 16 (mean 7.23, median 4.99 over the four papers other than TeCh), including a T-SAE gain that App. B says did not survive re-evaluation [Tab. 16] [ours].
 7. **Cost and time rest on 33 NeurIPS runs that appear to be the successes only** (U-COST-2) [§4.3], and the caption's "majority" for idea refinement is 44.9% of time and 45.4% of cost (image) [Fig. 10] (A-COST-1).
-8. **Every ablation is conditioned on the 49 ICML successes, from one run, without variance** [§4.2]. Fig. 9a's final gain (33.4%, image) disagrees with the ICML mean implied by Tab. 4 (34.43–34.68%), so the per-round gain is a second, undefined measure (A-EVAL-6, U-EVAL-8) [Fig. 9].
+8. **Every ablation is conditioned on the 49 ICML successes, from one run, without variance** [§4.2]. Fig. 9a's final gain (33.4%, image) sits 1.0–1.3 points below the ICML mean implied by Tab. 4 (34.43–34.68%); the "strictly better" gates predict that order if the two are measured at different points, so A-EVAL-6 is AMBIGUOUS, not a contradiction, and the per-round gain stays undefined (U-EVAL-8) [Fig. 9] [ours].
 
 ## Index
 
@@ -83,7 +85,10 @@ Each definition is classified as the README prescribes; each one that is not SPE
 - Said: a comparison "based on the performance gains reported over human state-of-the-art baselines" [§4.1] (tex:sections/4_experiment.tex:19).
 - Said: "we parse the main tables for 10 times using Gemini 3.6 Flash and averaged them" [§4.1] (tex:sections/4_experiment.tex:19). The source is the generated paper's own tables, not a harness [ours].
 - Not said: the formula; which table, metric or dataset; how several metrics or datasets combine; the sign for lower-is-better metrics; the spread of the 10 parses [§4.1].
-- Why it matters: the same VD-STrans result is a 10.9% gain in [Fig. 2] and a "12.3% average throughput boost" in the generated paper [p. 3]; 1 − 1/1.123 = 10.95% suggests a time-based rule [ours].
+- Why it matters: on p. 41's averages (Procrustes-DS 99.56/2.17 against X-Maha 99.16/4.17 reproduced and 99.30/3.76 published), AUROC gives +0.26% to +0.40% while relative FPR95 gives 42.3% to 48.0%, so the rule alone moves one task's gain more than 100-fold (image) [p. 41] [ours].
+- Also: the VD-STrans result is a 10.9% gain in [Fig. 2] and a "12.3% average throughput boost" in the generated paper [p. 3]; 1 − 1/1.123 = 10.95% suggests a time-based rule [ours].
+- Selection [ours]: each gain is measured on the data the search selected on. A task's winner is the best of up to 8–10 candidates [App. A.2] [inferred], chosen among ideas "evaluated on the full benchmark" [§3.3] (tex:sections/3_new_method.tex:90), and kept only through two gates, "strictly outperforms" [§3.4] (tex:sections/3_new_method.tex:111) and "verified as strictly superior" [§3.6] (tex:sections/3_new_method.tex:148).
+- Consequence [ours]: the gains and the success count carry a winner's-curse inflation that cannot be sized, since no run-to-run variance is reported (U-EVAL-4); the split gaps are U-NOTE-1, U-ART-5 and U-TOP-5 (F-AN-3). Decision for task 6: a held-out test set, and a null-idea control that measures the false-success rate.
 
 ### P-EVAL-3 · Gain across papers · SPECIFIED in part
 
@@ -96,12 +101,16 @@ Each definition is classified as the README prescribes; each one that is not SPE
 - Said: the tables give "the average review ratings, standard deviations (1–10 scale), and acceptance rates" [Tab. 3] (tex:tables/conference_accepted_comparison.tex:3).
 - Said: SP produces an "overall numerical score" s_review in [1, 10] "based on the standard ICLR grading scale" [§3.5] (tex:sections/3_new_method.tex:123).
 - Not said: one review or several per paper; SP's backbone model and version; population or sample SD [§4].
+- Checked: with one integer rating per paper, the population SD leaves three rows with no solution (Antigravity, AI Scientist-v2, AutoResearchClaw), while the sample SD fits all 18 rows, which favours the sample SD (`sp_integer.py`, re-run by `claims_arithmetic.py`) [Tab. 2] [Tab. 8] [ours].
 - Checked: among integer ratings, only 1, 2 and 3 with the sample SD reproduce Tab. 2's AI Scientist-v2 SP cell, 2.0 ± 1.0 over 3 papers; no three scores from the set 1, 3, 5, 6, 8, 10 average 2.0 [Tab. 2] [ours; the score set is our assumption about the ICLR scale].
 
 ### P-EVAL-5 · SP acceptance · INCONSISTENT (A-EVAL-3)
 
 - Said: the rebuttal starts when the score "is below the acceptance threshold (e.g., 8)" [§3.5] (tex:sections/3_new_method.tex:124); the loop stops "if the ScholarPeer review score reaches 8" [App. A.2] (tex:sections/appendix.tex:155).
-- Contradicted by the tables: with acceptance at 8 or more, Tab. 3's ICML row (46 of 49 accepted, mean 7.6) needs an SD of at least 1.37, but 1.0 is printed; the Overall row (79 of 86, mean 7.5) needs at least 1.51, but 1.3 is printed [Tab. 3] [Tab. 5] [ours].
+- Contradicted by the tables, if a paper is accepted when the rating the table averages is 8 or more: S2's ICLR row accepts 4 of 4 at a mean of 7.0, which no SD can rescue [Tab. 3] [ours].
+- The minimum-SD test rules out 9 of the other 10 rows with acceptances, among them S2 ICML (at least 1.37 against 1.0), S2 Overall (1.51 against 1.3), human NeurIPS (2.43 against 1.9), round 0 (2.59 against 2.2) and Antigravity (2.33 against 1.5); only the human ICLR row allows it [Tab. 3] [Tab. 5] [Tab. 8] [ours].
+- Consistent with: one integer rating per paper and the sample SD leave only "≥ 6" fitting all 11 rows; Antigravity's 6.3 ± 1.5 with 2 of 3 accepted forces the ratings 5, 6 and 8, hence the threshold 6 [Tab. 8] (`sp_integer.py`) [inferred].
+- Caveat: if SP averages several reviews and accepts by majority, the tables constrain nothing and neither result holds [ours].
 - Not said: the rule the tables do use [Tab. 3].
 
 ### P-EVAL-6 · SAR rating and acceptance · UNSPECIFIED (U-EVAL-3)
@@ -128,6 +137,7 @@ Each definition is classified as the README prescribes; each one that is not SPE
 ### P-EVAL-10 · CoE integrity audit · checks SPECIFIED, auditor UNSPECIFIED (U-EVAL-5)
 
 - Said: four checks; score verification works "by comparing reported scores against those obtained from re-executing the repository" [§4.2] (tex:sections/4_experiment.tex:41); Tab. 7's columns are defined in its caption [Tab. 7] (tex:tables/ablation_audit.tex:3).
+- Specified by reference: Tab. 7 is an "Evaluation of paper and code integrity following" ScientistOne [Tab. 7] (tex:tables/ablation_audit.tex:3), so ScientistOne's CoE audit specifies it; its protocol is in U-EVAL-5 [ours].
 - Not said: who or what runs the audit behind Tab. 7, with which model, and whether it is the same kind of agent as the in-pipeline fixer, where "the Coding Agent audits the repository against the manuscript" [§4.2] (tex:sections/4_experiment.tex:43).
 
 ### P-EVAL-11 · Human evaluation · protocol UNSPECIFIED (U-EVAL-6)
@@ -138,7 +148,7 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 - Shown: `Human Frontier`, `Expanded Frontier` and `Upper Bound` on a radial scale from 0.2 to 1.0 over 35 sub-areas of 8 areas (image) [Fig. 1a]; no sentence defines the plotted quantity [§1].
 
-### P-EVAL-13 · Per-round gain of Fig. 9a · UNSPECIFIED (U-EVAL-8); INCONSISTENT with Tab. 4 (A-EVAL-6)
+### P-EVAL-13 · Per-round gain of Fig. 9a · UNSPECIFIED (U-EVAL-8); AMBIGUOUS against Tab. 4 (A-EVAL-6, reclassified from INCONSISTENT)
 
 - Shown: `Relative Gain (%)` for Initial and Rounds 1–4 on the 49 ICML tasks (image) [Fig. 9a]; the text calls it "the relative gain over the human state-of-the-art baseline" [§4.2] (tex:sections/4_experiment.tex:28).
 
@@ -189,19 +199,29 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 - Shown: six stages, `Seed Idea Generation`, `Initial Implements`, `Idea Refinement`, `Ablation Studies`, `Initial Drafting` and `Peer&Meta-Review` (image) [Fig. 10b]; §3 has no stage called Initial Implements [§3].
 
+## What task 5 must measure itself
+
+The paper gives no reproducible per-task targets, no run-to-run variance, no token or machine split of its cost, and no definition of a task's subset, full set, metric, gain rule or seeds (U-EVAL-1, U-EVAL-4, U-COST-1, U-TOP-1) [§4] [App. A.1] [ours]. Task 5's list of what to measure on our own first tasks is kept in the reviews rather than copied here [ours]:
+
+- the research engineer's wave 1, section *What task 5 still needs from the paper*: targets, statistical power, cost per success, billing and task definitions, in [research-engineer.md](../reviews/paper-analysis-2026-09-27/research-engineer.md) [ours];
+- the research engineer's wave 2, section *What task 5 still needs*: an expected session count, tokens and GPU-hours per session type, the per-task fields fixed before any run, and wall-clock per session, in [research-engineer-analysis.md](../reviews/paper-analysis-2026-09-27/research-engineer-analysis.md) [ours].
+
 ## Gaps found here
 
 ### U-EVAL-1 · How one paper's relative gain is computed
 
+- *Register: U-EVAL-1*
+- Strongest example [ours]: on p. 41's averages, AUROC gives a gain of +0.26% to +0.40% while relative FPR95 gives 42.3% to 48.0%; the choice of rule alone moves one task's gain more than 100-fold (image) [p. 41].
 - Statement: every gain in the paper (25.2%, 13.9%, 3.8%, Fig. 9a, Tabs. 8 and 9) rests on a per-paper formula the paper never gives [Tab. 4] [ours].
 - The paper says: "we parse the main tables for 10 times using Gemini 3.6 Flash and averaged them" [§4.1] (tex:sections/4_experiment.tex:19).
 - Silent on: the metric and datasets used when a table has several, how they combine, the sign for lower-is-better metrics, what counts as a main table, and the spread of the 10 parses [§4.1].
 - Silent on: whether a parsed gain matches re-executed code; score verification is reported only for the 49 ICML papers [Tab. 7].
-- Why it matters: the VD-STrans result is 10.9% in [Fig. 2] but a "12.3% average throughput boost" in its own paper [p. 3] [ours].
-- Decision it forces [ours]: one pre-registered gain rule per task (metric, datasets, direction, reference value), computed from the locked harness's result files, never from the generated paper; report the mean, the median and a failure-inclusive mean.
+- A second example: the VD-STrans result is 10.9% in [Fig. 2] but a "12.3% average throughput boost" in its own paper [p. 3] [ours].
+- Decision it forces [ours], the register's U-EVAL-1 (F-12): a pre-registered rule per task (metric, datasets, direction), computed from harness result files against both references, the published number and our reproduction, with both reported; never from the generated paper; reported as mean, median and a failure-inclusive mean.
 
 ### U-EVAL-2 · ScholarPeer's set-up
 
+- *Register: U-PEER-3*
 - Statement: SP is both the in-loop reviewer and a reported evaluator, and its configuration is not given [§3.5] [§4] [Bib: goyal2026scholarpeer].
 - The paper says: "ScholarPeer serves as an in-distribution evaluation, as it is also used to refine the draft quality generated by ScientistTwo" [§4] (tex:sections/4_experiment.tex:5); it scores on "the standard ICLR grading scale" [§3.5] (tex:sections/3_new_method.tex:123).
 - Silent on: backbone model and version, reviews per paper, temperature, and whether the evaluation uses the in-loop configuration and prompt [§4].
@@ -209,6 +229,7 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### U-EVAL-3 · The Stanford Agentic Reviewer
 
+- *Register: U-EVAL-3*
 - Statement: SAR is the paper's only held-out judge, and the paper gives a link and a scale, nothing more [fn. 1] [Tab. 3].
 - The paper says: SAR "serves as a held-out evaluator that was unseen during development by both the baselines and our method" [§4] (tex:sections/4_experiment.tex:5).
 - Silent on: the acceptance rule, what the score aggregates, the service version and query dates, repeated queries, and whether the published human papers may be known to its model [§4].
@@ -216,20 +237,30 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### U-EVAL-4 · Runs, seeds and variance
 
+- *Register: U-EVAL-4*
 - Statement: no number in the paper carries a run-to-run spread; the ± values are "standard deviations" across papers [Tab. 2] [§4].
 - Silent on: runs per task, seeds, and whether ablation variants are separate runs or stages switched off in the main run [§4.2].
 - Decision it forces [ours]: runs per task, seeds, and a variance report for every headline number.
 
 ### U-EVAL-5 · Who runs the integrity audit
 
+- *Register: U-EVAL-5*
 - Statement: Tab. 7 comes from an unnamed auditor [Tab. 7].
 - The paper says: the audit "is a post-hoc evaluation framework that verifies whether claims in a generated paper are supported by its artifacts" [§4.2] (tex:sections/4_experiment.tex:41).
 - Silent on: the auditing model, its independence from the pipeline's own fixer, where "the Coding Agent audits the repository against the manuscript" [§4.2] (tex:sections/4_experiment.tex:43), and audits of the NeurIPS, ICLR and Antigravity papers [§4.2].
 - Note: the Antigravity codebases are said to "remain fully reproducible, exhibit no specification violations" with no table behind it [§4.2] (tex:sections/4_experiment.tex:46).
+- Specified by reference (F-CL-12) [ours]: Tab. 7 follows ScientistOne [Tab. 7], so its audit is ScientistOne's CoE audit; the delegated protocol follows, and the engine side records it in [stages/07-integrity.md](stages/07-integrity.md) (F-AN-12).
+- I1 compares the paper's score with "scores obtained by re-running the submitted solution on the golden evaluator", passing "within an adaptive tolerance that accounts for evaluator noise" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:25-26).
+- I1's runs: "We run each evaluator five times", against the tolerance max(1%, 3σ/|s̄|) (paraphrase of the formula), on tasks where "Each task provides a fixed evaluator, starter code, and scoring metric" [Ref: meng2026scientistone §6] (ref:2605.26340v1:sections/06a_setup.tex:8-10).
+- I2 is LLM judgment "with majority vote across multiple runs" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:32), counted by "majority vote (3/5 judges)" [Ref: meng2026scientistone App. E] (ref:2605.26340v1:sections/012c_coe_audit_details.tex:302).
+- I3 queries four academic APIs, Semantic Scholar, arXiv, OpenAlex and CrossRef [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:36).
+- I4 is lenient: "only cases where the paper describes a fundamentally different algorithm count as misaligned" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:43).
+- Still open [ours]: the reference fixes the procedure, not who ran it for Tab. 7, with which model or on which tasks; and ScientistTwo's tasks come with no golden evaluator for I1 to use (U-INT-4, which F-AN-12 adds) [§4.2].
 - Decision it forces [ours]: the audit belongs to the locked evaluation, run on every task by a judge that is not the pipeline's fixer.
 
 ### U-EVAL-6 · The human evaluation's protocol
 
+- *Register: U-EVAL-6*
 - Statement: Tab. 10 gives six means per scale and nothing else [Tab. 10].
 - The paper says: 33 papers were "evaluated by 9 experienced human reviewers", first standalone and then "in pairwise comparative assessments against accepted human-authored papers" [§4.3] (tex:sections/5_discussion.tex:12).
 - Silent on: assignment of the 9 reviewers to the 33 papers, reviews per paper, blinding, the human paper each S2 paper was compared with, recruitment, dispersion and agreement [§4.3].
@@ -237,18 +268,21 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### U-EVAL-7 · What Fig. 1a plots
 
+- *Register: U-EVAL-7*
 - Statement: the radar's quantity is never defined; it shows `Human Frontier`, `Expanded Frontier` and `Upper Bound` on a 0.2–1.0 scale over 35 sub-areas (image) [Fig. 1a].
 - Silent on: the quantity, its normalization, the meaning of `Upper Bound`, and how tasks map to sub-areas [§1].
 - Decision it forces [ours]: none for the engine; we do not reproduce Fig. 1a.
 
 ### U-EVAL-8 · What Fig. 9a's per-round gain is
 
+- *Register: U-EVAL-8*
 - Statement: Fig. 9a plots a per-round `Relative Gain (%)` without a definition (image) [Fig. 9a].
 - Silent on: how a task with no `Good` idea yet is counted, whether the value is best-so-far (the curve never falls, image), whether it is measured in the loop or parsed from the final paper, and which tasks remain in later rounds given the early stop at four successes [App. A.2].
 - Decision it forces [ours]: log, per task and round, the best full-set gain so far under the U-EVAL-1 rule, with "no success yet" explicit.
 
 ### U-EVAL-9 · Which comparison papers
 
+- *Register: U-EVAL-9*
 - Statement: Tab. 2 and the Agent4Science row of Tab. 3 score papers the paper never lists [Tab. 2] [Tab. 3].
 - The paper says: they are "publicly released AI-generated papers" [Tab. 2] (tex:tables/ai_scientist_comparison.tex:3) and "AI-generated papers accepted at Agent4Science 2025" [§4.1] (tex:sections/4_experiment.tex:16).
 - Silent on: which papers, how they were chosen, and whether they were reviewed under the same settings [Tab. 2].
@@ -256,6 +290,7 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### U-EVAL-10 · Where AutoSOTA's numbers come from
 
+- *Register: U-EVAL-10*
 - Statement: Tab. 4's AutoSOTA row has 105 papers and NeurIPS figures of unstated source [Tab. 4].
 - The paper says: S2 ran "on the same five ICLR 2026 submissions (Table 13) that AutoSOTA reports" [App. B] (tex:sections/appendix.tex:194-195), with deltas "self-reported by each system" [Tab. 16] (tex:sections/appendix.tex:263).
 - Silent on: the 105 papers, how AutoSOTA's NeurIPS figures were restricted to S2's 33 successes, and AutoSOTA's version [Tab. 4].
@@ -263,42 +298,49 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### U-BENCH-1 · What a task hands the engine
 
+- *Register: U-TOP-1*
 - Statement: each task is an accepted paper "whose problem specifications and codebases serve as benchmark tasks" [§4.1] (tex:sections/4_experiment.tex:16), and nothing more precise is said.
-- Silent on: paper text or PDF, the repository and its commit, compute, which reported numbers define the human SOTA, what the full benchmark is, and the screening subset (the subset is analysis.md's SUB) [§3.2].
+- Silent on: paper text or PDF, the repository and its commit, compute, which reported numbers define the human SOTA, what the full benchmark is, and the screening subset, whose own gap is U-BASE-1 in stages/02 (F-15) [§3.2].
 - Decision it forces [ours]: a per-task manifest (paper source, repository at a commit, SOTA table and metric, full-benchmark definition, screening subset, hardware).
 
 ### U-BENCH-2 · How the ICML 64 were chosen
 
+- *Register: U-BENCH-2*
 - Statement: they "were selected from among all spotlight papers by strictly adhering to AutoSOTA's filtering process" [App. A.1] (tex:sections/appendix.tex:74).
 - Silent on: the pool size, the criteria beyond "verifying reproducibility", and who applied them and when [App. A.1].
 - Decision it forces [ours]: a written task-selection filter, applied and recorded before any run.
 
 ### U-BENCH-3 · Why 21 tasks failed
 
+- *Register: U-EVO-4*
 - Statement: failures are counted per venue (1 of 5, 5 of 38, 15 of 64) but not listed or explained [Tab. 3], except TeCh [App. B] (tex:sections/appendix.tex:298-300).
 - Silent on: the failed tasks and their causes, such as no `Good` idea after K rounds, a baseline not reproduced, or the specification filter [§3.3] [§4.2].
 - Decision it forces [ours]: a failure reason per task from a fixed taxonomy, logged by the engine.
 
 ### U-COST-1 · What the $3765 contains
 
+- *Register: U-COST-1*
 - Statement: the cost is "including token usage costs and virtual machine costs" [§4.3] (tex:sections/5_discussion.tex:4), with no breakdown.
 - Silent on: tokens per model, prices and their date, machine type, GPU count, hours and hourly price, and whether reviewer calls are included [§4.3].
 - Decision it forces [ours]: record tokens per model with price and machine-hours with price, per stage and per task; an unknown cost is recorded as unknown.
 
 ### U-COST-2 · Which runs are costed
 
+- *Register: U-COST-1*
 - Statement: time and cost average "the 33 target problems sourced from NeurIPS 2025 papers" [§4.3] (tex:sections/5_discussion.tex:4); 33 is the NeurIPS success count [Tab. 3], so the 5 failed runs look excluded [inferred].
 - Silent on: the cost of failed runs, and the cost per successful paper [§4.3].
 - Decision it forces [ours]: report cost over all runs and per success.
 
 ### U-COST-3 · How time was measured
 
+- *Register: U-COST-3*
 - Statement: Fig. 10a gives days per task (image) [Fig. 10a].
 - Silent on: wall-clock or busy time, queueing, parallelism (for example the two candidates per round [App. A.2]), and hardware [§4.3].
 - Decision it forces [ours]: record wall-clock and busy time per stage, with the hardware.
 
 ### A-EVAL-1 · What "success" means · AMBIGUOUS, and reading (c) INCONSISTENT with §3.4
 
+- *Register: A-EVAL-1*
 - Reading (a), the pipeline finished with at least one `Good` idea: the run ends if round K "is reached with zero successful ideas" [§3.3] (tex:sections/3_new_method.tex:86); Tab. 3 counts "the number of papers successfully generated by ScientistTwo" [Tab. 3] (tex:tables/conference_accepted_comparison.tex:3).
 - Reading (b), the human SOTA was beaten: S2 "improves 86 out of 107 papers (an 80.4% success rate)" [Fig. 1] (tex:figures/problem_setup.tex:10).
 - Reading (c), the gain survives attribution: S2 "additionally requires the gain to be attributable to the proposed mechanism in ablation" [Tab. 15] (tex:sections/appendix.tex:176-177); DMC-TeCh "was not accepted as a contribution" [Tab. 16] (tex:sections/appendix.tex:299-300).
@@ -307,50 +349,62 @@ Each definition is classified as the README prescribes; each one that is not SPE
 
 ### A-EVAL-2 · Gain against which baseline · AMBIGUOUS
 
+- *Register: U-EVAL-1*
 - Reading (a), the paper's own numbers: the full-set critic asks "Is it better than the original SOTA result?" [Tab. 1] (tex:tables/overview.tex:16), and gains are "over the original human state-of-the-art baselines" [§1] (tex:sections/1_introduction.tex:21).
 - Reading (b), a reproduction: each system "measures against its own reproduced baseline on different hardware" [App. B] (tex:sections/appendix.tex:202); S2 reproduces the baseline on the subset as E_base [§3.2] (tex:sections/3_new_method.tex:37).
-- Decision it forces [ours]: compute both, against the paper's number and against our reproduction on our hardware, and report both.
+- Decision it forces [ours], the register's U-EVAL-1, which this item joins (F-12): U-EVAL-1's pre-registered rule is computed against both references, the published number and our reproduction on our hardware, and both are reported.
 
 ### A-EVAL-3 · What ScholarPeer acceptance means · INCONSISTENT
 
+- *Register: A-EVAL-3*
 - Place 1: the rebuttal starts when the score "is below the acceptance threshold (e.g., 8)" [§3.5] (tex:sections/3_new_method.tex:124); the loop "terminates early if the ScholarPeer review score reaches 8" [App. A.2] (tex:sections/appendix.tex:155).
-- Place 2: `Accept Rate` 93.9% with 7.6 ± 1.0 (ICML, n = 49) and 91.9% with 7.5 ± 1.3 (Overall, n = 86) [Tab. 3] (tex:tables/conference_accepted_comparison.tex:21-22).
-- Why they conflict: if acceptance meant 8 or more, the smallest possible SD would be 1.37 (ICML) and 1.51 (Overall), above the printed 1.0 and 1.3 [ours].
+- Place 2: `Accept Rate` 100.0% at a mean of 7.0 (S2 ICLR, n = 4), 93.9% with 7.6 ± 1.0 (ICML, n = 49) and 91.9% with 7.5 ± 1.3 (Overall, n = 86) [Tab. 3] (tex:tables/conference_accepted_comparison.tex:19-22).
+- Why they conflict [ours]: if a paper is accepted when the rating the table averages is 8 or more, S2's ICLR row is impossible outright, and the minimum-SD test rules out 9 of the other 10 rows with acceptances (ICML needs an SD of at least 1.37 against 1.0, Overall 1.51 against 1.3); only human ICLR allows it (`claims_arithmetic.py`; the reviewer's `sp_threshold.py` agrees on every row, printing 1.52 for Overall on its coarser grid) [Tab. 3] [Tab. 5] [Tab. 8].
+- What the tables do fit [inferred]: with one integer rating per paper and the sample SD, only a threshold of 6 fits all 11 rows (`sp_integer.py`) [Tab. 3] [Tab. 8].
+- Caveat [ours]: if SP averages several reviews and accepts by majority, the tables do not constrain the rule and this argument fails; the item stays INCONSISTENT as filed, on the single-rating reading.
 - Decision it forces [ours]: define acceptance per reviewer explicitly, and never reuse the in-loop threshold's name for a reported metric.
 
 ### A-EVAL-4 · What a rating is · AMBIGUOUS
 
+- *Register: A-EVAL-4*
 - Reading (a): one "overall numerical score" per paper, "based on the standard ICLR grading scale" [§3.5] (tex:sections/3_new_method.tex:123).
 - Reading (b): another form, such as integers outside the ICLR score set or an average of several reviews; among integer ratings, Tab. 2's AI Scientist-v2 cell (2.0 ± 1.0, n = 3) fits only 1, 2 and 3 with the sample SD [Tab. 2] [ours].
 - Decision it forces [ours]: log the raw reviewer output per paper, and state the SD convention.
 
 ### A-EVAL-5 · What a review round in Tab. 5 is · AMBIGUOUS
 
+- *Register: A-EVAL-5*
 - Reading (a): the state after r review–rebuttal cycles, each paper frozen once it reaches 8 [App. A.2] (tex:sections/appendix.tex:155).
 - Reading (b): round 2 is the final system including the meta-review refinement, since its row equals Tab. 3's ICML row [Tab. 5] [Tab. 3].
 - Decision it forces [ours]: log per paper the round index, the stop reason and whether the meta-review changed the idea; report per-round snapshots and the final output separately.
 
-### A-EVAL-6 · Two gains on the same 49 tasks disagree · INCONSISTENT
+### A-EVAL-6 · Two gains on the same 49 tasks differ · AMBIGUOUS (filed INCONSISTENT, reclassified after the review)
 
+- *Register: U-EVAL-8*
 - Place 1: the final round of Fig. 9a is 33.4% (image) [Fig. 9a].
 - Place 2: Tab. 4 implies an ICML mean of 34.43–34.68%, from (86 × 25.2 − 33 × 13.9 − 4 × 3.8) / 49 with rounding [Tab. 4] [ours].
-- Readings: two measurements (in-loop versus parsed from the final paper), or the gain moved after idea refinement, since ablation and meta-review refinement can replace h_best [§3.4] [§3.6].
+- Reading (a), two points in the pipeline: Fig. 9a is read at the end of idea refinement and Tab. 4 on the final paper; ablation and meta-review refinement replace h_best only when the new result "strictly outperforms" or is "verified as strictly superior" [§3.4] [§3.6], which predicts Tab. 4 ≥ Fig. 9a, as observed (+1.0 to +1.3 points) [ours].
+- Reading (b), two measurements: a gain measured in the loop against one parsed by Gemini from the final paper's tables [§4.1] [ours].
+- Verdict on the first filing [ours]: filed INCONSISTENT; the review (F-CL-4) showed that reading (a) predicts the observed order, so the two numbers need not contradict each other; what is AMBIGUOUS is which point each number measures.
 - Decision it forces [ours]: one gain definition, computed at named checkpoints.
 
 ### A-EVAL-7 · Is Tab. 4 a head-to-head? · INCONSISTENT
 
+- *Register: U-EVAL-10*
 - Place 1: Tab. 4 bolds "the best score" [Tab. 4] (tex:tables/autosota_comparison.tex:3), and the text says S2 "shows superior performance to AutoSOTA" [§4.1] (tex:sections/4_experiment.tex:19).
 - Place 2: "the two Δ columns are not a head-to-head on a common metric" [App. B] (tex:sections/appendix.tex:202); "the two columns optimize different metrics in three of five cases and are not a head-to-head" [Tab. 16] (tex:sections/appendix.tex:263-264).
 - Decision it forces [ours]: compare systems only on common tasks, metric, hardware and gain rule.
 
 ### A-EVAL-8 · Whose rating Tab. 9 prints · AMBIGUOUS
 
+- *Register: A-EVAL-8*
 - Reading (a), SAR: VD-STrans's 6.5 equals its SAR score, "6.5 from the Stanford Agentic Reviewer" [Fig. 2] (tex:figures/qualitative_result.tex:21).
 - Reading (b), unattributed: Tab. 9 names no reviewer, and SP gave the same paper 8.0 [Tab. 9] (tex:tables/sequential_scientisttwo.tex:11).
 - Decision it forces [ours]: none for the engine; Tab. 9's ratings are recorded as unattributed.
 
 ### A-COST-1 · Fig. 10b's stages, and whether idea refinement is a majority · INCONSISTENT (caption vs image), stage mapping AMBIGUOUS
 
+- *Register: A-COST-1*
 - Place 1: "Idea refinement accounts for the majority of overall time and computational cost" [Fig. 10] (tex:figures/cost.tex:4).
 - Place 2: `Idea Refinement` is 44.9% of time and 45.4% of cost (image) [Fig. 10b], a plurality; only with `Initial Implements` added is it a majority, 63.9% and 65.5% [ours].
 - Place 3: the text names "the Idea Refinement, Dynamic Peer-Review, and Meta-Review stages" [§4.3] (tex:sections/5_discussion.tex:4), yet `Initial Implements` (19%) and `Ablation Studies` (16.4%) each take more time than `Peer&Meta-Review` (15.5%) (image) [Fig. 10b].

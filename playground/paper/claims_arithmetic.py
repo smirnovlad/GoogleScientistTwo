@@ -172,3 +172,75 @@ below = sum(n * (lo + hi) / 2 for n, lo, hi in bins.values())
 n_below = sum(n for n, _, _ in bins.values())
 print(f"  {n_below} bars below 100% at bin midpoints sum to {below:.1f} points; 25.2 x 86 = {25.2 * 86:.1f}")
 print(f"  so the 5 bars above 100% must average {(25.2 * 86 - below) / 5:.0f}%")
+
+# ---- Checks added after the persona review (docs/reviews/paper-analysis-2026-09-27/fix-list.md) ----
+import contextlib
+import io
+import runpy
+from pathlib import Path
+
+REVIEW = Path(__file__).resolve().parent / "reviews/research-engineer"
+SP_ROWS = [("Tab.2 ScientistOne", 21, 3.8, 1.2, 3), ("Tab.3 human ICLR", 5, 6.8, 1.6, 3),
+           ("Tab.3 human NeurIPS", 38, 6.2, 1.9, 25), ("Tab.3 human ICML", 64, 6.9, 1.5, 51),
+           ("Tab.3 S2 ICLR (= Tab.8 Claude Code)", 4, 7.0, 1.2, 4), ("Tab.3 S2 NeurIPS", 33, 7.3, 1.7, 29),
+           ("Tab.3 S2 ICML (= Tab.5 round 2)", 49, 7.6, 1.0, 46), ("Tab.3 S2 Overall", 86, 7.5, 1.3, 79),
+           ("Tab.5 round 0", 49, 5.2, 2.2, 23), ("Tab.5 round 1", 49, 6.9, 1.6, 39), ("Tab.8 Antigravity", 3, 6.3, 1.5, 2)]
+
+
+def min_sd_accept_at(t, n, m, k):
+    """Smallest population SD of n ratings in [1, 10] with mean m and exactly k ratings >= t (m < t):
+    accepted ratings sit at t, the others share one value. None if the mean cannot be reached."""
+    if k == n:
+        return None
+    x = (n * m - k * t) / (n - k)
+    return None if x < 1 else math.sqrt((k * (t - m) ** 2 + (n - k) * (x - m) ** 2) / n)
+
+
+section("F-CL-1: 'accept <=> rating >= 8' against all 11 ScholarPeer rows with acceptances")
+ruled_out = 0
+for label, n, mean, sd, k in SP_ROWS:
+    sds = [s for s in (min_sd_accept_at(8, n, m, k) for m in (mean - 0.05, mean + 0.0499)) if s is not None]
+    if not sds:
+        verdict = f"impossible: {k} of {n} accepted at >= 8 needs a mean >= 8, printed {mean}"
+        ruled_out += 1
+    else:
+        smallest = min(sds)
+        bad = smallest >= sd + 0.05
+        ruled_out += bad
+        verdict = f"smallest SD {smallest:.2f} vs printed {sd} (below {sd + 0.05:.2f}): {'rules out >= 8' if bad else 'allows >= 8'}"
+    print(f"  {label:36s} {verdict}")
+print(f"  rows that rule out '>= 8': {ruled_out} of {len(SP_ROWS)}")
+with contextlib.redirect_stdout(io.StringIO()):          # the reviewer's script prints on import
+    sp = runpy.run_path(str(REVIEW / "sp_integer.py"))
+for sample in (True, False):
+    fits = [{t for t in range(2, 11) if sp["feasible"](n, m, sd, k, t, sample)} for _, n, m, sd, k in SP_ROWS]
+    none = [r[0] for r in sp["rows"] if not any(sp["feasible"](r[1], r[2], r[3], r[4], t, sample) for t in range(2, 11))]
+    print(f"  one integer rating per paper, {'sample' if sample else 'population'} SD: thresholds fitting all 11 rows "
+          f"{sorted(set.intersection(*fits))}; rows (of {len(sp['rows'])}) with no integer solution: {none}")
+
+section("F-CL-3: Tab. 4's S2 ICLR cells (median 2.2, mean 3.8, n = 4) from Tab. 16's printed gains")
+known = [0.61, 3.4]              # DMSQD mean QD and T-SAE, the two S2 gains Tab. 16 prints as relative gains
+pairs = []
+for i in range(0, 3001):         # the two unprinted gains (RALI, Pinet), smaller one first, in 0.01% steps
+    for j in range(max(i, 1099 - i), min(3000, 1139 - i) + 1):
+        v = sorted(known + [i / 100, j / 100])
+        if 2.15 <= (v[1] + v[2]) / 2 < 2.25 and 3.75 <= sum(v) / 4 < 3.85:
+            pairs.append((i / 100, j / 100))
+small, large = [p[0] for p in pairs], [p[1] for p in pairs]
+print(f"  the unprinted gains must be {min(small):.2f}-{max(small):.2f}% and {min(large):.2f}-{max(large):.2f}%")
+print("  Pinet's printed S2 results: RS lower on 3/4 (up to -69%), CV 4e-4 -> 2e-14, training 3.0x faster")
+
+section("F-CL-5, F-CL-7, F-CL-8, F-CL-9, F-CL-10")
+print(f"  Tab.5 SAR round 1 -> 2, 36 -> 34 of 49: exact two-sided McNemar p for discordant pairs (b, c) = "
+      + ", ".join(f"({b},{c}) {min(1, 2 * sum(math.comb(b + c, i) for i in range(c + 1)) / 2 ** (b + c)):.3f}"
+                  for b, c in ((2, 0), (3, 1), (4, 2))))
+print(f"  Fig.10b residual for Seed Idea Generation from the five large labels: time {100 - 99.4:.1f}%, "
+      f"cost {100 - 99.8:.1f}%; its printed labels, 0.6% and 0.3% (image, fig10_seed_labels.py), sum to 100.0 and 100.1")
+print(f"  Tab.6 EM, FCD-Engram vs Engram: +{0.071 - 0.004:.3f} absolute; the ratio lies in "
+      f"{0.0705 / 0.0045:.1f}-{0.0715 / 0.0035:.1f} within rounding")
+print(f"  Tab.9 chain: as ratio gains {100 * (1.109 * 1.096 * 1.082 - 1):.1f}%; as time reductions "
+      f"{100 * (1 - 0.891 * 0.904 * 0.918):.1f}% (a {1 / (0.891 * 0.904 * 0.918):.2f}x speedup)")
+auroc = (100 * (99.56 / 99.30 - 1), 100 * (99.56 / 99.16 - 1))
+fpr = (100 * (1 - 2.17 / 3.76), 100 * (1 - 2.17 / 4.17))
+print(f"  p.41 (image): AUROC gain +{auroc[0]:.2f}% (vs paper) to +{auroc[1]:.2f}% (vs reproduced); relative FPR95 "
+      f"{fpr[0]:.1f}% to {fpr[1]:.1f}%; smallest ratio of the two rules {fpr[0] / auroc[1]:.0f}-fold")

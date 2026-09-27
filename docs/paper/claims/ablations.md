@@ -2,6 +2,8 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours].
 
+Revised 2026-09-27 after the persona review: fixes F-CL-4, F-CL-5, F-CL-6, F-CL-8 and F-CL-11 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+
 **Scope of every §4.2 number.** §4.2 evaluates "on the 49 target problems sourced from ICML 2026 Spotlight papers" [§4.2] (tex:sections/4_experiment.tex:25), which are exactly S2's ICML successes, 49 of 64 [Tab. 3]. Every ablation is therefore conditioned on the full system succeeding, and none reports a seed or a spread across runs (U-EVAL-4) [ours]. The exceptions are Tab. 6, one task, and Tab. 8, five ICLR tasks [Tab. 6] [Tab. 8].
 
 ### C-ABLX-1 · Idea evolution raises the gain, most in the first round (Fig. 9a)
@@ -12,7 +14,7 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Sample: the 49 ICML successes; the per-round gain is undefined (U-EVAL-8); one run [§4.2].
 - Checks: 10.2 + 1.6 + 0.4 + 0.6 = 12.8 = 33.4 − 20.6 ✓ (image) [Fig. 9a]; the curve never falls, as a best-so-far value would behave [ours].
 - Checks: "steadily diminish" is not strictly true, since Round 4's step (+0.6) is larger than Round 3's (+0.4) [Fig. 9a] [ours].
-- Checks: the final 33.4% disagrees with the ICML mean implied by Tab. 4, 34.43–34.68% (A-EVAL-6) [Tab. 4] [ours].
+- Checks: the final 33.4% sits 1.0–1.3 points below the ICML mean implied by Tab. 4, 34.43–34.68%, the order the "strictly better" gates predict if the two are measured at different points (A-EVAL-6, reclassified AMBIGUOUS) [Tab. 4] [ours].
 - Falsified by: the per-task values showing a smaller first step or a falling mean [ours].
 - Assessment [ours]: descriptive, with no control arm (for example, fresh seed ideas at the same budget), so it cannot separate evolution from evaluating more candidates.
 - For analysis.md [ours]: the five points (Initial and Rounds 1–4) suggest that App. A.2's "up to four rounds" counts refinement rounds after an initial round (key CFG) [App. A.2].
@@ -25,7 +27,7 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Checks: 14 + 16 + 12 + 3 + 4 = 49 ✓; evolved 0 + 14 + 9 + 2 + 2 = 27 = 55.1% ✓; seed 22 = 44.9% ✓ (image) [Fig. 9b] [ours].
 - Checks: Initial and Round 1 hold 30 of 49 (61.2%), a majority ✓; after Initial, 27 of 35 picks (77.1%) are evolved ideas ✓ [Fig. 9b] [ours].
 - Sample: the 49 ICML successes; the loop stops at four successes [App. A.2], so later rounds hold fewer tasks, and per-round counts mix idea quality with the number of tasks still running [ours].
-- Assessment [ours]: consistent; with one seed and one evolved candidate per round [App. A.2], 77% evolved picks after the first round is a real preference, but a preference of the LLM Selector, not of the metric (engine side: analysis.md, SEL).
+- Assessment [ours]: consistent; with one seed and one evolved candidate per round [App. A.2], 77% evolved picks after the first round is a real preference of the Selector, an LLM agent that "compares performance metrics and execution logs" [§3.3] (tex:sections/3_new_method.tex:90) (engine side: analysis.md, SEL).
 
 ### C-ABLX-3 · The rebuttal loop raises SP scores (Tab. 5)
 
@@ -38,9 +40,9 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 
 - Claim: "incorporating ScholarPeer reviews also improves acceptance rate from Stanford Agentic Reviewer, with this effect being particularly pronounced in the first review round" [§4.2] (tex:sections/4_experiment.tex:34).
 - Values: SAR 5.6 ± 0.5 with 49.0%, 5.8 ± 0.6 with 73.5%, 5.7 ± 0.6 with 69.4% for rounds 0, 1, 2 [Tab. 5] (tex:tables/ablation_rebuttal.tex:12-14).
-- Checks: 24, 36 and 34 of 49 papers; round 0 → 1 gains 12 papers, round 1 → 2 loses 2 papers and 0.1 rating points [Tab. 5] [ours]; the table bolds round 1 as the best SAR result (tex:tables/ablation_rebuttal.tex:13).
+- Checks: 24, 36 and 34 of 49 papers; round 0 → 1 gains 12 papers, round 1 → 2 loses 2 papers and 0.1 rating points, and even if only those two papers changed, the exact McNemar p is 0.50, rising with more discordant pairs (0.625 at 3 against 1) [Tab. 5] [ours]; the table bolds round 1 as the best SAR result (tex:tables/ablation_rebuttal.tex:13).
 - Falsified by: repeated SAR queries showing the round-1 to round-2 difference is query noise, or a larger sample reversing it [ours].
-- Assessment [ours]: round 1 transfers to the held-out reviewer, round 2 does not: it lowers SAR acceptance while lifting SP to 93.9%; the shipped two-round setting is the one that maximizes the in-loop reviewer; 2 papers of 49 may be noise, but the direction is the opposite of the claim, and the round semantics are ambiguous (A-EVAL-5).
+- Assessment [ours]: round 1 transfers to the held-out reviewer; round 2 shows no held-out gain (36 → 34 of 49; exact McNemar p ≥ 0.50) while lifting SP to 93.9%; the shipped two-round setting is the one that maximizes the in-loop reviewer, and the round semantics are ambiguous (A-EVAL-5).
 
 ### C-ABLX-5 · Initial drafts already beat ScientistOne (Tab. 5)
 
@@ -55,7 +57,7 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Claim: before refinement S2 had "LFR-Engram, outperforming the human baseline Engram" [§4.2] (tex:sections/4_experiment.tex:38).
 - Values: Overall 0.705 / 0.897 / 0.916, Mem. 0.922 / 0.963 / 0.969, Util. 0.871 / 0.917 / 0.926, Priv. 0.495 / 0.824 / 0.860, EM (lower is better) 0.004 / 0.084 / 0.071, FQ −0.551 / −0.014 / −0.001 for Engram, LFR and FCD [Tab. 6] (tex:tables/ablation_review_refine.tex:9-11).
 - Sample: one task, AI Engram, an ICML 2026 Spotlight [Tab. 14] [Bib: kwon2026ai]; TOFU forget10 with Llama-3.2-1B-Instruct [Tab. 6]; one run, no variance.
-- Checks: FCD beats LFR on all six columns ✓ [Tab. 6]; both are worse than Engram on EM (0.084 and 0.071 against 0.004; 17.75 times for FCD), so "outperforming" holds on 5 of 6 columns [ours]; on Overall, LFR gains 27.2% and FCD 29.9% [ours].
+- Checks: FCD beats LFR on all six columns ✓ [Tab. 6]; both are worse than Engram on EM (0.084 and 0.071 against 0.004, lower is better: FCD is worse by +0.067, a ratio of 15.7–20.4 within rounding), so "outperforming" holds on 5 of 6 columns [ours]; on Overall, LFR gains 27.2% and FCD 29.9% [ours].
 - Falsified by: the across-task rate at which meta-review refinement improves results [ours].
 - Assessment [ours]: n = 1 cannot show "essential"; the paper never reports how often the meta-reviewer returned `Refine`, or how often the refined idea was kept, across the 49 tasks.
 
@@ -67,7 +69,9 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Checks: the footnote's extra task explains 50 → 49 and the single violation ✓; 1840 − 1817 = 23 references belonged to the removed paper, none hallucinated (19 stays 19) ✓; reference correction leaves 3 fewer references (1817 → 1814) [Tab. 7] [ours].
 - Checks: method–code alignment goes 39/50 → 38/49 (the removed paper was aligned) → 49/49, so the last agent fixed 11 papers; about 37 references per paper [Tab. 7] [ours].
 - Falsified by: an independent re-audit of the 49 repositories finding a violation [ours].
-- Assessment [ours]: internally consistent; whether the variants are separate runs or stages switched off in one run is not said; it covers 49 of 86 successes; and the pipeline's own fix uses "the Coding Agent audits the repository against the manuscript" [§4.2] (tex:sections/4_experiment.tex:43), so if Tab. 7's auditor is the same kind of agent, 49/49 is in-distribution.
+- What Score Verif. shows (F-CL-11) [ours]: Tab. 7's first row passes a reward-hacked codebase, 50/50 on Score Verif. with 1/50 specification violations, the codebase that "contains reward hacking" [fn. 2] (tex:sections/4_experiment.tex:43); so the check, as run, shows the code is deterministic, not that its number is valid [Tab. 7].
+- The delegated protocol re-runs on a fixed evaluator: ScientistOne's I1 compares with "scores obtained by re-running the submitted solution on the golden evaluator" [Ref: meng2026scientistone §5] (ref:2605.26340v1:sections/05_coe_audit.tex:25-26); ScientistTwo's tasks name no such evaluator (U-EVAL-5).
+- Assessment [ours]: internally consistent, but a check of determinism rather than validity (above); whether the variants are separate runs or stages switched off in one run is not said; it covers 49 of 86 successes; and the pipeline's own fix uses "the Coding Agent audits the repository against the manuscript" [§4.2] (tex:sections/4_experiment.tex:43), so if Tab. 7's auditor is the same kind of agent, 49/49 is in-distribution.
 
 ### C-ABLX-8 · Another coding agent still works (Tab. 8)
 

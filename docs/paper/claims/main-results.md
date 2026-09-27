@@ -2,13 +2,17 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. The setup behind every §4.1 number: 107 problems, "Gemini 3.6 Flash and Claude Opus 4.8" unless stated otherwise, SP as "an in-distribution evaluation" and SAR as "a held-out evaluator" [§4 "Common Setup"] (tex:sections/4_experiment.tex:5).
 
+Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` [ours].
+
 ### C-MAIN-1 · SP: 91.9% acceptance, rating 7.5 against ScientistOne's 3.8
 
 - Claim: S2 "achieves a 91.9% acceptance rate under ScholarPeer (nearly doubling the review score from ScientistOne's 3.8 to 7.5)" [§4.1 "Quantitative Comparison"] (tex:sections/4_experiment.tex:9).
 - Values: seven baselines at 1.0–3.8 with 0.0–14.3% acceptance, S2 at 7.5 ± 1.3 with 91.9% [Tab. 2] (tex:tables/ai_scientist_comparison.tex:10-17).
 - Sample: S2's 86 papers on its own successful tasks; for each baseline "the number of publicly released AI-generated papers" (7, 6, 3, 4, 2, 3, 21), released by each agent's authors rather than run by this paper on the 107 tasks [Tab. 2] (tex:tables/ai_scientist_comparison.tex:3) [inferred].
 - Produced by: SP scoring each paper; the acceptance rule is undefined (A-EVAL-3) [Tab. 2].
-- Checks: 91.9% of 86 is 79 papers and 14.3% of 21 is 3 ✓; 7.5 / 3.8 = 1.97, "nearly doubling" ✓; if acceptance meant a rating of 8 or more, 79 of 86 at a mean of 7.5 would force an SD of at least 1.51, but 1.3 is printed [Tab. 2] [ours].
+- Checks: 91.9% of 86 is 79 papers and 14.3% of 21 is 3 ✓; 7.5 / 3.8 = 1.97, "nearly doubling" ✓ [Tab. 2] [ours].
+- Checks on the acceptance rule (F-CL-1): if a paper is accepted when the rating the table averages is 8 or more, S2's ICLR row (4 of 4 accepted at a mean of 7.0) is impossible outright [Tab. 3], and 9 of the other 10 SP rows with acceptances fail the minimum-SD test, this row among them (79 of 86 at a mean of 7.5 forces an SD of at least 1.51 against a printed 1.3) [Tab. 2] [ours].
+- What fits instead [inferred]: with one integer rating per paper and the sample SD, only a threshold of 6 fits all 11 rows (`claims_arithmetic.py`, re-running `sp_integer.py`); if SP averages several reviews and accepts by majority, neither result holds (A-EVAL-3) [Tab. 3].
 - Falsified by: re-scoring the same papers with SP and getting materially different numbers [ours].
 - Assessment [ours]: in-distribution by the paper's own account, since S2's drafts are revised until SP scores 8 [App. A.2] and the baselines' are not; strong but expected.
 
@@ -68,8 +72,9 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Check: Tab. 16's AutoSOTA deltas on the four papers other than TeCh (Pinet's −16.7% latency taken as a gain, 7.3, 2.25, 2.68) give a mean of 7.23 and a median of 4.99, printed 7.2 and 5.0 ✓ [Tab. 16] [ours].
 - Check: that mean includes T-SAE's +2.25%, which App. B says "does not survive its own re-run" (its re-evaluation is −0.38%) [Tab. 16] (tex:sections/appendix.tex:312) [ours].
 - Check: on ICLR, S2's mean is 47% below AutoSOTA's (3.8 vs 7.2) and its median 56% below (2.2 vs 5.0), which is not a slight drop [Tab. 4] [ours].
+- Check, S2's own ICLR cells (F-CL-3): Tab. 16 prints two of S2's four gains as relative numbers, DMSQD +0.61% and T-SAE +3.4%; for a median of 2.2 and a mean of 3.8 the two unprinted gains must be 0.90–1.09% and 9.90–10.48%, and Pinet's printed results (RS up to −69%, CV 4e−4 → 2e−14, training 3.0× faster) hold nothing near 10%, so S2's ICLR cells cannot be rebuilt from the paper (`claims_arithmetic.py` prints the two ranges; the reviewer's `s2_iclr.py` finds the same solutions, printed as one range per unknown, 0.90–10.48%) [Tab. 16] [ours].
 - Falsified by: both systems run on the same tasks and hardware under one gain rule [ours].
-- Assessment [ours]: only NeurIPS is a shared pool, and it keeps only S2's successes, dropping S2's 5 NeurIPS failures for both systems; App. B itself says such deltas are "not a head-to-head" (A-EVAL-7).
+- Assessment [ours]: only NeurIPS is a shared pool, and it keeps only S2's successes, dropping S2's 5 NeurIPS failures for both systems; App. B itself says such deltas are "not a head-to-head" (A-EVAL-7). S2's gains are also measured on the data its search selected on, a winner's-curse inflation no reported variance can size (P-EVAL-2 in claims.md), while AutoSOTA's are self-reported under its own rules.
 
 ### C-MAIN-9 · AutoSOTA's five ICLR changes are small configuration edits
 

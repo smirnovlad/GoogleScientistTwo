@@ -2,6 +2,8 @@
 
 Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. §4.3 is a subsection despite its file name, `5_discussion.tex` [§4.3].
 
+Revised 2026-09-27 after the persona review: fix F-CL-9 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md` applied; F-CL-7 declined, with its evidence under C-DISC-2 [ours].
+
 ### C-DISC-1 · About 2.5 days per task (Fig. 10a)
 
 - Claim: S2 "requires an average of 2–3 days to complete the entire research cycle, demonstrating significantly faster execution compared to human researchers" [§4.3 "Cost Analysis"] (tex:sections/5_discussion.tex:4); S2 "requires 2.5 days on average to improve a single paper" [Fig. 10] (tex:figures/cost.tex:4).
@@ -17,8 +19,10 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 
 - Claim: "the majority of execution time is concentrated in the Idea Refinement, Dynamic Peer-Review, and Meta-Review stages" [§4.3] (tex:sections/5_discussion.tex:4).
 - Caption: "Idea refinement accounts for the majority of overall time and computational cost, primarily driven by iterative idea evolution and experimental execution" [Fig. 10] (tex:figures/cost.tex:4).
-- Values (image) [Fig. 10b], share of time and of cost: `Seed Idea Generation` 0.6% and 0.3%; `Initial Implements` 19% and 20.1%; `Idea Refinement` 44.9% and 45.4%; `Ablation Studies` 16.4% and 15.4%; `Initial Drafting` 3.6% and 3.1%; `Peer&Meta-Review` 15.5% and 15.8%.
-- Checks: time shares sum to 100.0% and cost shares to 100.1% ✓; the text's three stages hold 44.9 + 15.5 = 60.4% of time, a majority ✓ [Fig. 10b] [ours].
+- Values (image) [Fig. 10b], share of time and of cost: `Seed Idea Generation` 0.6% and 0.3%; `Initial Implements` 19% and 20.1%; `Idea Refinement` 44.9% and 45.4%; `Ablation Studies` 16.4% and 15.4%; `Initial Drafting` 3.6% and 3.1%; `Peer&Meta-Review` 15.5% and 15.8%; the two seed labels are printed about 6 px high in the figure's 2048-px raster.
+- Checks: the six printed labels sum to 100.0% (time) and 100.1% (cost), within rounding; the five large labels alone leave 0.6% and 0.2% for Seed Idea Generation, against its printed 0.6% and 0.3% [Fig. 10b] [ours].
+- Checks: the text's three stages hold 44.9 + 15.5 = 60.4% of time, a majority ✓ [Fig. 10b] [ours].
+- Review note, F-CL-7 declined [ours]: the review read the Seed Idea Generation slice as unlabelled and asked to drop the sum check; the raster prints 0.6% and 0.3% above that slice, which `playground/paper/fig10_seed_labels.py` locates (43 and 36 dark text pixels at y 154–159) and crops for reading (image) [Fig. 10b].
 - Checks: `Initial Implements` (19%) and `Ablation Studies` (16.4%) each take more time than `Peer&Meta-Review` (15.5%), so the text names the third-largest stage group after two larger ones [Fig. 10b] [ours].
 - Checks: the caption's "majority" for idea refinement alone is 44.9% of time and 45.4% of cost, a plurality; it becomes a majority only with `Initial Implements` added, 63.9% and 65.5% (A-COST-1) [Fig. 10b] [ours].
 - Assessment [ours]: usable for budgeting a replication (about 45% of the cost in idea refinement), once the stage boundaries are mapped to §3 (A-COST-1).
@@ -37,7 +41,7 @@ Part of [claims.md](../claims.md), which holds the definitions and gaps cited he
 - Claim: S2 discovers VD-STrans, "achieving a 10.9% improvement over the existing state of the art", then BXT-Transducer, "yielding an additional 9.6% relative improvement over VD-STrans", then SBR-Transducer, "again yielding an additional 8.2% improvement over BXT-Transducer" [§4.3 "Iterative Frontier Expansion"] (tex:sections/5_discussion.tex:9).
 - Values: gains 10.9%, 9.6% and 8.2%; ratings 6.5, 5.6 and 7.1 [Tab. 9] (tex:tables/sequential_scientisttwo.tex:10-15).
 - Sample: one task, Incremental BPE, an ICML 2026 Spotlight [Tab. 14]; three sequential runs; the reviewer behind `Rating` is not named (A-EVAL-8) [Tab. 9].
-- Checks: compounded, 1.109 × 1.096 × 1.082 = 1.315, a 31.5% gain over the human baseline if the three gains are multiplicative on one metric [ours]; 10.9% and 6.5 match Fig. 2 (C-HEAD-8) [Fig. 2]; the second paper is rated lower (5.6) than the first (6.5) despite its gain [Tab. 9].
+- Checks (F-CL-9): the three gains compound to 31.5% as ratio gains (1.109 × 1.096 × 1.082 = 1.315), and to 26.1%, a 1.35× speedup, as time reductions (1 − 0.891 × 0.904 × 0.918), the reading C-HEAD-8's arithmetic favours for the first step [Tab. 9] [ours]; 10.9% and 6.5 match Fig. 2 (C-HEAD-8) [Fig. 2]; the second paper is rated lower (5.6) than the first (6.5) despite its gain [Tab. 9].
 - Falsified by: a re-run of the chain, or other tasks [ours].
 - Assessment [ours]: an anecdote with n = 1; the metric (throughput or time) and the reviewer are unnamed; from the second step on, S2's own previous method is the baseline.
 
