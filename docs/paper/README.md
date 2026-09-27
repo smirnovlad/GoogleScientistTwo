@@ -153,8 +153,18 @@ listed for it, so that parallel writers never collide.
 | `NOTE` | gaps that checking the initial note brings to light | note-check.md |
 
 Each writer ends its document with a section **"Gaps found here"** that lists its `U-` and `A-`
-items in full: the statement, the location, the quotes. The consolidation step moves them into
-`unspecified.md` and leaves links behind.
+items in full: the statement, the location, the quotes. **The full entries stay there,** beside the
+analysis that found them.
+
+`unspecified.md` is the **decision register** built from them. It has one row per distinct open
+question, since two analysts often found the same one under different IDs. Each row gives:
+- a canonical ID, with the others as aliases;
+- the question in one line;
+- the decision it forces, and which TODO task owns that decision;
+- links to the full entries.
+
+⛔ WHY NOT move the entries into `unspecified.md`: rewriting about 130 entries across six documents
+risks errors in transcription. It would also separate each gap from the stage it belongs to.
 
 **A writer edits only the files it owns,** and never runs git; the orchestrating session commits.
 
