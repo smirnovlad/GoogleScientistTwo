@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+
+# Secrets and machine-local settings: never committed (this repository is public)
+.env
+.env.*
+!.env.example
+.secrets/
+.claude/settings.local.json
+
+# One worktree per task (docs/process/worktrees-and-sessions.md)
+.claude/worktrees/
+
+# Run outputs, datasets and model artefacts: large, reproducible from their records, or licensed
+runs/
+data/
+checkpoints/
+*.ckpt
+*.pt
+*.safetensors
+wandb/
+
+# OS
+.DS_Store
