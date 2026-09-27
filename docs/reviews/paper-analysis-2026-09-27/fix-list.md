@@ -141,27 +141,59 @@ are assigned here. Apply the register's wording; it is the more precise.
 ## Verification, by the orchestrating session
 
 Each fixed document is checked against this list, fix by fix, before it is committed. Each one
-also carries a "Revised … after the persona review" line naming the fixes it applied.
+also carries a "Revised … after the persona review" line naming the fixes it applied. Then each
+reviewer checks its own findings against the fixed documents. These closure checks are kept
+verbatim in `closure-<persona>.md` beside this file.
 
 | Document | Commit | Outcome |
 |---|---|---|
 | note-check.md | `5ac78ea` | F-NC-1 to F-NC-5, and the register's F-1, F-2, F-5, F-6, F-8, F-9, F-13, F-14 and F-17, applied |
 | artifacts.md | `f0823be` | F-AR-1 to F-AR-11, and the register's F-6, F-9, F-11 and F-17, applied |
-| claims.md and claims/ | the commit that adds this section | F-CL-1 to F-CL-6, F-CL-8 to F-CL-13, and the register's F-12, F-15 and F-17, applied. **F-CL-7 declined, rightly:** see below. One line corrected during the check: see below |
-| analysis.md and stages/ | pending | |
+| claims.md and claims/ | `1ea9771` | F-CL-1 to F-CL-6, F-CL-8 to F-CL-13, and the register's F-12, F-15 and F-17, applied. **F-CL-7 declined, rightly:** see below |
+| analysis.md and stages/ | `23b894e` | F-AN-0 to F-AN-31, and the register's F-3, F-4, F-5, F-7, F-9, F-10, F-16 (with 17) and F-17, applied |
 
 **F-CL-7 was declined with evidence.** The fix said Figure 10b's Seed Idea Generation slice "has no
 printed label". The figure is a raster, and it prints 0.6% (time) and 0.3% (cost) above that
 slice. `playground/paper/fig10_seed_labels.py` finds the label text (43 and 36 dark pixels, at
-y 154–159) and writes an enlarged crop. The crop was read, and it shows both labels. The six
-printed labels sum to 100.0% and 100.1%, and C-DISC-2 now says so.
-
-**Corrected during the check (C-APPB-6).** It said RALI's PLCC gain of +0.006 "fits" the smaller
-of the two unprinted gains (0.90–1.09%). Within rounding, +0.006 is 0.70–0.83% of 0.7803, the only
-RALI baseline printed, and that is just below the range. The conclusion stands: RALI is nowhere near
-10%, so Pinet must be.
+y 154–159) and writes an enlarged crop. The crop was read, and it shows both labels. The research
+engineer accepts the decline: its own crop started below the label row.
 
 **A correction to this list: F-16's lower bound at N_0 = 1 is 17, not 18.** The register's D-2
 counts the fifth idea of round 2 as `Good`. That idea can instead fail at once on the subset, which
 costs one session: 1 + 9 + 5 = 15 sessions, or 17 with note-check.md's two integrity sessions.
-`analysis.md` §9 carries 17. The register corrects D-2 and F-16 under F-UN-1.
+`analysis.md` §9 carries 17, and the research engineer confirms it. The register corrects D-2 and
+F-16 under F-UN-1.
+
+### The closure checks (2026-09-28)
+
+| Reviewer | Resolved | Partly | New errors found |
+|---|---|---|---|
+| system-architect | 8 of 9 fixes | B1's F-AN-0: the subset row is not an "exact fit" to Listing 1, which is claimed in four places; §1.1 item 1 keeps the withdrawn framing; four §3.4 cells lack their gap tags | 2 |
+| agent-engineer | 8 of 10 | F-AN-6 (one row of §7.3), F-AN-1 | 7, all small, in analysis.md |
+| research engineer | 18 of 22, and it accepts the decline of F-CL-7 | F-AR-4, F-AN-1, F-AN-17 | 2, one of them in the orchestrator's own correction |
+| evaluation-integrity engineer | 14 of 15 | EI1-M2: a summary row in claims.md | 3 |
+
+Each of them found every quote attributed to the right paper, ScientistOne or ScientistTwo, where
+it checked. The corrections went back to the owner of each document.
+
+**Errors in this list, found by the closure checks.**
+- **F-AN-12, and the fixes that relayed EI1-M1 (F-CL-12, F-AR-5, F-NC-1), merged two things.** The
+  five runs and the max(1%, 3σ/|s̄|) tolerance are ScientistOne's settings for its own benchmark, in
+  its §6. They are not part of its audit's definition, in its §5, which says only "an adaptive
+  tolerance". The reviewer who wrote EI1-M1 says its wording caused this.
+- **F-AN-17's span, "99–127", mixed two counting bases.** 99 includes two integrity sessions and
+  127 includes none. On one basis the span is 97–127, or 99–129 with the two sessions. The span came
+  from RE2-m5.
+- **F-AN-20's citation of p. 69's *subset test split* does not bear on §3.2's screening subset.**
+  That label belongs to an ablation inside the generated DynaSpec-RAG paper.
+
+**Errors of the orchestrating session, found by the closure checks.**
+- **It accepted "§6.1" as ScientistOne's section for the setup text, from the TeX comment
+  `%% --- 6.1 Setup ---`.** That file comments out its `\subsection{Setup}`, so the text sits under
+  §6, and 6.1 is "CoE Audit Results". The integrity reviewer checked the rendered numbering.
+- **Its correction of C-APPB-6 did not follow.** It said that RALI's PLCC gain (0.70–0.83% of the
+  only baseline printed) sits just below the smaller unprinted gain, "so Pinet must be" near 10%.
+  In fact, at that value no Pinet gain reproduces Table 4's median: the median would be 2.05–2.12,
+  not 2.2. A solution needs RALI's gain under a rule the paper does not print. That makes the
+  conclusion stronger: S2's ICLR cells cannot be rebuilt from anything the paper prints. The line
+  was corrected, and `claims_arithmetic.py` now prints the check.
