@@ -145,12 +145,14 @@ also carries a "Revised … after the persona review" line naming the fixes it a
 reviewer checks its own findings against the fixed documents. These closure checks are kept
 verbatim in `closure-<persona>.md` beside this file.
 
-| Document | Commit | Outcome |
+| Document | Commits: fixes, then closure corrections | Outcome |
 |---|---|---|
-| note-check.md | `5ac78ea` | F-NC-1 to F-NC-5, and the register's F-1, F-2, F-5, F-6, F-8, F-9, F-13, F-14 and F-17, applied |
-| artifacts.md | `f0823be` | F-AR-1 to F-AR-11, and the register's F-6, F-9, F-11 and F-17, applied |
-| claims.md and claims/ | `1ea9771` | F-CL-1 to F-CL-6, F-CL-8 to F-CL-13, and the register's F-12, F-15 and F-17, applied. **F-CL-7 declined, rightly:** see below |
-| analysis.md and stages/ | `23b894e` | F-AN-0 to F-AN-31, and the register's F-3, F-4, F-5, F-7, F-9, F-10, F-16 (with 17) and F-17, applied |
+| note-check.md | `5ac78ea`, `197cb8b` | F-NC-1 to F-NC-5, and the register's F-1, F-2, F-5, F-6, F-8, F-9, F-13, F-14 and F-17, applied |
+| artifacts.md | `f0823be`, `dd33d7d` | F-AR-1 to F-AR-11, and the register's F-6, F-9, F-11 and F-17, applied |
+| claims.md and claims/ | `1ea9771`, `1ed684b` | F-CL-1 to F-CL-6, F-CL-8 to F-CL-13, and the register's F-12, F-15 and F-17, applied. **F-CL-7 declined, rightly:** see below |
+| analysis.md and stages/ | `23b894e`, `7b0f57d` | F-AN-0 to F-AN-31, and the register's F-3, F-4, F-5, F-7, F-9, F-10, F-16 (with 17) and F-17, applied |
+| traceability.md | `7ece47e` | F-UN-1 applied: 177 elements, each with a row; F-AN-28 to F-AN-31 closed in its section 1.4 |
+| unspecified.md | the commit that adds this row | F-UN-1 and F-UN-2 applied: 93 rows hold 143 IDs, and each blocking row carries its rank in the architect's list. F-1 to F-17 are closed with their statuses. Its two new fixes are done: the orchestrating session applied F-18 (13 stale Register lines) and F-19 in the source documents, and `register_coverage.py` now fails on any stale Register line |
 
 **F-CL-7 was declined with evidence.** The fix said Figure 10b's Seed Idea Generation slice "has no
 printed label". The figure is a raster, and it prints 0.6% (time) and 0.3% (cost) above that

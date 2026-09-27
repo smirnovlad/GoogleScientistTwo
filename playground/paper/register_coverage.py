@@ -17,7 +17,17 @@ Checks on the register (section "## The register" of unspecified.md), each a fai
     stages/01..07) whose full entry comes first; if none, the ID whose full entry comes first in
     claims.md, then note-check.md, then artifacts.md;
   - class, task and priority values are valid, rows are grouped by task in the order 2..7 then 1,
-    and within a task "blocks" rows come first, then "number", then "later".
+    and within a task "blocks" rows come first, then "number", then "later";
+  - a "blocks" row carries its rank in the system architect's list of what task 3 needs decided
+    first ("blocks 1" to "blocks 8"), and within a task the blocking rows follow that rank.
+Checks on the full entries (every place above except the 10.2 index), each a failure too:
+  - each entry carries exactly one Register line, "*Register: X ...*", where X, the ID the line
+    starts with, is the canonical ID of the register row that holds the entry's ID, as canonical
+    or alias. A line that starts with no ID ("not yet indexed ... A-TOP-1") names no row, even if
+    it cites the right one later; an alias or another row's ID fails too. Only the rows of the
+    register tables count as holders: a table elsewhere in unspecified.md, such as "Why these rows
+    merge", and IDs cited in a row's question or decision never do (a scratch version that read
+    every table in the file flagged U-PEER-1 falsely).
 Also printed, never a failure: IDs found per location, class counts before and after merging,
 rows per task and priority, index-versus-entry mismatches, and mentions of undefined IDs.
 
@@ -41,7 +51,12 @@ DEF_RE = re.compile(rf"^(?:\s*[-*]\s+\*\*|###\s+|\|\s*)({ID})(?:\s+·|\s*\|)")
 CLASS_RE = re.compile(r"\b(UNSPECIFIED|AMBIGUOUS|INCONSISTENT)\b")
 CLASSES = ("UNSPECIFIED", "AMBIGUOUS", "INCONSISTENT")
 PRIORITIES = ("blocks", "number", "later", "none")
+PRIORITY_RE = re.compile(r"^(blocks|number|later|none)(?:\s+(\d+))?$")
+RANKS = range(1, 9)   # system-architect.md, "What task 3 needs decided first", items 1-8
 TASK_ORDER = [2, 3, 4, 5, 6, 7, 1]   # task 1 = settled in docs/paper, listed last
+HEADING_RE = re.compile(r"^#{1,3}\s")                # ends a full entry, like the next definition
+REGISTER_MARK = re.compile(r"\*Register:\s*([^*\n]*?)\s*\*")
+LEAD_ID = re.compile(rf"^({ID})\b")
 
 
 def section(text: str, start: str, stop: str | None = None) -> tuple[str, int]:
@@ -72,22 +87,32 @@ def definitions(text: str, first_line: int = 1) -> list[tuple[str, str, int]]:
     return found
 
 
+def full_entry_sections(paper: Path) -> list[tuple[str, str, bool, str, int]]:
+    """(location name, file, engine-side?, section text, its first line) for every gap section that
+    holds full entries, in the register's reading order: analysis.md 10.1, stages/01..07,
+    claims.md, note-check.md, artifacts.md."""
+    analysis = (paper / "analysis.md").read_text(encoding="utf-8")
+    out = [("analysis.md 10.1", "analysis.md", True) + section(analysis, r"^### 10\.1", r"^### 10\.2")]
+    for f in sorted((paper / "stages").glob("*.md")):
+        out.append(("stages/*.md", f"stages/{f.name}", True)
+                   + section(f.read_text(encoding="utf-8"), r"^## Gaps found here"))
+    for name in ("claims.md", "note-check.md", "artifacts.md"):
+        out.append((name, name, False)
+                   + section((paper / name).read_text(encoding="utf-8"), r"^## Gaps found here"))
+    return out
+
+
 def locations(paper: Path) -> list[tuple[str, str, bool, list[tuple[str, str, int]]]]:
     """(location name, file shown, engine-side?, definitions) for the six locations, in the
-    register's reading order."""
+    register's reading order; the stage files form one location."""
     out = []
+    for name, _, engine, text, first in full_entry_sections(paper):
+        if out and out[-1][0] == name:
+            out[-1][3].extend(definitions(text, first))
+        else:
+            out.append((name, "stages/" if name == "stages/*.md" else name, engine, definitions(text, first)))
     analysis = (paper / "analysis.md").read_text(encoding="utf-8")
-    s101, l101 = section(analysis, r"^### 10\.1", r"^### 10\.2")
     s102, l102 = section(analysis, r"^### 10\.2", r"^#{1,3} (?!10\.)")
-    out.append(("analysis.md 10.1", "analysis.md", True, definitions(s101, l101)))
-    stage_defs = []
-    for f in sorted((paper / "stages").glob("*.md")):
-        s, l = section(f.read_text(encoding="utf-8"), r"^## Gaps found here")
-        stage_defs += [(i, c, n) for i, c, n in definitions(s, l)]
-    out.append(("stages/*.md", "stages/", True, stage_defs))
-    for name in ("claims.md", "note-check.md", "artifacts.md"):
-        s, l = section((paper / name).read_text(encoding="utf-8"), r"^## Gaps found here")
-        out.append((name, name, False, definitions(s, l)))
     out.insert(1, ("analysis.md 10.2 (index)", "analysis.md", True, definitions(s102, l102)))
     return out
 
@@ -109,7 +134,10 @@ def register_rows(text: str) -> list[dict]:
             rows.append({"line": n, "error": f"{len(cells)} cells, expected 7"})
             continue
         rows.append({"line": n, "id": head.group(1), "class": cells[1], "task": cells[4],
-                     "priority": cells[5], "aliases": ID_RE.findall(cells[6])})
+                     "priority": cells[5], "rank": None, "aliases": ID_RE.findall(cells[6])})
+        m = PRIORITY_RE.match(cells[5])
+        if m:
+            rows[-1]["priority"], rows[-1]["rank"] = m.group(1), int(m.group(2)) if m.group(2) else None
     return rows
 
 
@@ -141,17 +169,62 @@ def check(rows: list[dict], order: dict[str, int], engine: set[str]) -> list[str
             problems.append(f"line {r['line']}: task {r['task']!r} not one of {TASK_ORDER}")
         if r["priority"] not in PRIORITIES:
             problems.append(f"line {r['line']}: priority {r['priority']!r} not one of {PRIORITIES}")
+        elif r["priority"] == "blocks" and r["rank"] not in RANKS:
+            problems.append(f"line {r['line']}: a blocks row needs its rank, blocks 1 to blocks 8")
+        elif r["priority"] != "blocks" and r["rank"] is not None:
+            problems.append(f"line {r['line']}: only a blocks row carries a rank")
     for i in order:
         if seen[i] == 0:
             problems.append(f"missing: {i} is in no row, as canonical or alias")
         elif seen[i] > 1:
             problems.append(f"duplicate: {i} appears in {seen[i]} rows")
-    keys = [(TASK_ORDER.index(int(r["task"])), PRIORITIES.index(r["priority"]), r["line"])
+    keys = [(TASK_ORDER.index(int(r["task"])), PRIORITIES.index(r["priority"]), r["rank"] or 0, r["line"])
             for r in rows if "error" not in r and r["task"].isdigit()
             and int(r["task"]) in TASK_ORDER and r["priority"] in PRIORITIES]
     for (a, b) in zip(keys, keys[1:]):
-        if b[:2] < a[:2]:
-            problems.append(f"line {b[2]}: out of order (tasks 2..7 then 1; blocks, number, later)")
+        if b[:3] < a[:3]:
+            problems.append(f"line {b[3]}: out of order (tasks 2..7 then 1; blocks by rank, number, later)")
+    return problems
+
+
+def register_marks(text: str, first_line: int = 1) -> list[tuple[str, int, list[tuple[int, str]]]]:
+    """(entry ID, its line, [(line, text)] of its Register lines) for every full entry in a gap
+    section. An entry runs from its defining line to the next defining line or heading."""
+    entries: list[tuple[str | None, int, list[tuple[int, str]]]] = []
+    for n, line in enumerate(text.split("\n"), first_line):
+        m = DEF_RE.match(line)
+        if m or HEADING_RE.match(line):
+            entries.append((m.group(1) if m else None, n, []))
+        if entries and entries[-1][0] is not None:
+            entries[-1][2].extend((n, t) for t in REGISTER_MARK.findall(line))
+    return [e for e in entries if e[0] is not None]
+
+
+def check_marks(entries: list[tuple[str, str, int, list[tuple[int, str]]]], rows: list[dict]) -> list[str]:
+    """Every entry whose Register line is missing, doubled, names no row, or names a row that does
+    not hold the entry's ID. `entries` are (file, ID, line, marks); `rows` come from register_rows,
+    which reads only the register tables, so a table elsewhere never makes a row a holder."""
+    good = [r for r in rows if "error" not in r]
+    canonical = {r["id"] for r in good}
+    holder: dict[str, str] = {}   # the last row wins, so a stray table after the register would show
+    for r in good:
+        for i in [r["id"]] + r["aliases"]:
+            holder[i] = r["id"]
+    problems = []
+    for where, ident, line, marks in entries:
+        if len(marks) != 1:
+            problems.append(f"{where}:{line}: {ident} has {len(marks)} Register lines, expected 1")
+            continue
+        n, text = marks[0]
+        lead = LEAD_ID.match(text)
+        named = lead.group(1) if lead else None
+        if named not in canonical:
+            what = "no row" if named is None else (
+                f"{named}, an alias in row {holder[named]}" if named in holder else f"{named}, no row's ID")
+            problems.append(f"{where}:{n}: {ident}'s Register line names {what}: {text!r}")
+        elif holder.get(ident) != named:
+            problems.append(f"{where}:{n}: {ident}'s Register line names {named}, "
+                            f"but {ident} is in row {holder.get(ident, 'none')}")
     return problems
 
 
@@ -202,8 +275,13 @@ def main() -> int:
         split = ", ".join(f"{p} {per[(str(t), p)]}" for p in PRIORITIES if per[(str(t), p)])
         ids = sum(1 + len(r["aliases"]) for r in good if r["task"] == str(t))
         print(f"  task {t}: {n:2d} rows, {ids:3d} IDs  ({split or 'no rows'})")
+    ranks = Counter(r["rank"] for r in good if r["priority"] == "blocks")
+    print("  blocking rows per rank: " + ", ".join(f"{k}: {ranks[k]}" for k in RANKS))
     print("  rows per priority: " + ", ".join(f"{p} {sum(1 for r in good if r['priority'] == p)}" for p in PRIORITIES))
-    problems = check(rows, order, engine)
+    entries = [(f, i, n, marks) for _, f, _, text, first in full_entry_sections(PAPER)
+               for i, n, marks in register_marks(text, first)]
+    print(f"Register lines: {sum(1 for e in entries if len(e[3]) == 1)} of {len(entries)} full entries carry exactly one")
+    problems = check(rows, order, engine) + check_marks(entries, rows)
     for p in problems:
         print("FAIL:", p)
     print(f"{len(problems)} problem(s)")
@@ -224,8 +302,25 @@ def selftest() -> int:
     head = ("## The register\n\n| ID | Class | Question | Decision | Task | Priority | Aliases |\n"
             "|---|---|---|---|---|---|---|\n")
 
-    def row(i, al, task="2", pri="blocks", cls="AMBIGUOUS"):
-        return f"| {i} (x) | {cls} | q [§3] | d [ours] | {task} | {pri} | {al} |\n"
+    def row(i, al, task="2", pri="blocks 1", cls="AMBIGUOUS", q="q [§3]"):
+        return f"| {i} (x) | {cls} | {q} | d [ours] | {task} | {pri} | {al} |\n"
+
+    # The Register-line check. A-FOO-3's question cites U-FOO-1, and a merge table after the
+    # register lists U-FOO-1 under A-FOO-3: neither may make A-FOO-3 the row that holds U-FOO-1.
+    reg = (head + row("U-FOO-1", "A-FOO-2 (x)") + row("A-FOO-3", "none", "3", q="q, unlike U-FOO-1 [§3]")
+           + "\n## Why these rows merge\n\n| Row | Merged with | Why |\n|---|---|---|\n"
+           + "| A-FOO-3 | none | U-FOO-1's half is named here [ours] |\n")
+
+    def marks(m1="*Register: U-FOO-1.*", m2="- *Register: U-FOO-1 (A-FOO-2 is an alias there)*",
+              m3="*Register: A-FOO-3*") -> int:
+        gaps = ("## Gaps found here\n\n"
+                f"- **U-FOO-1 · UNSPECIFIED · a list-item entry.** {m1}\n"
+                "### A-FOO-2 · AMBIGUOUS · a heading entry\n\n"
+                f"- its quotes\n{m2}\n\n"
+                f"- **A-FOO-3 · INCONSISTENT · another entry.** {m3}\n")
+        s2, l2 = section(gaps, r"^## Gaps found here")
+        entries = [("x.md", i, n, mk) for i, n, mk in register_marks(s2, l2)]
+        return len(check_marks(entries, register_rows(reg)))
 
     cases = {
         "collector finds the three entries only": (found == ["U-FOO-1", "A-FOO-2", "A-FOO-3"], True),
@@ -237,6 +332,17 @@ def selftest() -> int:
         "task order broken": (head + row("A-FOO-3", "none", "3") + row("U-FOO-1", "A-FOO-2 (x)"), 1),
         "priority order broken": (head + row("A-FOO-3", "none", "2", "later") + row("U-FOO-1", "A-FOO-2 (x)"), 1),
         "bad class value": (head + row("U-FOO-1", "A-FOO-2 (x)", cls="VAGUE") + row("A-FOO-3", "none", "3"), 1),
+        "blocks without a rank": (head + row("U-FOO-1", "A-FOO-2 (x)", pri="blocks") + row("A-FOO-3", "none", "3"), 1),
+        "rank order broken": (head + row("U-FOO-1", "A-FOO-2 (x)", pri="blocks 5") + row("A-FOO-3", "none", "2", "blocks 2"), 1),
+        "rank on a number row": (head + row("U-FOO-1", "A-FOO-2 (x)", pri="number 3") + row("A-FOO-3", "none", "3"), 1),
+    }
+    mark_cases = {
+        "Register lines current, cited IDs and the merge table ignored": marks(),
+        "a stale Register line, with the right row cited after no ID": marks(m3="*Register: not yet indexed (new; nearest row A-FOO-3)*"),
+        "a Register line naming an alias": marks(m2="- *Register: A-FOO-2*"),
+        "a Register line naming another row": marks(m1="*Register: A-FOO-3*"),
+        "an entry without a Register line": marks(m3=""),
+        "an entry with two Register lines": marks(m2="- *Register: U-FOO-1* and *Register: U-FOO-1*"),
     }
     failed = 0
     for name, (body, want) in cases.items():
@@ -245,6 +351,10 @@ def selftest() -> int:
         else:
             got = len(check(register_rows(body), order, engine))
             ok = (got > 0) == bool(want)
+        failed += not ok
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}")
+    for i, (name, got) in enumerate(mark_cases.items()):
+        ok = (got > 0) == (i > 0)     # the first case must pass, every other must fail
         failed += not ok
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}")
     return 1 if failed else 0
