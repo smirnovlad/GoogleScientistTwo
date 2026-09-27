@@ -101,15 +101,44 @@ independently: `analysis.md`, `claims.md`, `note-check.md` and `artifacts.md`. A
 pass builds `unspecified.md` and `traceability.md`. Four personas review in parallel, the owner
 fixes, and a blind reader tests the result.
 
+**The analysts' work, as it landed** (each one read the whole paper, and I checked each one's
+load-bearing claims against the PDF myself):
+- **`artifacts.md`: the only evidence of what the agents actually return.** The appendix pages
+  show a reproducibility audit that re-ran one method's scoring once, with no stated tolerance, and
+  a search that tuned on the sets it reports. The HTML drops 23 of the 38 pages.
+- **`note-check.md`: 125 claims of the note, none of them outright false.**
+  - Its errors are overstatements, and ScientistOne's audit details presented as this paper's.
+  - The paper claims that Listing 1 abstracts every stage, but only 1 of Table 1's 11 rows fits
+    it exactly.
+- **`claims.md` and `claims/`, with two scripts that re-run the arithmetic.**
+  - ScholarPeer's reported acceptance cannot mean a score of 8 or more.
+  - Under the held-out reviewer, the generated papers are accepted less often than the human
+    papers they start from.
+  - The 25.2% headline gain is a success-only mean read from the papers by an LLM.
+- **Two analysts corrected the tooling:**
+  - The brief wrongly said the paper numbers no equations; it numbers four.
+  - The checker mispaired short quotes, and its default run skipped `claims/`.
+- **`analysis.md`: its first run stalled** on a stream watchdog (a single very long write). It
+  was resumed with its context, and told to write in chunks of at most about 120 lines.
+
 ## HANDOFF, 2026-09-27 (task 1 in progress)
 
-- **Done:** the sources are pinned and committed; the brief, the fetch script, the numbering script
-  and the citation checker are in place.
-- **Running:** four `paper-analyst` agents writing `docs/paper/analysis.md`, `claims.md`,
-  `note-check.md` and `artifacts.md`.
+- **Done and pushed** on `claude/paper-analysis`:
+  - the sources, the brief, and the scripts in `playground/paper/`;
+  - `artifacts.md`, `note-check.md`, `claims.md` with `claims/`.
+- **Running:**
+  - the `paper-analyst` finishing `docs/paper/analysis.md`, with its stage detail in
+    `docs/paper/stages/`;
+  - wave-1 reviews of the three finished documents by `research-engineer` and
+    `evaluation-integrity-engineer`.
 - **Next steps:**
-  1. consolidate `unspecified.md` and `traceability.md`;
-  2. the four-persona review, saved verbatim to `docs/reviews/paper-analysis-2026-09-27/`;
-  3. fixes, the blind-reader test, then TODO and this file updated.
+  1. Consolidate `unspecified.md` (merge about 120 gap items, many found twice) and
+     `traceability.md`.
+  2. Wave-2 review of the analysis by `system-architect` and `agent-engineer`.
+  3. Save every review verbatim to `docs/reviews/paper-analysis-2026-09-27/`.
+  4. Fixes, then the blind-reader quiz. The quiz and its answer key are kept out of the repository
+     until the test runs.
+  5. Tick TODO task 1, then open a PR after a `/codex` review.
 - **If this session is lost:** run `bash playground/paper/fetch_sources.sh`, read
-  `docs/paper/README.md`, and check which deliverables exist in `docs/paper/`.
+  `docs/paper/README.md`, and see which deliverables exist in `docs/paper/`.
+  `python3 playground/paper/check_citations.py` must print 0 problems.
