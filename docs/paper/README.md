@@ -55,7 +55,8 @@ Evidence: `python3 playground/paper/float_numbering.py`.
 - **The stage pseudocode is Listing 1.** The TeX puts it in a minted `listing` float
   (`tex:tables/pseudo_code.tex:22-38`); the PDF prints "Listing 1".
 - **The HTML calls it "Figure 4"**, so HTML Figures 5–12 are PDF Figures 4–11. Tables 1–16 and all
-  section numbers agree between the two.
+  section numbers agree between the two. The HTML even disagrees with itself: its caption says
+  "Figure 4", while its §3 sentence points to "Listing 4".
 - **Sections:** 1 Introduction · 2 Related Work · 3 ScientistTwo (3.1–3.6, the six stages) ·
   4 Experiments (4.1 Main Results, 4.2 Ablation Studies, **4.3 Discussion**) · 5 Conclusion ·
   Appendix A (A.1 Benchmark, A.2 Configuration) · B Detailed Comparison with AutoSOTA ·
@@ -89,7 +90,11 @@ Every statement in these documents carries its location. The checker enforces it
 - **A location tag,** in square brackets: `[§3.2]`, `[Tab. 1]`, `[Lst. 1]`, `[Fig. 9b]`, `[Eq. 2]`,
   `[App. A.2]`, `[p. 46]`, `[fn. 1]`, `[Abstract]`, `[Bib: meng2026scientistone]`. Name the part
   when it helps: `[§3.2 "Scaling Up to the Full-Set"]`, `[Tab. 1 row "Peer-Review"]`.
-  - The paper numbers no equations. Refer to one by its section and symbol: `[§3.3, R_k]`.
+  - The PDF numbers four equations, all in §3: Eq. 1, the engine (P+, C+) = A(G) [§3];
+    Eq. 2, the unified coder A_Coder [§3.2]; Eq. 3, the round's traces R_k [§3.3]; Eq. 4, the
+    Selector [§3.3]. Cite one with its section: `[§3.3, Eq. 3]`. (An earlier version of this
+    brief said the paper numbers no equations. That was wrong, and the note-check analyst caught
+    it.)
 - **A TeX anchor** where the text is in the TeX: `(tex:sections/3_new_method.tex:47)` or a range
   `(tex:sections/appendix.tex:154-155)`. Paths are relative to `docs/paper/source/`. The checker
   verifies every anchor.

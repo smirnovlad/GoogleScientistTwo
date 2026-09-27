@@ -37,7 +37,9 @@ NOTE = ROOT / "docs/inputs/2026-09-27-initial-replication-note.md"
 TAG = re.compile(r"\[(§|Tab\.|Lst\.|Fig\.|Eq\.|App\.|pp?\.|fn\.|Abstract|Title|Bib:)")
 OURS = re.compile(r"\[ours\]", re.I)
 ANCHOR = re.compile(r"tex:([\w./-]+\.(?:tex|bib)):(\d+)(?:-(\d+))?")
-QUOTE = re.compile(r"\"([^\"\n]{12,}?)\"|“([^”\n]{12,}?)”")
+# Match every quoted string, however short, so that quotes pair up left to right; a minimum
+# length here would let a short quote's closing mark open a false "quote" of the prose after it.
+QUOTE = re.compile(r"\"([^\"\n]*)\"|“([^”\n]*)”")
 ID_OR_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)|\b[PUACN]-[A-Z0-9]+(?:-\d+)*\b|`[^`]*`")
 CONTROL_FLOW = re.compile(r"^\s*(else:|try:|pass|break|continue|return( None)?|end|[)}\]]+|#.*)?\s*$")
 
@@ -145,6 +147,7 @@ def selftest() -> int:
         "good anchor": ("A stage has a critic [Lst. 1] (tex:tables/pseudo_code.tex:26-35).\n", 0),
         "fake quote": ('It says "the critic always accepts every single idea" [§3.2].\n', 1),
         "real quote": ('It says "If performance is substantially inferior to the baseline" [§3.2].\n', 0),
+        "short quotes pair correctly": ('Verdicts "Good" and "Bad" are two of the three it may return [§3.2].\n', 0),
     }
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
