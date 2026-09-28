@@ -276,11 +276,65 @@ deliverables are not on `main` yet:
 **The two can run in parallel.** Task 2 references task 6's decisions rather than making them.
 Both append to this file, so it will need merging by hand.
 
-## HANDOFF, 2026-09-28 (task 1 done; PR #1 awaits review)
+## 2026-09-28: task sessions start from a terminal
+
+**Vlad, verbatim**, on how the sessions for task 2 and task 6's `P0` part had been started:
+
+> "btw, why do you start separate chats in claude code and not terminal session?"
+
+The answer: they had been started from the desktop app's suggested-task chips.
+`docs/process/worktrees-and-sessions.md` prescribes a terminal. Then:
+
+> "Stop them and restart as terminal sessions – it should be a rule. Bcs I am not sure if such chats in claude code are saved in same way as terminal sessions"
+
+**What the two app chats were.** For each one, the app made a worktree with a generated name
+(`.claude/worktrees/nervous-…`), on a generated branch based on `main`. Each chat then switched to
+its task branch, as its brief said.
+
+**Both were stopped** after about ten minutes, before either began its task:
+- task 2's had written one section of this file, not committed;
+- task 6's had pushed one commit, `ed19388`, holding the same kind of section.
+
+**Both sections were wrong in the same way.** They quoted the brief under "Vlad, verbatim", but
+this session wrote the brief. The process guide now says how to record a brief.
+
+**What the app stores,** checked for Vlad's question:
+- the app writes the same JSONL transcripts as the terminal, in the same folders under
+  `~/.claude/projects/`, and marks their lines `"entrypoint":"claude-desktop"`;
+- `claude --resume`, run in one of those folders, opens its picker;
+- resuming an app chat from a terminal was not tried.
+
+**The rule** is now in `CLAUDE.md` and in `docs/process/worktrees-and-sessions.md`: a task's
+session starts from a terminal, as `claude` run inside the worktree made for it, and never as a
+chat in the desktop app. The guide also gains three points:
+- `--no-track`, so a new branch never tracks its base;
+- how to start from an unmerged branch;
+- how to record a brief that one session writes for another.
+
+**The restart.** Both task branches contain the commit that records this, so their sessions load
+the new rule:
+- `claude/requirements`, in `.claude/worktrees/requirements`. It had no commit of its own, and now
+  starts from this one.
+- `claude/integrity-blockers`, in `.claude/worktrees/integrity-blockers`. It keeps the app chat's
+  commit, `ed19388`. Resetting the branch to drop it was refused as a destructive git action. So
+  the branch merges `claude/paper-analysis` instead, and a commit on it corrects the brief's
+  attribution.
+
+**How each session runs:**
+- in a tab of the desktop app's Terminal panel;
+- started with `claude --permission-mode auto --effort max`, the mode and effort this session
+  runs with;
+- with a brief that names its author.
+
+The two app chats stay stopped, not archived. Their worktrees are detached from the task branches
+and hold nothing to keep.
+
+## HANDOFF, 2026-09-28 (task 1 done; PR #1 awaits review; tasks 2 and 6 run in the terminal)
 
 - **Done and pushed** on `claude/paper-analysis`:
   - TODO task 1, ticked in `TODO.md` with its proof;
-  - the Codex review's fixes.
+  - the Codex review's fixes;
+  - the rule that task sessions start from a terminal.
 - **All checks pass:**
   - `check_citations.py`: 18 files, 0 problems, and its self-test's 46 cases;
   - `register_coverage.py` and `trace_coverage.py`: 0 problems each, with their self-tests;
@@ -289,11 +343,18 @@ Both append to this file, so it will need merging by hand.
 - **Open:** PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1), `claude/paper-analysis`
   into `main`. Its description carries the Codex verdict. The repository has no CI yet, so no
   checks run on it.
+- **Running, each in its own terminal session:**
+  - task 2, in `.claude/worktrees/requirements`, on `claude/requirements`;
+  - task 6's `P0` part, in `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`.
+
+  To continue one, run `claude --resume` in its folder and pick it from the list.
 - **Next steps:**
-  1. Vlad reviews PR #1. Merge to `main` only with his approval.
-  2. Task 2 and task 6's `P0` part, each in its own worktree and session, both branched from
-     `claude/paper-analysis`. Once PR #1 is merged, each brings its branch up to date with
-     `main`.
+  1. Vlad reviews PR #1. Merge to `main` only with his approval. The commits made after the Codex
+     passes change only process documents. They get a Codex pass of their own before the merge.
+  2. Tasks 2 and 6's `P0` part continue in their sessions. Once PR #1 is merged, each brings its
+     branch up to date with `main`.
+  3. Archive the two stopped app chats, "Start TODO task 2: requirements" and "Decide task 6's
+     four integrity blockers". Archiving removes their `nervous-…` worktrees.
 - **If this session is lost:**
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,

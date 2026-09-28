@@ -86,6 +86,11 @@ The roster and its routing table are in [.claude/agents/README.md](.claude/agent
 - **One task = one git worktree = one Claude session, started inside that worktree.** A session
   loads `CLAUDE.md`, the hooks and the MCP servers from the folder it starts in. How:
   [docs/process/worktrees-and-sessions.md](docs/process/worktrees-and-sessions.md).
+- **Start a task's session from a terminal: `claude`, run inside the worktree made for it.** Never
+  start one as a chat in the desktop app, from its new-session button or a suggested-task chip.
+  The app picks the folder and the branch itself (a generated name, based on `main`), and whether
+  `claude --resume` can continue an app chat, as an account switch needs, is untested. A tab of the
+  desktop app's Terminal panel is a terminal.
 - **Switching to another Claude account at a usage limit keeps every session.** Transcripts live
   on this machine, so `claude --resume` continues them under the new login:
   [docs/process/switch-claude-account.md](docs/process/switch-claude-account.md).
