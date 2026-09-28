@@ -17,17 +17,38 @@ folder's rules, and so do its agents.
 
 ## Starting a task
 
+Always from a terminal:
+
 ```bash
 cd <the repository>
 git fetch origin
-git worktree add -b claude/<what-the-work-is> .claude/worktrees/<what-the-work-is> origin/main
+git worktree add --no-track -b claude/<what-the-work-is> .claude/worktrees/<what-the-work-is> origin/main
 cd .claude/worktrees/<what-the-work-is> && claude
 ```
 
+- ⛔ **Never start a task's session as a chat in the desktop app,** from its new-session button or
+  from a suggested-task chip. Two reasons:
+  - the app picks the folder and the branch itself: a generated name, based on `main`;
+  - `claude --resume` from a terminal is what an account switch relies on
+    ([switch-claude-account.md](switch-claude-account.md)), and resuming an app chat that way is
+    untested.
+
+  An agent that wants a new session opens a terminal and runs `claude` in the task's worktree. In
+  the desktop app, a tab of its Terminal panel is a terminal. Rule set by Vlad on 2026-09-28, after
+  two task sessions had been started from chips.
 - **Name the branch and the folder after the work:** `claude/paper-analysis`, never a generated
   name. Use `codex/<…>` for work Codex writes.
+- **`--no-track` keeps the new branch from tracking its base,** so `git status` and a bare
+  `git push` never point at `main`. The first push names the branch:
+  `git push -u origin claude/<what-the-work-is>`.
+- **A task that needs an unmerged branch starts from that branch** instead of `origin/main`, and
+  its first message says so. Once that branch is merged, the task brings itself up to date with
+  `main`.
 - `.claude/worktrees/` is in `.gitignore`, so worktrees never show in the main checkout's status.
 - **The session's first message names its task,** and points at its item in `TODO.md`.
+- **When one session starts another, the first message is a brief that session wrote.** Record it
+  in `DEVELOPMENT_PROCESS.md` as that brief, naming its author. Only Vlad's own words go under
+  "Vlad, verbatim".
 
 ## While working
 

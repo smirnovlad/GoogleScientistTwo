@@ -69,6 +69,15 @@ folder it started in ([worktrees-and-sessions.md](worktrees-and-sessions.md)).
 ✅ **Tested on 2026-09-26, in another repository:** a session created under one account resumed
 under another, and its next turn ran with its whole context.
 
+⚠️ **A chat started in the desktop app is stored the same way, but resuming it is untested.**
+Checked on 2026-09-28:
+- the app writes the same transcript files, in the same folders;
+- their lines are marked `"entrypoint":"claude-desktop"`;
+- `claude --resume`, run in such a folder, opens its picker.
+
+Resuming an app chat from a terminal has not been tried in this repository. So task sessions start
+from a terminal ([worktrees-and-sessions.md](worktrees-and-sessions.md)).
+
 ## 5 · What changes, and what does not
 
 | Stays the same: files on this machine | Belongs to the account |
