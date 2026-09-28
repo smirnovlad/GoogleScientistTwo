@@ -256,6 +256,26 @@ four reports are kept verbatim as `closure-*.md`.
   further [P2] edge cases when cheap. No pass can settle whether a cited location supports its
   statement. That remains the job of the persona reviews and the blind reader.
 
+## 2026-09-28: after task 1, the next tasks start in their own sessions
+
+**Vlad, verbatim**, after the summary that PR #1 was open:
+
+> "continue"
+
+**PR #1 stays open.** It has no comment or review yet, and "continue" is not an approval to merge.
+The next work is task 2 (requirements) and task 6's `P0` part (the four blocking decisions).
+
+**This session does not take them on.** The rule is one task, one worktree, one session
+(`docs/process/worktrees-and-sessions.md`), and this session is task 1's. Each is proposed as a
+session of its own. Each starts from a branch of `claude/paper-analysis`, since task 1's
+deliverables are not on `main` yet:
+- **Task 2:** `claude/requirements`, writing `docs/requirements.md`.
+- **Task 6's `P0` part:** `claude/integrity-blockers`, deciding U-INT-4, U-TOP-5, A-INT-1 and
+  A-INT-3.
+
+**The two can run in parallel.** Task 2 references task 6's decisions rather than making them.
+Both append to this file, so it will need merging by hand.
+
 ## HANDOFF, 2026-09-28 (task 1 done; PR #1 awaits review)
 
 - **Done and pushed** on `claude/paper-analysis`:
@@ -271,8 +291,9 @@ four reports are kept verbatim as `closure-*.md`.
   checks run on it.
 - **Next steps:**
   1. Vlad reviews PR #1. Merge to `main` only with his approval.
-  2. Then task 2 (requirements), and task 6's `P0` part (the four blocking decisions) before
-     task 3.
+  2. Task 2 and task 6's `P0` part, each in its own worktree and session, both branched from
+     `claude/paper-analysis`. Once PR #1 is merged, each brings its branch up to date with
+     `main`.
 - **If this session is lost:**
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
