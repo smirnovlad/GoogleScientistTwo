@@ -298,3 +298,75 @@ Both append to this file, so it will need merging by hand.
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
     whose last section records the outcome of every fix, and from `codex-review.md`.
+
+## 2026-09-28: task 6's `P0` part starts, the four blocking integrity decisions
+
+**Vlad, verbatim:**
+
+> Start the `P0` part of TODO task 6 (the evaluation-integrity design) of the GoogleScientistTwo repository. The project replicates the research engine of ScientistTwo (arXiv:2609.19644).
+>
+> ## Read first, and follow
+>
+> - `CLAUDE.md`, `TODO.md` (task 6, its "`P0` part, before task 3"), and the last HANDOFF in `DEVELOPMENT_PROCESS.md`. They set the working rules:
+>   - the paper is the specification;
+>   - integrity is enforced by the setup, never by a prompt;
+>   - route work to personas by the question they judge;
+>   - every change passes the review gate;
+>   - commits are in a plain human voice, with no AI attribution and no Co-Authored-By lines;
+>   - never run a bare `git stash`.
+> - **The repository is public on GitHub.** Never commit a secret, an e-mail address or a path from someone's machine.
+>
+> ## Base branch
+>
+> - Task 1's deliverables are on branch `claude/paper-analysis`, in PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1). PR #1 is open and not merged into `main`.
+> - Create your branch from it: `git fetch origin && git checkout -b claude/integrity-blockers origin/claude/paper-analysis`. If you are in the main checkout rather than a fresh worktree, add a worktree instead: `git worktree add -b claude/integrity-blockers .claude/worktrees/integrity-blockers origin/claude/paper-analysis`.
+> - After PR #1 merges, bring your branch up to date with `main`.
+>
+> ## The task
+>
+> Task 6 owns four blocking rows of `docs/paper/unspecified.md`. Decide them before task 3 writes the harness and audit contracts.
+>
+> 1. **U-INT-4, with alias U-ART-16: who computes every metric the engine reads or reports.**
+>    - In the paper, the agent's own script scores both methods, baseline included, and writes the report.
+>    - `CLAUDE.md` already requires a locked evaluation harness.
+> 2. **U-TOP-5, with aliases U-NOTE-1 and U-ART-5: which data split each decision in the loop reads.**
+>    - The paper reads the benchmark it reports.
+>    - `CLAUDE.md` already requires that every number an agent sees while searching is a validation number.
+> 3. **A-INT-1, with aliases A-NOTE-10 and A-ART-2: integrity as gates inside the run, or only as a post-hoc audit.** §4.2 and App. B of the paper contradict each other on this.
+> 4. **A-INT-3: keep the post-hoc auditor apart from the in-loop fixer.**
+>
+> **Where the evidence is:**
+> - each row's full entry and its register row (`docs/paper/stages/07-integrity.md`, `docs/paper/artifacts.md`);
+> - `docs/paper/claims.md`: P-EVAL-2, U-EVAL-1 and U-EVAL-5;
+> - ScientistOne's audit, which Table 7 follows by reference (arXiv:2605.26340v1 §5). `bash playground/paper/fetch_sources.sh` caches it.
+>
+> **Output:** a decisions document, for example `docs/integrity/blocking-decisions.md`, with its location recorded in the HANDOFF. Give each decision:
+> - the choice;
+> - the attack it stops;
+> - a control that proves it works;
+> - the road not taken, as `⛔ WHY NOT`.
+>
+> Then add a pointer to your decision in each of the four register rows. Change only those rows: a parallel task-2 session may edit other rows of the same file.
+>
+> ## Who does it
+>
+> - **Owner:** the `evaluation-integrity-engineer` persona.
+> - **Review:** in parallel by `research-engineer` and `system-architect`, per the review gate in `.claude/agents/README.md`. Save reviews verbatim in `docs/reviews/integrity-blockers-<date>/`.
+>
+> ## Boundaries with other tasks
+>
+> - A parallel session may be writing `docs/requirements.md` (task 2). It will reference your decisions; do not edit its file.
+> - Components are task 3's. Decide the rules, not the component design.
+>
+> ## Process
+>
+> - **Commits:** commit at every milestone, push, and keep the HANDOFF current.
+> - **Vlad's instructions:** quote them verbatim in `DEVELOPMENT_PROCESS.md`, in the same turn. Append a new section, and expect to merge that file by hand with the parallel session.
+> - **Before the PR,** run the `/codex` review gate required by the parent `CLAUDE.md`. On this machine it needs two workarounds:
+>   - the configured model `gpt-6-sol` is refused on this ChatGPT account, so pass `-c model="gpt-6-astra"`;
+>   - `codex review` rejects custom instructions together with `--base`, so drop `--base` and name the range in the instructions (`git diff claude/paper-analysis...HEAD` while PR #1 is open).
+
+**Setup.** The session runs in its own worktree, on `claude/integrity-blockers`, branched from
+`origin/claude/paper-analysis` at `08a60b3`. The new branch first tracked `claude/paper-analysis`,
+so a bare `git push` would have gone to PR #1's branch; the upstream was unset, and this branch
+pushes to its own name.
