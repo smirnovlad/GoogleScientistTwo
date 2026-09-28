@@ -311,12 +311,14 @@ chat in the desktop app. The guide also gains three points:
 - how to start from an unmerged branch;
 - how to record a brief that one session writes for another.
 
-**The restart.** Both task branches start from the commit that records this, so their sessions
-load the new rule:
-- `claude/requirements`, in `.claude/worktrees/requirements`. It had no commit of its own.
-- `claude/integrity-blockers`, in `.claude/worktrees/integrity-blockers`. It was reset and
-  force-pushed, with a lease on `ed19388`. That commit held only the misattributed brief, and it
-  stays in the local reflog.
+**The restart.** Both task branches contain the commit that records this, so their sessions load
+the new rule:
+- `claude/requirements`, in `.claude/worktrees/requirements`. It had no commit of its own, and now
+  starts from this one.
+- `claude/integrity-blockers`, in `.claude/worktrees/integrity-blockers`. It keeps the app chat's
+  commit, `ed19388`. Resetting the branch to drop it was refused as a destructive git action. So
+  the branch merges `claude/paper-analysis` instead, and a commit on it corrects the brief's
+  attribution.
 
 **How each session runs:**
 - in a tab of the desktop app's Terminal panel;
