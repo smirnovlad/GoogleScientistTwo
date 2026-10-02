@@ -1,0 +1,10 @@
+{
+  "name": "peer_reviewer",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.5, P-ROSTER-21",
+  "description": "Writes an ICLR-style review of the manuscript with a 1 to 10 score; the reviewer the loop optimises against.",
+  "variables": [
+    "manuscript"
+  ]
+}

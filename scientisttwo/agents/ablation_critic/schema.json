@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "Good",
+        "Refine",
+        "Reject"
+      ]
+    },
+    "feedback": {
+      "type": "string",
+      "description": "Each component's effect, numbers and class; then what to do"
+    }
+  },
+  "required": [
+    "verdict",
+    "feedback"
+  ],
+  "additionalProperties": false
+}

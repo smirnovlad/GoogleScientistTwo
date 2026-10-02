@@ -1,0 +1,12 @@
+{
+  "name": "limitation_verifier",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.1, P-ROSTER-2",
+  "description": "Judges whether the set of limitations is sufficient to guide novel, concrete improvements, and names what is missing.",
+  "variables": [
+    "task_title",
+    "paper",
+    "limitations"
+  ]
+}

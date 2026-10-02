@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "references": {
+      "type": "array",
+      "maxItems": 2,
+      "description": "The two most related papers, taken from this session's search results",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title as shown in the search results"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL as shown in the search results"
+          },
+          "relation": {
+            "type": "string",
+            "description": "What the paper shares with the idea, and what the idea adds"
+          }
+        },
+        "required": [
+          "title",
+          "url",
+          "relation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novelty_score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "1-2 published; 3-4 close variant; 5-6 partial overlap; 7-8 new mechanism here; 9-10 no close prior work"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Why this score, against each reference; begins with 'SEARCH FAILED:' if the search tool failed"
+    }
+  },
+  "required": [
+    "references",
+    "novelty_score",
+    "rationale"
+  ],
+  "additionalProperties": false
+}

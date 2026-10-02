@@ -38,3 +38,11 @@ wandb/
 
 # Downloaded paper sources and other re-fetchable inputs (playground/paper/fetch_sources.sh)
 .cache/
+
+# A task's generated data: rebuilt deterministically by its `prepare` command, pinned by hash in a run
+tasks/*/data/
+tasks/*/harness/inputs/
+tasks/*/harness/labels/
+
+# Logs of local engine runs
+/runs-*.log

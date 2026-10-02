@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "faithful": {
+      "type": "boolean",
+      "description": "True when the code implements the paper's method, with only rule-forced deviations, all listed in changes"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "One item per change: the file, what changed, and why"
+    },
+    "notes": {
+      "type": "string",
+      "description": "What was verified and how, every deviation and its reason"
+    }
+  },
+  "required": [
+    "faithful",
+    "changes",
+    "notes"
+  ],
+  "additionalProperties": false
+}

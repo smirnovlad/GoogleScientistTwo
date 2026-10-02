@@ -1,0 +1,11 @@
+{
+  "name": "meta_reviewer",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.6, P-ROSTER-25",
+  "description": "Decides whether the reviewed manuscript meets the venue bar: Accept, or Refine with feedback for the method.",
+  "variables": [
+    "manuscript",
+    "review"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "entries": {
+      "type": "array",
+      "description": "One item per bibliography entry, each exactly once",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The BibTeX key"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "not_found",
+              "mismatch",
+              "unchecked"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "description": "The matched record's URL and, for a mismatch, the correct values; for not_found, the searches run; for unchecked, what failed"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "entries"
+  ],
+  "additionalProperties": false
+}

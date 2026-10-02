@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The paper's title, as in main.tex"
+    },
+    "abstract": {
+      "type": "string",
+      "description": "The abstract, as in main.tex"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Whether it compiled and how that was checked; packages; open issues"
+    }
+  },
+  "required": [
+    "title",
+    "abstract",
+    "notes"
+  ],
+  "additionalProperties": false
+}

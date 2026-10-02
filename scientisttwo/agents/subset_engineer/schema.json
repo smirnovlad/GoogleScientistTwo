@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "properties": {
+    "idea": {
+      "description": "null if the idea is unchanged; otherwise the complete revised idea",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "A short descriptive name, with an acronym"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Two to four sentences: the idea, its components, and the limitations it resolves"
+            },
+            "addresses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "description": "Ids of the limitations the idea addresses, such as L2"
+            },
+            "method": {
+              "type": "string",
+              "description": "The method, component by component: what each does, the limitation it addresses, its equations or algorithm, and the default value of every new hyperparameter"
+            },
+            "implementation_plan": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "description": "Ordered steps that change the codebase, naming files and functions where known"
+            },
+            "expected_effect": {
+              "type": "string",
+              "description": "Which metric should move, in which direction, on which inputs, and why"
+            },
+            "risks": {
+              "type": "string",
+              "description": "What could make the idea fail, and how a failure would show in results or logs"
+            }
+          },
+          "required": [
+            "title",
+            "summary",
+            "addresses",
+            "method",
+            "implementation_plan",
+            "expected_effect",
+            "risks"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "description": "The problem, its cause, the fix, and how it was verified"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths changed or added, relative to the working directory"
+    }
+  },
+  "required": [
+    "idea",
+    "summary",
+    "files_changed"
+  ],
+  "additionalProperties": false
+}

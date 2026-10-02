@@ -1,0 +1,17 @@
+{
+  "name": "subset_critic",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.2, P-ROSTER-8",
+  "description": "Judges an idea's subset result against the reproduced baseline: Good, Engineer or Bad.",
+  "variables": [
+    "task_title",
+    "metric",
+    "idea",
+    "baseline_result",
+    "idea_result",
+    "gain",
+    "log_tail",
+    "diff_summary"
+  ]
+}

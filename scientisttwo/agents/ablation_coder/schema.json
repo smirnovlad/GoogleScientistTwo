@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "What changed, where, and how the component was confirmed off"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths changed, relative to the working directory"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Departures from the plan and why; anything that makes the comparison less clean"
+    }
+  },
+  "required": [
+    "summary",
+    "files_changed",
+    "notes"
+  ],
+  "additionalProperties": false
+}

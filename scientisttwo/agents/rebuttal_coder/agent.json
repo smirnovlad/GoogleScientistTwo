@@ -1,0 +1,21 @@
+{
+  "name": "rebuttal_coder",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.5, P-ROSTER-23",
+  "description": "Turns the selected codebase into the variant one rebuttal experiment needs.",
+  "variables": [
+    "task_title",
+    "rules",
+    "entrypoint",
+    "idea",
+    "task"
+  ]
+}

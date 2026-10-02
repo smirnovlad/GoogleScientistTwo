@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "One item per edit: where, and what changed"
+    },
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "One item per weakness or question, in order: the point, then how the revision answers it or why it does not"
+    }
+  },
+  "required": [
+    "changes",
+    "responses"
+  ],
+  "additionalProperties": false
+}

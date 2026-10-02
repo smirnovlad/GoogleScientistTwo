@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "Good",
+        "Bad",
+        "Engineer"
+      ]
+    },
+    "feedback": {
+      "type": "string",
+      "description": "Begins with the deciding numbers; then what to do or what was learnt"
+    }
+  },
+  "required": [
+    "verdict",
+    "feedback"
+  ],
+  "additionalProperties": false
+}

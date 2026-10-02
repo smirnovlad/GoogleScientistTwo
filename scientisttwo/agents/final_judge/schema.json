@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Overall score on the judge's own rubric"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "accept",
+        "reject"
+      ],
+      "description": "accept if and only if the score is 6 or more"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "First line: the five rubric scores; then the justification"
+    }
+  },
+  "required": [
+    "score",
+    "decision",
+    "rationale"
+  ],
+  "additionalProperties": false
+}

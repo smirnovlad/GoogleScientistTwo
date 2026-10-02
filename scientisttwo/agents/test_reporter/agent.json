@@ -1,0 +1,20 @@
+{
+  "name": "test_reporter",
+  "kind": "writer",
+  "tools": [
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Bash"
+  ],
+  "paper_ref": "ours, U-TOP-5",
+  "description": "After the one test evaluation, makes the manuscript report the held-out test results as they came out, and nothing else.",
+  "variables": [
+    "task_title",
+    "metric",
+    "test_results",
+    "validation_results"
+  ]
+}

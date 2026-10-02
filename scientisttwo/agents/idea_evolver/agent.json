@@ -1,0 +1,12 @@
+{
+  "name": "idea_evolver",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.3, P-ROSTER-14",
+  "description": "Proposes one new idea from all execution traces, learning from failures and combining what worked.",
+  "variables": [
+    "task_title",
+    "limitations",
+    "traces"
+  ]
+}

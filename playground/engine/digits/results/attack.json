@@ -1,0 +1,41 @@
+[
+ {
+  "split": "full",
+  "seed": 0,
+  "rep": 0,
+  "primary": 1.0,
+  "n": 359,
+  "n_correct": 359,
+  "macro_f1": 1.0,
+  "wall_s": 1.519,
+  "pred_sha256": "e6815d7f93b32f81",
+  "stdout": "looked up 359/359 rows",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 1,
+  "rep": 0,
+  "primary": 1.0,
+  "n": 359,
+  "n_correct": 359,
+  "macro_f1": 1.0,
+  "wall_s": 0.833,
+  "pred_sha256": "e6815d7f93b32f81",
+  "stdout": "looked up 359/359 rows",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 2,
+  "rep": 0,
+  "primary": 1.0,
+  "n": 359,
+  "n_correct": 359,
+  "macro_f1": 1.0,
+  "wall_s": 0.818,
+  "pred_sha256": "e6815d7f93b32f81",
+  "stdout": "looked up 359/359 rows",
+  "stderr_lines": []
+ }
+]

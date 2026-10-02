@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "properties": {
+    "consistent": {
+      "type": "boolean",
+      "description": "True if there is no critical and no major issue"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "major",
+              "minor"
+            ]
+          },
+          "claim": {
+            "type": "string",
+            "description": "The manuscript's statement, quoted briefly with its section or equation"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "File and line numbers, and what the code does there"
+          }
+        },
+        "required": [
+          "severity",
+          "claim",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "consistent",
+    "issues"
+  ],
+  "additionalProperties": false
+}

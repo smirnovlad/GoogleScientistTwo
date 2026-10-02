@@ -1,0 +1,10 @@
+{
+  "name": "final_judge",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§4, held-out",
+  "description": "Held-out judge: scores the final manuscript once, after the loop, on its own rubric.",
+  "variables": [
+    "manuscript"
+  ]
+}

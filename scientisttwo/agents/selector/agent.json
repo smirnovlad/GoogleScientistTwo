@@ -1,0 +1,12 @@
+{
+  "name": "selector",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.3, P-ROSTER-15",
+  "description": "Chooses the best idea among those validated as Good on the full benchmark.",
+  "variables": [
+    "task_title",
+    "metric",
+    "candidates"
+  ]
+}

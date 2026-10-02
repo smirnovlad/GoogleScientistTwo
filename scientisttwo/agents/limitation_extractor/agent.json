@@ -1,0 +1,15 @@
+{
+  "name": "limitation_extractor",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.1, P-ROSTER-1",
+  "description": "Extracts the core limitations of the task's method from its paper and code, and expands the set on the verifier's feedback.",
+  "variables": [
+    "task_title",
+    "paper",
+    "code_overview",
+    "rules",
+    "current_limitations",
+    "feedback"
+  ]
+}

@@ -1,0 +1,642 @@
+[
+ {
+  "split": "subset",
+  "seed": 0,
+  "rep": 0,
+  "primary": 0.8723404255319149,
+  "n": 141,
+  "n_correct": 123,
+  "macro_f1": 0.8735022079565692,
+  "wall_s": 1.253,
+  "pred_sha256": "30112d51fe66f2d8",
+  "stdout": "seed=0 train_n=1079 epochs=50 train_loss=0.0937 train_accuracy=0.9731 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 1,
+  "rep": 0,
+  "primary": 0.900709219858156,
+  "n": 141,
+  "n_correct": 127,
+  "macro_f1": 0.9009026372630377,
+  "wall_s": 0.891,
+  "pred_sha256": "7b247f0069718453",
+  "stdout": "seed=1 train_n=1079 epochs=50 train_loss=0.1797 train_accuracy=0.9472 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 2,
+  "rep": 0,
+  "primary": 0.9148936170212766,
+  "n": 141,
+  "n_correct": 129,
+  "macro_f1": 0.9158985458985459,
+  "wall_s": 0.891,
+  "pred_sha256": "b5fe78f2dc2665a8",
+  "stdout": "seed=2 train_n=1079 epochs=50 train_loss=0.1181 train_accuracy=0.9759 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 3,
+  "rep": 0,
+  "primary": 0.9078014184397163,
+  "n": 141,
+  "n_correct": 128,
+  "macro_f1": 0.907941628264209,
+  "wall_s": 0.864,
+  "pred_sha256": "a0d220fd6363596d",
+  "stdout": "seed=3 train_n=1079 epochs=50 train_loss=0.1420 train_accuracy=0.9713 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 4,
+  "rep": 0,
+  "primary": 0.8723404255319149,
+  "n": 141,
+  "n_correct": 123,
+  "macro_f1": 0.8692440229099319,
+  "wall_s": 0.841,
+  "pred_sha256": "6a44e513e8bfd6f4",
+  "stdout": "seed=4 train_n=1079 epochs=50 train_loss=0.1298 train_accuracy=0.9722 predicted_n=141 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 5,
+  "rep": 0,
+  "primary": 0.8794326241134752,
+  "n": 141,
+  "n_correct": 124,
+  "macro_f1": 0.8816108704874,
+  "wall_s": 0.921,
+  "pred_sha256": "e1d2f9467381a183",
+  "stdout": "seed=5 train_n=1079 epochs=50 train_loss=0.1641 train_accuracy=0.9481 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 6,
+  "rep": 0,
+  "primary": 0.950354609929078,
+  "n": 141,
+  "n_correct": 134,
+  "macro_f1": 0.9498867642471647,
+  "wall_s": 0.87,
+  "pred_sha256": "ae7e412ae58e5f5b",
+  "stdout": "seed=6 train_n=1079 epochs=50 train_loss=0.1065 train_accuracy=0.9750 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 7,
+  "rep": 0,
+  "primary": 0.900709219858156,
+  "n": 141,
+  "n_correct": 127,
+  "macro_f1": 0.9020422456462501,
+  "wall_s": 0.863,
+  "pred_sha256": "0faeb1a054809143",
+  "stdout": "seed=7 train_n=1079 epochs=50 train_loss=0.1324 train_accuracy=0.9694 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 8,
+  "rep": 0,
+  "primary": 0.8936170212765957,
+  "n": 141,
+  "n_correct": 126,
+  "macro_f1": 0.8963756294790777,
+  "wall_s": 0.852,
+  "pred_sha256": "43f99613f2549c86",
+  "stdout": "seed=8 train_n=1079 epochs=50 train_loss=0.1468 train_accuracy=0.9629 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 9,
+  "rep": 0,
+  "primary": 0.8794326241134752,
+  "n": 141,
+  "n_correct": 124,
+  "macro_f1": 0.8813124040710246,
+  "wall_s": 1.54,
+  "pred_sha256": "c41b97bd7aaaf8e0",
+  "stdout": "seed=9 train_n=1079 epochs=50 train_loss=0.1617 train_accuracy=0.9564 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 10,
+  "rep": 0,
+  "primary": 0.900709219858156,
+  "n": 141,
+  "n_correct": 127,
+  "macro_f1": 0.9021893814997263,
+  "wall_s": 1.157,
+  "pred_sha256": "11cb06d399f4baaf",
+  "stdout": "seed=10 train_n=1079 epochs=50 train_loss=0.1113 train_accuracy=0.9731 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 11,
+  "rep": 0,
+  "primary": 0.900709219858156,
+  "n": 141,
+  "n_correct": 127,
+  "macro_f1": 0.901372714131335,
+  "wall_s": 0.996,
+  "pred_sha256": "a161552473e850d5",
+  "stdout": "seed=11 train_n=1079 epochs=50 train_loss=0.1529 train_accuracy=0.9564 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 12,
+  "rep": 0,
+  "primary": 0.9148936170212766,
+  "n": 141,
+  "n_correct": 129,
+  "macro_f1": 0.9150863395863397,
+  "wall_s": 0.932,
+  "pred_sha256": "a2f2ffbabac24b9c",
+  "stdout": "seed=12 train_n=1079 epochs=50 train_loss=0.1215 train_accuracy=0.9741 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 13,
+  "rep": 0,
+  "primary": 0.9361702127659575,
+  "n": 141,
+  "n_correct": 132,
+  "macro_f1": 0.9360989712713852,
+  "wall_s": 1.013,
+  "pred_sha256": "37b5a5469b80cdc4",
+  "stdout": "seed=13 train_n=1079 epochs=50 train_loss=0.1573 train_accuracy=0.9583 predicted_n=141 seconds=0.06",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 14,
+  "rep": 0,
+  "primary": 0.8794326241134752,
+  "n": 141,
+  "n_correct": 124,
+  "macro_f1": 0.8808024526044548,
+  "wall_s": 0.945,
+  "pred_sha256": "1a5d4efeaed00808",
+  "stdout": "seed=14 train_n=1079 epochs=50 train_loss=0.1223 train_accuracy=0.9731 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 15,
+  "rep": 0,
+  "primary": 0.9219858156028369,
+  "n": 141,
+  "n_correct": 130,
+  "macro_f1": 0.921576354679803,
+  "wall_s": 1.169,
+  "pred_sha256": "059d7dcc252143af",
+  "stdout": "seed=15 train_n=1079 epochs=50 train_loss=0.1428 train_accuracy=0.9629 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 16,
+  "rep": 0,
+  "primary": 0.900709219858156,
+  "n": 141,
+  "n_correct": 127,
+  "macro_f1": 0.9001131180441526,
+  "wall_s": 0.996,
+  "pred_sha256": "cbd1d95a43e60243",
+  "stdout": "seed=16 train_n=1079 epochs=50 train_loss=0.1492 train_accuracy=0.9629 predicted_n=141 seconds=0.07",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 17,
+  "rep": 0,
+  "primary": 0.9290780141843972,
+  "n": 141,
+  "n_correct": 131,
+  "macro_f1": 0.9298164112388252,
+  "wall_s": 0.852,
+  "pred_sha256": "bea23d8ea30312db",
+  "stdout": "seed=17 train_n=1079 epochs=50 train_loss=0.1423 train_accuracy=0.9611 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 18,
+  "rep": 0,
+  "primary": 0.9148936170212766,
+  "n": 141,
+  "n_correct": 129,
+  "macro_f1": 0.9151312576312577,
+  "wall_s": 0.846,
+  "pred_sha256": "6c163c4fcefbe3f9",
+  "stdout": "seed=18 train_n=1079 epochs=50 train_loss=0.1251 train_accuracy=0.9694 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "subset",
+  "seed": 19,
+  "rep": 0,
+  "primary": 0.9148936170212766,
+  "n": 141,
+  "n_correct": 129,
+  "macro_f1": 0.9158197725008069,
+  "wall_s": 0.862,
+  "pred_sha256": "5738da285d3ba271",
+  "stdout": "seed=19 train_n=1079 epochs=50 train_loss=0.1420 train_accuracy=0.9648 predicted_n=141 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 0,
+  "rep": 0,
+  "primary": 0.9080779944289693,
+  "n": 359,
+  "n_correct": 326,
+  "macro_f1": 0.9083123821675283,
+  "wall_s": 0.872,
+  "pred_sha256": "22a161ca71d67475",
+  "stdout": "seed=0 train_n=1079 epochs=50 train_loss=0.0937 train_accuracy=0.9731 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 1,
+  "rep": 0,
+  "primary": 0.8969359331476323,
+  "n": 359,
+  "n_correct": 322,
+  "macro_f1": 0.8971088462813673,
+  "wall_s": 0.866,
+  "pred_sha256": "548842551efe0b79",
+  "stdout": "seed=1 train_n=1079 epochs=50 train_loss=0.1797 train_accuracy=0.9472 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 2,
+  "rep": 0,
+  "primary": 0.9303621169916435,
+  "n": 359,
+  "n_correct": 334,
+  "macro_f1": 0.9310006614315144,
+  "wall_s": 0.901,
+  "pred_sha256": "dfd2b7b0571a6822",
+  "stdout": "seed=2 train_n=1079 epochs=50 train_loss=0.1181 train_accuracy=0.9759 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 3,
+  "rep": 0,
+  "primary": 0.9220055710306406,
+  "n": 359,
+  "n_correct": 331,
+  "macro_f1": 0.9220838937942931,
+  "wall_s": 0.914,
+  "pred_sha256": "37bc094577542f27",
+  "stdout": "seed=3 train_n=1079 epochs=50 train_loss=0.1420 train_accuracy=0.9713 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 4,
+  "rep": 0,
+  "primary": 0.9164345403899722,
+  "n": 359,
+  "n_correct": 329,
+  "macro_f1": 0.9166286612919311,
+  "wall_s": 0.969,
+  "pred_sha256": "717fb9641f9942a4",
+  "stdout": "seed=4 train_n=1079 epochs=50 train_loss=0.1298 train_accuracy=0.9722 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 5,
+  "rep": 0,
+  "primary": 0.9080779944289693,
+  "n": 359,
+  "n_correct": 326,
+  "macro_f1": 0.908839029619801,
+  "wall_s": 0.9,
+  "pred_sha256": "5b3a2707a3609b9c",
+  "stdout": "seed=5 train_n=1079 epochs=50 train_loss=0.1641 train_accuracy=0.9481 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 6,
+  "rep": 0,
+  "primary": 0.935933147632312,
+  "n": 359,
+  "n_correct": 336,
+  "macro_f1": 0.9359594896761554,
+  "wall_s": 1.026,
+  "pred_sha256": "5d588fe34ebe53ef",
+  "stdout": "seed=6 train_n=1079 epochs=50 train_loss=0.1065 train_accuracy=0.9750 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 7,
+  "rep": 0,
+  "primary": 0.9220055710306406,
+  "n": 359,
+  "n_correct": 331,
+  "macro_f1": 0.9230466556804444,
+  "wall_s": 0.899,
+  "pred_sha256": "fc646104158c41d6",
+  "stdout": "seed=7 train_n=1079 epochs=50 train_loss=0.1324 train_accuracy=0.9694 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 8,
+  "rep": 0,
+  "primary": 0.9052924791086351,
+  "n": 359,
+  "n_correct": 325,
+  "macro_f1": 0.9070213707610003,
+  "wall_s": 0.865,
+  "pred_sha256": "9de51afe48f4ae8a",
+  "stdout": "seed=8 train_n=1079 epochs=50 train_loss=0.1468 train_accuracy=0.9629 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 9,
+  "rep": 0,
+  "primary": 0.8941504178272981,
+  "n": 359,
+  "n_correct": 321,
+  "macro_f1": 0.895287499193684,
+  "wall_s": 0.914,
+  "pred_sha256": "ad5dd40de1d8a6e6",
+  "stdout": "seed=9 train_n=1079 epochs=50 train_loss=0.1617 train_accuracy=0.9564 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 10,
+  "rep": 0,
+  "primary": 0.9331476323119777,
+  "n": 359,
+  "n_correct": 335,
+  "macro_f1": 0.933696172610183,
+  "wall_s": 0.934,
+  "pred_sha256": "8de0c0346c96f163",
+  "stdout": "seed=10 train_n=1079 epochs=50 train_loss=0.1113 train_accuracy=0.9731 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 11,
+  "rep": 0,
+  "primary": 0.8885793871866295,
+  "n": 359,
+  "n_correct": 319,
+  "macro_f1": 0.8883956392783894,
+  "wall_s": 0.857,
+  "pred_sha256": "bb467d91a60d146d",
+  "stdout": "seed=11 train_n=1079 epochs=50 train_loss=0.1529 train_accuracy=0.9564 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 12,
+  "rep": 0,
+  "primary": 0.9136490250696379,
+  "n": 359,
+  "n_correct": 328,
+  "macro_f1": 0.9141316498955498,
+  "wall_s": 0.857,
+  "pred_sha256": "f73f41d3a8d9a606",
+  "stdout": "seed=12 train_n=1079 epochs=50 train_loss=0.1215 train_accuracy=0.9741 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 13,
+  "rep": 0,
+  "primary": 0.9303621169916435,
+  "n": 359,
+  "n_correct": 334,
+  "macro_f1": 0.9306927487836226,
+  "wall_s": 0.836,
+  "pred_sha256": "70bad639936f3fa8",
+  "stdout": "seed=13 train_n=1079 epochs=50 train_loss=0.1573 train_accuracy=0.9583 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 14,
+  "rep": 0,
+  "primary": 0.9052924791086351,
+  "n": 359,
+  "n_correct": 325,
+  "macro_f1": 0.9057310060974189,
+  "wall_s": 0.847,
+  "pred_sha256": "760515f5402e680c",
+  "stdout": "seed=14 train_n=1079 epochs=50 train_loss=0.1223 train_accuracy=0.9731 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 15,
+  "rep": 0,
+  "primary": 0.9192200557103064,
+  "n": 359,
+  "n_correct": 330,
+  "macro_f1": 0.9190939688265747,
+  "wall_s": 0.855,
+  "pred_sha256": "50fb3001f0781890",
+  "stdout": "seed=15 train_n=1079 epochs=50 train_loss=0.1428 train_accuracy=0.9629 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 16,
+  "rep": 0,
+  "primary": 0.9220055710306406,
+  "n": 359,
+  "n_correct": 331,
+  "macro_f1": 0.9216853871630356,
+  "wall_s": 0.866,
+  "pred_sha256": "fe2564372cf30ea2",
+  "stdout": "seed=16 train_n=1079 epochs=50 train_loss=0.1492 train_accuracy=0.9629 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 17,
+  "rep": 0,
+  "primary": 0.924791086350975,
+  "n": 359,
+  "n_correct": 332,
+  "macro_f1": 0.9260130215350632,
+  "wall_s": 1.124,
+  "pred_sha256": "554ec05cc55a9867",
+  "stdout": "seed=17 train_n=1079 epochs=50 train_loss=0.1423 train_accuracy=0.9611 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 18,
+  "rep": 0,
+  "primary": 0.9220055710306406,
+  "n": 359,
+  "n_correct": 331,
+  "macro_f1": 0.9223831463778465,
+  "wall_s": 0.877,
+  "pred_sha256": "9a9471a6c0896fc9",
+  "stdout": "seed=18 train_n=1079 epochs=50 train_loss=0.1251 train_accuracy=0.9694 predicted_n=359 seconds=0.04",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ },
+ {
+  "split": "full",
+  "seed": 19,
+  "rep": 0,
+  "primary": 0.924791086350975,
+  "n": 359,
+  "n_correct": 332,
+  "macro_f1": 0.9241311357325792,
+  "wall_s": 0.853,
+  "pred_sha256": "80b52d5cc132ba31",
+  "stdout": "seed=19 train_n=1079 epochs=50 train_loss=0.1420 train_accuracy=0.9648 predicted_n=359 seconds=0.05",
+  "stderr_lines": [
+   "<conda>/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:781: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (50) reached and the optimization hasn't converged yet.",
+   "  warnings.warn("
+  ]
+ }
+]

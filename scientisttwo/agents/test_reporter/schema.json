@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "One item per edit: where, and what changed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "What the test results bear on but was left unchanged, and why; whether the paper compiled"
+    }
+  },
+  "required": [
+    "changes",
+    "notes"
+  ],
+  "additionalProperties": false
+}
