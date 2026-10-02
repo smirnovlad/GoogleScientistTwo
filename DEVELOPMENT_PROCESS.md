@@ -586,20 +586,49 @@ The owner flagged three changes for Vlad to see:
 - the 40 or so register rows in the "Rows it constrains" tables exist, with the owning tasks the
   document gives them.
 
-## HANDOFF, 2026-10-02 (task 6's `P0` part: the first version is under review)
+**The review, wave 1.** Three reviews ran in parallel on `a2e7eb0`, one lens each, and each is
+kept verbatim in `docs/reviews/integrity-blockers-2026-10-02/`:
+- **`research-engineer`, two blockers:**
+  - Training-seed luck survives the held-out split. The test event scored the very fitted models
+    that search had chosen, so the noise that came from fitting reached the test numbers intact.
+    At equal fit and evaluation noise, the winner of 20 null candidates keeps +1.32 of its +2.65
+    search gain on the test split. Its script re-runs in `playground/integrity/`, and reproduces
+    the numbers here.
+  - Weights an agent places in its code tree pass the provenance rule. The fit re-run of the audit
+    then reproduces them exactly.
+- **`system-architect`, one blocker:** the rules count harness jobs, not released results, and
+  define no resume. So a crash in the test event cannot be told from a second use of the test set.
+- **`paper-analyst`, no blocker:**
+  - every quote and anchor is exact, and every image-page fact holds;
+  - but the two readings of A-INT-1 were misattributed, departures from the paper went unnamed,
+    and I1's scope departs from the definition it claims to apply.
+
+**The fix list.** `fix-list.md` in the same folder merges every finding into 47 entries, F-0 to
+F-46, and declines none. F-0 splits the document by decision, since the fixes take it past the
+600-line cap. F-46 is a question for Vlad. `CLAUDE.md` says the test set is used "once, at the
+end", yet three reads of the test split go beyond that wording:
+- the sealed baseline check;
+- the audit's re-fits after export;
+- a correction event after a defect in a locked scoring item.
+
+None of the three can reach a decision that changes the method or the frozen rows. The document
+states them as proposed exceptions awaiting Vlad's confirmation, and `CLAUDE.md` stays unchanged.
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: the owner applies the fix list)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
   which sits on top of `claude/paper-analysis`. PR #1 is still open.
 - **Done and pushed:**
   - the relaunch note and the brief, recorded verbatim above;
-  - `docs/integrity/README.md`, the brief of the decisions document;
-  - `docs/integrity/blocking-decisions.md`, its first version (`a2e7eb0`).
-- **In progress:** three reviews of the first version, in parallel: `research-engineer` and
-  `system-architect`, as the brief asks, and `paper-analyst` for what the document says about the
-  paper.
+  - `docs/integrity/README.md`, the brief of the decisions document, with R1, R5 and R10 updated
+    for the split by decision;
+  - `docs/integrity/blocking-decisions.md`, its first version (`a2e7eb0`);
+  - the three wave-1 reviews and `fix-list.md`, in `docs/reviews/integrity-blockers-2026-10-02/`;
+  - the reviewer's scripts, in `playground/integrity/reviews/research-engineer/`.
+- **In progress:** the owner applies `fix-list.md`.
 - **Next steps:**
-  1. Save each review verbatim in `docs/reviews/integrity-blockers-2026-10-02/`.
-  2. Have the owner fix the findings, then have each reviewer check its own findings.
+  1. Check the owner's fixes against the fix list, then commit.
+  2. Have each reviewer check its own findings in a closure pass, and save the reports.
   3. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
      A-INT-3), and nothing else in `docs/paper/unspecified.md`.
   4. Record the outcome in `TODO.md`, under task 6's `P0` part.

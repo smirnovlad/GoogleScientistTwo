@@ -8,7 +8,8 @@ follow, so that each of them solves the same problem.
 
 | File | Holds | Written by |
 |---|---|---|
-| [blocking-decisions.md](blocking-decisions.md) | the four decisions of task 6's `P0` part: U-INT-4, U-TOP-5, A-INT-1 and A-INT-3 | `evaluation-integrity-engineer` |
+| [blocking-decisions.md](blocking-decisions.md) | the index of task 6's `P0` part: the terms, every rule's ID, the rules that cross the four decisions, and what stays open | `evaluation-integrity-engineer` |
+| [decisions/](decisions/) | one file per decision: U-INT-4, U-TOP-5, A-INT-1 and A-INT-3 | `evaluation-integrity-engineer` |
 | README.md | this brief: the requirements of the decisions, and their acceptance tests | the coordinating session |
 
 Task 6's `P1` part (the per-stage threat model, the verified-results table the writer sees,
@@ -56,16 +57,16 @@ Each requirement has the test that shows it is met.
 
 | ID | Requirement | Acceptance test |
 |---|---|---|
-| R1 | Each of the four rows gets one decision, with four parts: the choice, the attack it stops, a control that proves it works, and the road not taken as `⛔ WHY NOT`. | Every decision shows all four parts. `grep -c "⛔ WHY NOT"` returns at least 4. |
+| R1 | Each of the four rows gets one decision, with four parts: the choice, the attack it stops, a control that proves it works, and the road not taken as `⛔ WHY NOT`. | Every decision shows all four parts, and each decision file holds at least one `⛔ WHY NOT` line. |
 | R2 | A choice is a set of rules, each stated as an invariant that can be checked: who may read, write or compute what, and when. Each rule has a stable ID that task 2 can cite. | A reviewer can turn each rule into a test, with no rule that says only "should" or "ensure". |
 | R3 | Each guard is enforced by the setup, never by a prompt. Each guard names its class, one of the five in `stages/07-integrity.md`: prompt, LLM filter, LLM fixer, post-hoc LLM audit, or setup. An LLM check counts as detection, with a rate to measure, never as enforcement. | No rule rests on a guard of class "prompt". Every LLM guard says how its miss rate is measured. |
 | R4 | Each control proves that it ran. It names the attack it plants and the outcome with the guard removed, where the attack succeeds, and with the guard in place, where it fails. It says whether it runs in mock mode for $0; if not, what it costs. | Every control has both outcomes, stated before it is run. |
-| R5 | Each decision states how it relates to the paper: what the paper does, classified as SPECIFIED, UNSPECIFIED, AMBIGUOUS or INCONSISTENT with its quote, and where our rule departs from it. For A-INT-1, both readings are quoted, and the resolution is marked as ours. | `python3 playground/paper/check_citations.py docs/integrity/blocking-decisions.md` reports 0 problems: every unit cites its location or carries `[ours]`, and every quote is verbatim. |
+| R5 | Each decision states how it relates to the paper: what the paper does, classified as SPECIFIED, UNSPECIFIED, AMBIGUOUS or INCONSISTENT with its quote, and where our rule departs from it. For A-INT-1, both readings are quoted, and the resolution is marked as ours. | `python3 playground/paper/check_citations.py docs/integrity/blocking-decisions.md docs/integrity/decisions/*.md` reports 0 problems: every unit cites its location or carries `[ours]`, and every quote is verbatim. |
 | R6 | Each decision is compared with its row's proposal. Where it changes that proposal, it says so and why. | A reviewer finds each of the four proposals confirmed or replaced, with the reason. |
 | R7 | Each decision names the rows it constrains elsewhere in the register, without deciding them, such as A-FULL-1, U-BASE-1, U-BASE-2, U-SUB-2, U-INT-1, U-INT-3, A-ABL-3, U-TOP-1, U-ART-15, U-ART-12, U-EVAL-1 and U-NOTE-4. | Each decision lists those rows, and the constraint each one receives. |
 | R8 | The rules are rules, not a component design. They state what the harness and the audit must guarantee, and leave the interfaces, the components and their boundaries to task 3. | The `system-architect` review confirms that task 3 can write both contracts without deciding any of the four questions again, and that no rule fixes a component boundary it does not need. |
 | R9 | Each decision states its cost: compute, money and wall-clock, at least in order of magnitude. It also states every task it makes inadmissible, such as a task with no validation split, or a task whose metric the harness cannot compute. | The `research-engineer` review finds each cost and each admissibility rule, with no number left without its sample. |
-| R10 | The document is structure, not prose: rules, tables and the decision points with their thresholds. It stays under 600 lines. | `wc -l` is under 600. |
+| R10 | The document is structure, not prose: rules, tables and the decision points with their thresholds, and pseudocode with a failure branch for every step of any new stage. Each file stays under 600 lines, split by decision, never into halves that must be read together. | `wc -l` of each file is under 600. |
 
 ## Questions each decision must answer
 
