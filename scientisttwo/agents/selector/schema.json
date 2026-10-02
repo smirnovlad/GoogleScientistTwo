@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "choice": {
+      "type": "string",
+      "description": "The id of the chosen candidate, exactly as given"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "The comparison that decided it, with each contender's gain and spread"
+    }
+  },
+  "required": [
+    "choice",
+    "rationale"
+  ],
+  "additionalProperties": false
+}

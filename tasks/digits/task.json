@@ -1,0 +1,69 @@
+{
+  "id": "digits",
+  "title": "TinyMLP: A 2,410-Parameter Perceptron for Low-Resolution Handwritten Digits",
+  "paper": "paper.md",
+  "rules": "rules.md",
+  "code": "code",
+  "public_data": "data/public",
+  "prepare": "{python} prepare.py",
+  "entrypoint": "{python} run.py --train-dir {train_dir} --inputs {inputs} --out {out} --seed {seed}",
+  "metric": {
+    "name": "accuracy",
+    "direction": "max",
+    "module": "harness/metric.py"
+  },
+  "splits": {
+    "subset": {
+      "inputs": "harness/inputs/subset.npz",
+      "labels": "harness/labels/subset.npz",
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    },
+    "full": {
+      "inputs": "harness/inputs/full.npz",
+      "labels": "harness/labels/full.npz",
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    },
+    "test": {
+      "inputs": "harness/inputs/test.npz",
+      "labels": "harness/labels/test.npz",
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    }
+  },
+  "timeouts": {
+    "evaluation_seconds": 120,
+    "coding_session_seconds": 2400
+  },
+  "reported": {
+    "text": "TinyMLP (code/ as released: a 64-32-10 perceptron with ReLU, on raw pixel counts 0..16 without scaling, trained with Adam, learning rate 1e-3, batches of 200, L2 1e-4, for 50 epochs). Validation accuracy (split full, n=359), mean +/- sample sd over seeds 0, 1, 2: 0.9118 +/- 0.0170 (per seed 0.9081, 0.8969, 0.9304); macro-F1 0.9121 +/- 0.0173. Over 20 seeds (0-19): full 0.9162 +/- 0.0133 (range 0.8886-0.9359); subset (n=141) 0.9043 +/- 0.0213 (range 0.8723-0.9504), and 0.8723 with seed 0. One run, one seed: about 1 s wall-clock on one Apple M4 Max CPU."
+  },
+  "min_delta": 0.02,
+  "deny_read": [
+    "{site_packages}/sklearn/datasets/data"
+  ],
+  "forbidden_in_diff": [
+    "load_digits",
+    "fetch_openml",
+    "optdigits",
+    "sklearn.datasets",
+    "openml.org",
+    "archive.ics.uci.edu",
+    "urllib",
+    "requests.get",
+    "http://",
+    "https://"
+  ],
+  "allow_data_files": false,
+  "integrity_notes": "min_delta 0.02 is about two standard errors of a 3-vs-3-seed difference on full (20-seed SD 0.0133, measured 2026-10-02). deny_read hides scikit-learn's bundled digits, which hold every evaluation image with its label; forbidden_in_diff stops a change from loading or downloading them."
+}

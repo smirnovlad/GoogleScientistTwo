@@ -1,0 +1,14 @@
+{
+  "name": "initial_idea_generator",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.1, P-ROSTER-3",
+  "description": "Proposes the first seed idea, designed to resolve the identified limitations.",
+  "variables": [
+    "task_title",
+    "paper",
+    "code_overview",
+    "rules",
+    "limitations"
+  ]
+}

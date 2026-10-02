@@ -1,0 +1,19 @@
+{
+  "name": "paper_enhancer",
+  "kind": "writer",
+  "tools": [
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Bash"
+  ],
+  "paper_ref": "§3.5, P-ROSTER-24",
+  "description": "Revises the manuscript to answer the review with the rebuttal results, and fixes what the audit found.",
+  "variables": [
+    "review",
+    "rebuttal_results_json",
+    "audit"
+  ]
+}

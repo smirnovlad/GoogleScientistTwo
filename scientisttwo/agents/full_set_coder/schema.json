@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "What was checked and changed, and the runtime estimate with its method"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths changed or added, relative to the working directory"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Every changed setting and why; risks for the full run"
+    }
+  },
+  "required": [
+    "summary",
+    "files_changed",
+    "notes"
+  ],
+  "additionalProperties": false
+}

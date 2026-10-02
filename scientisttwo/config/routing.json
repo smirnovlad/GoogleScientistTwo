@@ -1,0 +1,15 @@
+{
+  "description": "Model per agent. The paper runs reasoning agents on Gemini 3.6 Flash and coding agents on Claude Code with Opus 4.8 (App. A.2; A-CFG-1 reading 2). On the subscription: reasoning on sonnet, every coding, writing and auditing session on opus, and the final judge on opus with its own rubric, so it is never the in-loop reviewer's model.",
+  "default": {"model": "sonnet", "effort": "medium"},
+  "by_kind": {
+    "coding":   {"model": "opus", "effort": "high"},
+    "writer":   {"model": "opus", "effort": "high"},
+    "readonly": {"model": "opus", "effort": "medium"}
+  },
+  "agents": {
+    "final_judge": {"model": "opus", "effort": "high"},
+    "selector": {"model": "sonnet", "effort": "high"},
+    "meta_reviewer": {"model": "sonnet", "effort": "high"}
+  },
+  "timeouts_s": {"reasoning": 900, "coding": 2400, "writer": 2400, "readonly": 1200}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "rebuttal_planner",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.5, P-ROSTER-22",
+  "description": "Plans the supplementary experiments that answer the review's concerns.",
+  "variables": [
+    "task_title",
+    "idea",
+    "review",
+    "n_tasks"
+  ]
+}

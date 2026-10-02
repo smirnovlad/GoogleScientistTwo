@@ -1,0 +1,17 @@
+{
+  "name": "full_set_critic",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.2, P-ROSTER-11",
+  "description": "Gives an idea its verdict on the full benchmark against the reproduced baseline: Good, Engineer or Bad.",
+  "variables": [
+    "task_title",
+    "metric",
+    "idea",
+    "baseline_result",
+    "idea_result",
+    "gain",
+    "reported",
+    "log_tail"
+  ]
+}

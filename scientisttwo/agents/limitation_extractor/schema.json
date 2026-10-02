@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The full set: earlier limitations under their ids, plus new ones",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "L1, L2, ...: stable across calls"
+          },
+          "title": {
+            "type": "string",
+            "description": "One line naming the limitation"
+          },
+          "description": {
+            "type": "string",
+            "description": "The flaw, why it limits the method, and the opportunity"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Where the inputs show it, quoted briefly; begins with 'inferred:' for a reasoned inference"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "limitations"
+  ],
+  "additionalProperties": false
+}

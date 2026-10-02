@@ -1,0 +1,21 @@
+{
+  "name": "full_set_coder",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.2, P-ROSTER-10",
+  "description": "Prepares a subset-validated idea's codebase to run on the full benchmark.",
+  "variables": [
+    "task_title",
+    "rules",
+    "entrypoint",
+    "idea",
+    "subset_result"
+  ]
+}

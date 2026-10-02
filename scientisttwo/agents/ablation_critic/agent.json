@@ -1,0 +1,14 @@
+{
+  "name": "ablation_critic",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.4, P-ROSTER-18",
+  "description": "Judges whether the gain is attributable to the idea's components: Good, Refine or Reject.",
+  "variables": [
+    "task_title",
+    "metric",
+    "idea",
+    "best_result",
+    "ablations"
+  ]
+}

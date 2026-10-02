@@ -1,0 +1,23 @@
+{
+  "name": "initial_drafter",
+  "kind": "writer",
+  "tools": [
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep",
+    "Bash"
+  ],
+  "paper_ref": "§3.5, P-ROSTER-20",
+  "description": "Writes the manuscript (main.tex, references.bib) from the selected idea and the verified results.",
+  "variables": [
+    "task_title",
+    "paper",
+    "idea",
+    "limitations",
+    "references",
+    "results_tex",
+    "results_json"
+  ]
+}

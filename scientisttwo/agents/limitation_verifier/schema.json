@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "sufficient",
+        "insufficient"
+      ]
+    },
+    "feedback": {
+      "type": "string",
+      "description": "For insufficient: a numbered list of gaps; for sufficient: why it suffices"
+    }
+  },
+  "required": [
+    "verdict",
+    "feedback"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,23 @@
+{
+  "name": "subset_engineer",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.2, P-ROSTER-9",
+  "description": "Fixes the engineering defect the subset critic named, changing the idea only where the fix requires it.",
+  "variables": [
+    "task_title",
+    "rules",
+    "entrypoint",
+    "idea",
+    "feedback",
+    "idea_result",
+    "log_tail"
+  ]
+}

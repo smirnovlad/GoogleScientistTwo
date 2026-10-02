@@ -401,6 +401,68 @@ A second pass passed: both fixes "appear correct", with no new finding and no se
 disclosure. `codex review` refuses custom instructions with `--uncommitted` as it does with
 `--base`, so both passes named the diff in their instructions instead.
 
+## 2026-10-02: the goal becomes a working engine, on the subscription
+
+**Vlad, verbatim**, set as this session's goal:
+
+> "As a result I expect to see working engine for auto research which replicates engine from paper ScientistTwo. I am going to use it based on my claude subscription – "claude -p" backend in future, take it into account. I don't wanna pay for API.
+> Don't ask me anything, deliver replicated engine."
+
+**What it changes:**
+- **The engine is built now,** on `claude/engine` in `.claude/worktrees/engine`, from `docs/paper/`
+  directly. TODO tasks 2–8 had put requirements, components and a build plan before any code.
+  Tasks 2 and 6 keep running in `gs2:T2` and `gs2:T6`, and their outputs are folded in when they
+  land.
+- **Every agent runs through `claude -p`, on Vlad's subscription.** Nothing may bill the API.
+- **No questions to Vlad.** Every open decision is taken here, and recorded with its reason and its
+  `⛔ WHY NOT`.
+
+**First finding: `--bare` would bill the API.** `claude --help` (2.1.287) says that under `--bare`
+"Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain
+are never read)". So the engine never passes `--bare`, and isolates its agents from Vlad's own
+Claude setup by other means.
+
+**Second finding: those other means work, on the subscription.** A probe put a canary `CLAUDE.md`
+("The canary word is BLUEBERRY") in a scratch project, and asked `claude -p` (haiku, an
+environment with no `ANTHROPIC_*` variable) for the canary and whether any instruction mentions
+gstack or `DEVELOPMENT_PROCESS.md`, which only Vlad's global `~/.claude/CLAUDE.md` does:
+
+| Flags | Canary | Global instructions | Auth |
+|---|---|---|---|
+| none (control) | BLUEBERRY | both seen | OAuth, no error |
+| `--setting-sources ""` `--strict-mcp-config` `--mcp-config '{"mcpServers":{}}'` `--disable-slash-commands` | UNKNOWN | neither | OAuth, no error |
+| the same, plus `--json-schema` | UNKNOWN | neither | OAuth, no error; a validated `structured_output` field |
+
+So an engine agent sees only the prompt the engine gives it, and `--json-schema` gives each agent a
+validated output. The JSON envelope also reports `total_cost_usd`: an API-equivalent figure, which
+the ledger records as such, since the subscription bills nothing per call.
+
+**Third finding: the stream reports the auth source and the usage windows.** With
+`--output-format stream-json --verbose`, the `init` event carries `apiKeySource` ("none" on the
+subscription) and a `rate_limit_event` carries the five-hour and seven-day windows (40% and 55%
+used at the time). So the backend refuses any call whose `apiKeySource` is not "none", killing it
+at the `init` event, and the budget guard pauses a run, resumably, before a window runs out.
+
+**Fourth finding: `sandbox-exec` confines a real coding agent.** A `claude -p` coding session
+(haiku, `bypassPermissions`) ran inside a profile that allows writes only to its workspace and
+Claude's own state, and denies a "secret" directory. It wrote its file; reading the secret and
+writing to the home directory each failed with "Operation not permitted"; it still ran on the
+subscription. So the harness's labels are locked by the setup, not by a prompt.
+
+**The build.** `docs/architecture/engine.md` is the contract. Two personas built data against it
+in parallel: `agent-engineer` the 27 agents (`scientisttwo/agents/`), `research-engineer` the demo
+task (`tasks/digits/`). This session built the engine in `scientisttwo/`: the backends, the run
+store, the budget guard, the sandbox and the harness, workspaces, the stage primitive, the stages
+of §3.1–§3.6 and §4.2, the export and the CLI.
+
+**What the tests found.** A test that tried to write outside the workspace showed that the
+profile left every temporary directory writable, so a run directory placed there could have its
+result files forged by agent code. Now every profile protects the whole run directory, and
+re-opens only the one directory a process needs; the test tries to forge a result, overwrite
+another version and write to the home directory, and each fails. A cross-check of the 27 agents
+against the stage code (variables passed, output fields read, verdict enums, schemas) found no
+mismatch.
+
 ## HANDOFF, 2026-10-02 (PR #1 awaits review; tasks 2 and 6 run in tmux)
 
 - **Done and pushed** on `claude/paper-analysis`:

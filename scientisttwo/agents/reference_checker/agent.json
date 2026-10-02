@@ -1,0 +1,12 @@
+{
+  "name": "reference_checker",
+  "kind": "reasoning",
+  "tools": [
+    "WebSearch"
+  ],
+  "paper_ref": "§4.2, P-ROSTER-27",
+  "description": "Verifies each bibliography entry by web search: verified, not_found or mismatch.",
+  "variables": [
+    "bibliography"
+  ]
+}

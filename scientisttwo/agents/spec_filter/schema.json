@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "compliant": {
+      "type": "boolean",
+      "description": "True if and only if violations is empty"
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "description": "The rule or check broken, quoted or named"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "File and line numbers, and what the code does there"
+          }
+        },
+        "required": [
+          "rule",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "compliant",
+    "violations"
+  ],
+  "additionalProperties": false
+}

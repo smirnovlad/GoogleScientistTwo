@@ -1,0 +1,20 @@
+{
+  "name": "baseline_coder",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.2, P-ROSTER-6",
+  "description": "Makes the task's codebase a faithful, runnable reproduction of the paper's method under the entrypoint contract.",
+  "variables": [
+    "task_title",
+    "paper",
+    "rules",
+    "entrypoint"
+  ]
+}

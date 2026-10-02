@@ -1,0 +1,18 @@
+{
+  "name": "spec_filter",
+  "kind": "readonly",
+  "tools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Bash"
+  ],
+  "paper_ref": "§4.2, P-ROSTER-26",
+  "description": "Audits a solution's code, read-only, for violations of the task rules and for reward hacking.",
+  "variables": [
+    "task_title",
+    "rules",
+    "idea",
+    "diff"
+  ]
+}

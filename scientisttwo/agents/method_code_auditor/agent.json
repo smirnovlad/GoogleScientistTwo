@@ -1,0 +1,16 @@
+{
+  "name": "method_code_auditor",
+  "kind": "readonly",
+  "tools": [
+    "Read",
+    "Glob",
+    "Grep",
+    "Bash"
+  ],
+  "paper_ref": "§4.2, P-ROSTER-28",
+  "description": "Audits, read-only, whether the code implements the method the manuscript describes.",
+  "variables": [
+    "manuscript",
+    "diff"
+  ]
+}

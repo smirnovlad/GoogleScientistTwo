@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": [
+        "Accept",
+        "Refine"
+      ]
+    },
+    "feedback": {
+      "type": "string",
+      "description": "For Refine: the critical method weakness first, then presentation; for Accept: why it meets the bar"
+    }
+  },
+  "required": [
+    "decision",
+    "feedback"
+  ],
+  "additionalProperties": false
+}

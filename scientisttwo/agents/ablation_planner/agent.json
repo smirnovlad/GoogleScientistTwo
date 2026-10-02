@@ -1,0 +1,18 @@
+{
+  "name": "ablation_planner",
+  "kind": "reasoning",
+  "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.4, P-ROSTER-16",
+  "description": "Plans one-component ablations of the selected idea, reading its codebase, so that the gain can be attributed.",
+  "variables": [
+    "task_title",
+    "idea",
+    "best_result",
+    "n_plans",
+    "diff_summary"
+  ]
+}

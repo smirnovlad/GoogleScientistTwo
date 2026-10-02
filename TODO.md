@@ -178,3 +178,33 @@ after it; `P1` is needed before building; `P2` comes later.
 ## Phase 1 onwards: build
 
 Filled in by task 8, once tasks 1–7 are done and reviewed.
+
+## Goal of 2026-10-02: a working engine, on the subscription
+
+Set by Vlad on 2026-10-02 (`DEVELOPMENT_PROCESS.md`, verbatim there): deliver a working engine
+that replicates ScientistTwo, run through `claude -p` on his subscription, never the API, with no
+questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 6 continue in
+`gs2:T2` and `gs2:T6`, and are folded in when they land.
+
+- [x] `P0` **E1 · The design contract:** `docs/architecture/engine.md`. Components and contracts,
+  the `claude -p` backend, integrity by mechanism, the task contract, the 27 agents, and a
+  decision with its `⛔ WHY NOT` for every gap the engine must close.
+- [x] `P0` **E2 · Probes of the subscription CLI.** Isolation from Vlad's own setup without
+  `--bare` (which bills the API), `--json-schema`, the stream format, `apiKeySource`, usage
+  windows; and `sandbox-exec` around a real coding agent. Recorded in `DEVELOPMENT_PROCESS.md`.
+- [x] `P0` **E3 · The engine core** in `scientisttwo/`: the backends (`claude -p`, mock), the run
+  store and resume, the budget guard and ledger, the sandbox, the locked harness, workspaces, the
+  stage primitive, every stage of §3.1–§3.6 and §4.2, the export, the CLI.
+- [ ] `P0` **E4 · The 27 agents as data** (`scientisttwo/agents/`), checked by
+  `playground/engine/check_agents.py`. Owner `agent-engineer`.
+- [ ] `P0` **E5 · The demo task** `tasks/digits/`, with measured baseline numbers and headroom.
+  Owner `research-engineer`.
+- [ ] `P0` **E6 · Tests for $0:** the primitive, harness, sandbox, backends, runtime, and every
+  terminal branch end to end on the mock backend (`tests/`).
+- [ ] `P0` **E7 · A real run on the subscription:** `tasks/digits`, profile `quick`, through to
+  an exported paper and code; then its findings fixed.
+- [ ] `P1` **E8 · Review:** personas in parallel (system-architect, evaluation-integrity-engineer,
+  agent-engineer, infrastructure-engineer), then the `/codex` gate; findings fixed.
+- [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real run's behaviour.
+- [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
+  the harness with task 6's four blocking decisions.

@@ -1,0 +1,13 @@
+{
+  "name": "novelty_checker",
+  "kind": "reasoning",
+  "tools": [
+    "WebSearch"
+  ],
+  "paper_ref": "§3.1, App. A.2, P-ROSTER-4",
+  "description": "Finds the two most related papers by web search and scores the idea's novelty against them, 1 to 10.",
+  "variables": [
+    "task_title",
+    "idea"
+  ]
+}

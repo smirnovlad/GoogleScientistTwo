@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "The variant built, where, and how it was checked"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths changed or added, relative to the working directory"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Departures from the plan; begins with 'NOT FEASIBLE:' if nothing was changed"
+    }
+  },
+  "required": [
+    "summary",
+    "files_changed",
+    "notes"
+  ],
+  "additionalProperties": false
+}

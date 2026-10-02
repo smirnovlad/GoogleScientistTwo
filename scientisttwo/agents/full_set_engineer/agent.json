@@ -1,0 +1,22 @@
+{
+  "name": "full_set_engineer",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.2, §3.4, §3.6, P-ROSTER-12",
+  "description": "Revises the idea and its code on full-set, ablation or meta-review feedback, aiming to beat the best result.",
+  "variables": [
+    "task_title",
+    "rules",
+    "entrypoint",
+    "idea",
+    "feedback",
+    "best_result"
+  ]
+}

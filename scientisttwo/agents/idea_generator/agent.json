@@ -1,0 +1,15 @@
+{
+  "name": "idea_generator",
+  "kind": "reasoning",
+  "tools": [],
+  "paper_ref": "§3.1, P-ROSTER-5",
+  "description": "Adds one new seed idea to the pool, distinct from every idea in it and aiming at higher novelty.",
+  "variables": [
+    "task_title",
+    "paper",
+    "code_overview",
+    "rules",
+    "limitations",
+    "pool"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "plans": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Exactly n_plans plans, each changing one component",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A1, A2, ..."
+          },
+          "component": {
+            "type": "string",
+            "description": "The component removed or replaced, named as the idea names it"
+          },
+          "change": {
+            "type": "string",
+            "description": "Exactly what to change in the code, by what, and where"
+          },
+          "hypothesis": {
+            "type": "string",
+            "description": "What the result shows if the component matters, and if it does not"
+          }
+        },
+        "required": [
+          "id",
+          "component",
+          "change",
+          "hypothesis"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "plans"
+  ],
+  "additionalProperties": false
+}

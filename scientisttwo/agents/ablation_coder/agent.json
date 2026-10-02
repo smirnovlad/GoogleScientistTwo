@@ -1,0 +1,21 @@
+{
+  "name": "ablation_coder",
+  "kind": "coding",
+  "tools": [
+    "Bash",
+    "Read",
+    "Edit",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+  "paper_ref": "§3.4, P-ROSTER-17",
+  "description": "Turns the selected codebase into one ablation variant, as one plan describes.",
+  "variables": [
+    "task_title",
+    "rules",
+    "entrypoint",
+    "idea",
+    "plan"
+  ]
+}
