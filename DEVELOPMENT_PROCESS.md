@@ -276,6 +276,85 @@ deliverables are not on `main` yet:
 **The two can run in parallel.** Task 2 references task 6's decisions rather than making them.
 Both append to this file, so it will need merging by hand.
 
+## 2026-09-28: task 6's `P0` part starts, the four blocking integrity decisions
+
+**The brief, verbatim.** The session that finished task 1 wrote it. Vlad's own words behind it are
+"continue", quoted in the previous section. This section first labelled the brief "Vlad, verbatim",
+which was wrong; corrected on 2026-09-28.
+
+> Start the `P0` part of TODO task 6 (the evaluation-integrity design) of the GoogleScientistTwo repository. The project replicates the research engine of ScientistTwo (arXiv:2609.19644).
+>
+> ## Read first, and follow
+>
+> - `CLAUDE.md`, `TODO.md` (task 6, its "`P0` part, before task 3"), and the last HANDOFF in `DEVELOPMENT_PROCESS.md`. They set the working rules:
+>   - the paper is the specification;
+>   - integrity is enforced by the setup, never by a prompt;
+>   - route work to personas by the question they judge;
+>   - every change passes the review gate;
+>   - commits are in a plain human voice, with no AI attribution and no Co-Authored-By lines;
+>   - never run a bare `git stash`.
+> - **The repository is public on GitHub.** Never commit a secret, an e-mail address or a path from someone's machine.
+>
+> ## Base branch
+>
+> - Task 1's deliverables are on branch `claude/paper-analysis`, in PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1). PR #1 is open and not merged into `main`.
+> - Create your branch from it: `git fetch origin && git checkout -b claude/integrity-blockers origin/claude/paper-analysis`. If you are in the main checkout rather than a fresh worktree, add a worktree instead: `git worktree add -b claude/integrity-blockers .claude/worktrees/integrity-blockers origin/claude/paper-analysis`.
+> - After PR #1 merges, bring your branch up to date with `main`.
+>
+> ## The task
+>
+> Task 6 owns four blocking rows of `docs/paper/unspecified.md`. Decide them before task 3 writes the harness and audit contracts.
+>
+> 1. **U-INT-4, with alias U-ART-16: who computes every metric the engine reads or reports.**
+>    - In the paper, the agent's own script scores both methods, baseline included, and writes the report.
+>    - `CLAUDE.md` already requires a locked evaluation harness.
+> 2. **U-TOP-5, with aliases U-NOTE-1 and U-ART-5: which data split each decision in the loop reads.**
+>    - The paper reads the benchmark it reports.
+>    - `CLAUDE.md` already requires that every number an agent sees while searching is a validation number.
+> 3. **A-INT-1, with aliases A-NOTE-10 and A-ART-2: integrity as gates inside the run, or only as a post-hoc audit.** §4.2 and App. B of the paper contradict each other on this.
+> 4. **A-INT-3: keep the post-hoc auditor apart from the in-loop fixer.**
+>
+> **Where the evidence is:**
+> - each row's full entry and its register row (`docs/paper/stages/07-integrity.md`, `docs/paper/artifacts.md`);
+> - `docs/paper/claims.md`: P-EVAL-2, U-EVAL-1 and U-EVAL-5;
+> - ScientistOne's audit, which Table 7 follows by reference (arXiv:2605.26340v1 §5). `bash playground/paper/fetch_sources.sh` caches it.
+>
+> **Output:** a decisions document, for example `docs/integrity/blocking-decisions.md`, with its location recorded in the HANDOFF. Give each decision:
+> - the choice;
+> - the attack it stops;
+> - a control that proves it works;
+> - the road not taken, as `⛔ WHY NOT`.
+>
+> Then add a pointer to your decision in each of the four register rows. Change only those rows: a parallel task-2 session may edit other rows of the same file.
+>
+> ## Who does it
+>
+> - **Owner:** the `evaluation-integrity-engineer` persona.
+> - **Review:** in parallel by `research-engineer` and `system-architect`, per the review gate in `.claude/agents/README.md`. Save reviews verbatim in `docs/reviews/integrity-blockers-<date>/`.
+>
+> ## Boundaries with other tasks
+>
+> - A parallel session may be writing `docs/requirements.md` (task 2). It will reference your decisions; do not edit its file.
+> - Components are task 3's. Decide the rules, not the component design.
+>
+> ## Process
+>
+> - **Commits:** commit at every milestone, push, and keep the HANDOFF current.
+> - **Vlad's instructions:** quote them verbatim in `DEVELOPMENT_PROCESS.md`, in the same turn. Append a new section, and expect to merge that file by hand with the parallel session.
+> - **Before the PR,** run the `/codex` review gate required by the parent `CLAUDE.md`. On this machine it needs two workarounds:
+>   - the configured model `gpt-6-sol` is refused on this ChatGPT account, so pass `-c model="gpt-6-astra"`;
+>   - `codex review` rejects custom instructions together with `--base`, so drop `--base` and name the range in the instructions (`git diff claude/paper-analysis...HEAD` while PR #1 is open).
+
+**Setup.** The session runs in its own worktree, on `claude/integrity-blockers`, branched from
+`origin/claude/paper-analysis` at `08a60b3`. The new branch first tracked `claude/paper-analysis`,
+so a bare `git push` would have gone to PR #1's branch; the upstream was unset, and this branch
+pushes to its own name. (With `push.default` unset, as here, git refuses such a push rather than
+making it.)
+
+**That session was a chat in the desktop app,** in a worktree the app named
+`.claude/worktrees/nervous-rosalind-80b87b`. It was stopped at Vlad's instruction before it began
+the task, and the task restarted from a terminal (next section).
+
 ## 2026-09-28: task sessions start from a terminal
 
 **Vlad, verbatim**, on how the sessions for task 2 and task 6's `P0` part had been started:
@@ -442,3 +521,294 @@ disclosure. `codex review` refuses custom instructions with `--uncommitted` as i
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
     whose last section records the outcome of every fix, and from `codex-review.md`.
+
+## 2026-10-02: task 6's `P0` part is relaunched in a terminal, under tmux
+
+**The relaunch note, verbatim.** The coordinating session of 2026-10-02 wrote it, at the top of
+this session's brief, and said that it wrote nothing else:
+
+> ## Relaunch note, 2026-10-02
+>
+> The coordinating session of 2026-10-02 relaunched you and wrote only this note. The brief below it
+> is unchanged from 2026-09-28. Record the two together, each under its author.
+>
+> - **The 2026-09-28 terminal start never began.** It waited at Claude Code's folder-trust prompt
+>   until its tab was closed, and left no transcript and no commit. Nothing of it carries over.
+> - **Vlad's words behind the relaunch, verbatim:** "Yes, relaunch both sessions in terminal, also
+>   use tmux for that so you can manage these sessions easily."
+> - **You run in tmux,** in window `T6` of the session `gs2`. The coordinating session can read your
+>   screen and type into it. Vlad opens your window with `gs2 6`.
+> - **A Codex session also works in this repository,** in `.claude/worktrees/codex-reuse-survey`, on
+>   `codex/reuse-survey`. Leave its worktree alone.
+
+**Vlad, verbatim,** as the relaunch note quotes him:
+
+> "Yes, relaunch both sessions in terminal, also use tmux for that so you can manage these sessions easily."
+
+**The brief, verbatim.** The session that finished task 1 wrote it on 2026-09-28, and the relaunch
+note says it is unchanged since. Vlad's own words behind it are "continue", and his instruction to
+restart the task sessions from a terminal, both quoted above. Its task, evidence and output match
+the brief quoted in "2026-09-28: task 6's `P0` part starts"; its sections "Who wrote this brief"
+and "Where you are" are new, and its section "Base branch" is gone.
+
+> Start the `P0` part of TODO task 6 (the evaluation-integrity design) of the GoogleScientistTwo repository. The project replicates the research engine of ScientistTwo (arXiv:2609.19644).
+>
+> ## Who wrote this brief
+>
+> The session that finished task 1 wrote it. It is not Vlad's own words. His words behind it are "continue", and then his instruction to restart the task sessions from a terminal. `DEVELOPMENT_PROCESS.md` quotes both. Record this brief there verbatim, in a new section, as the brief and with its author, never under "Vlad, verbatim" (`docs/process/worktrees-and-sessions.md`).
+>
+> A first attempt ran as a desktop-app chat and was stopped before it began the task. Its only trace is a section of `DEVELOPMENT_PROCESS.md` that records its brief, now corrected. That brief matched this one, apart from this section and the next. `DEVELOPMENT_PROCESS.md` also records the restart ("task sessions start from a terminal").
+>
+> ## Read first, and follow
+>
+> - `CLAUDE.md`, `TODO.md` (task 6, its "`P0` part, before task 3"), and the last HANDOFF in `DEVELOPMENT_PROCESS.md`. They set the working rules:
+>   - the paper is the specification;
+>   - integrity is enforced by the setup, never by a prompt;
+>   - route work to personas by the question they judge;
+>   - every change passes the review gate;
+>   - commits are in a plain human voice, with no AI attribution and no Co-Authored-By lines;
+>   - never run a bare `git stash`.
+> - **The repository is public on GitHub.** Never commit a secret, an e-mail address or a path from someone's machine.
+>
+> ## Where you are
+>
+> - You run in the worktree `.claude/worktrees/integrity-blockers`, on the branch `claude/integrity-blockers`, which tracks `origin/claude/integrity-blockers`. Check it with `git status -sb` before your first commit.
+> - The branch contains `claude/paper-analysis`, which holds task 1's deliverables in PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1). PR #1 is open and not merged into `main`. After it merges, bring your branch up to date with `main`.
+> - If you need another Claude session, start it from a terminal, never as a desktop-app chat (`CLAUDE.md`). Subagents are unaffected.
+>
+> ## The task
+>
+> Task 6 owns four blocking rows of `docs/paper/unspecified.md`. Decide them before task 3 writes the harness and audit contracts.
+>
+> 1. **U-INT-4, with alias U-ART-16: who computes every metric the engine reads or reports.**
+>    - In the paper, the agent's own script scores both methods, baseline included, and writes the report.
+>    - `CLAUDE.md` already requires a locked evaluation harness.
+> 2. **U-TOP-5, with aliases U-NOTE-1 and U-ART-5: which data split each decision in the loop reads.**
+>    - The paper reads the benchmark it reports.
+>    - `CLAUDE.md` already requires that every number an agent sees while searching is a validation number.
+> 3. **A-INT-1, with aliases A-NOTE-10 and A-ART-2: integrity as gates inside the run, or only as a post-hoc audit.** §4.2 and App. B of the paper contradict each other on this.
+> 4. **A-INT-3: keep the post-hoc auditor apart from the in-loop fixer.**
+>
+> **Where the evidence is:**
+> - each row's full entry and its register row (`docs/paper/stages/07-integrity.md`, `docs/paper/artifacts.md`);
+> - `docs/paper/claims.md`: P-EVAL-2, U-EVAL-1 and U-EVAL-5;
+> - ScientistOne's audit, which Table 7 follows by reference (arXiv:2605.26340v1 §5). `bash playground/paper/fetch_sources.sh` caches it.
+>
+> **Output:** a decisions document, for example `docs/integrity/blocking-decisions.md`, with its location recorded in the HANDOFF. Give each decision:
+> - the choice;
+> - the attack it stops;
+> - a control that proves it works;
+> - the road not taken, as `⛔ WHY NOT`.
+>
+> Then add a pointer to your decision in each of the four register rows. Change only those rows: a parallel task-2 session may edit other rows of the same file.
+>
+> ## Who does it
+>
+> - **Owner:** the `evaluation-integrity-engineer` persona.
+> - **Review:** in parallel by `research-engineer` and `system-architect`, per the review gate in `.claude/agents/README.md`. Save reviews verbatim in `docs/reviews/integrity-blockers-<date>/`.
+>
+> ## Boundaries with other tasks
+>
+> - A parallel session may be writing `docs/requirements.md` (task 2). It will reference your decisions; do not edit its file.
+> - Components are task 3's. Decide the rules, not the component design.
+>
+> ## Process
+>
+> - **Commits:** commit at every milestone, push, and keep the HANDOFF current.
+> - **Vlad's instructions:** quote them verbatim in `DEVELOPMENT_PROCESS.md`, in the same turn. Append a new section, and expect to merge that file by hand with the parallel session.
+> - **Before the PR,** run the `/codex` review gate required by the parent `CLAUDE.md`. On this machine it needs two workarounds:
+>   - the configured model `gpt-6-sol` is refused on this ChatGPT account, so pass `-c model="gpt-6-astra"`;
+>   - `codex review` rejects custom instructions together with `--base`, so drop `--base` and name the range in the instructions (`git diff claude/paper-analysis...HEAD` while PR #1 is open).
+
+**This session.**
+- It started on 2026-10-02, in the worktree `.claude/worktrees/integrity-blockers`, on
+  `claude/integrity-blockers` at `9ae8c0c`, up to date with its remote branch. Its first message
+  was "Read .claude/brief.md in this worktree and follow it."
+- The brief lives in `.claude/brief.md`, which the repository's local exclude file keeps out of
+  git, so this section is its only committed record.
+- PR #1 is still open (checked on 2026-10-02), so the branch stays on top of
+  `claude/paper-analysis`.
+- `bash playground/paper/fetch_sources.sh` filled this worktree's own `.cache/`: every sha256
+  matches, ScientistOne's TeX included.
+
+**The brief for the decisions.** Before any persona works, `docs/integrity/README.md` states what
+the decisions document must meet: ten requirements, R1 to R10, each with its acceptance test, and
+the questions each of the four decisions must answer. The owner and every reviewer read that one
+file. The owner, the `evaluation-integrity-engineer` persona, drafts
+`docs/integrity/blocking-decisions.md` from it.
+
+**The first version.** The owner wrote `docs/integrity/blocking-decisions.md` (`a2e7eb0`), 419
+lines, as 31 rules, IR-1 to IR-31:
+- **U-INT-4:** a locked, hashed harness computes every number a decision reads or a report
+  quotes. It runs agent code's entry points itself, on artifacts that recorded fit jobs made. The
+  baseline is the task's own code at its pinned commit, never an agent's reimplementation.
+- **U-TOP-5:** three disjoint data roles per task, fit, search (validation) and report (test). Every
+  decision in the loop reads search, or no data. The test split is read in one test event per run,
+  after a freeze, plus one sealed baseline check per task.
+- **A-INT-1:** both readings of the paper, in three layers. The setup prevents, seven gates block
+  inside the run, and the CoE audit runs once after export and only measures.
+- **A-INT-3:** five roles in separate sessions: the author, the in-loop checker and fixer, a
+  development auditor, and a held-out reporting auditor, whose model family differs from every
+  family that wrote what it reads.
+
+The owner flagged three changes for Vlad to see:
+- **The sealed baseline check bends a rule of `CLAUDE.md`.** The rule says the test set is used
+  "once, at the end". The check reads the test split once per task, before any candidate is
+  scored, and releases only pass or fail. The published numbers it checks against are test
+  numbers, and a failure found only at the end would waste a whole run.
+- **The CoE audit no longer gates.** The register's proposal ran the audits as gates before export
+  and again at evaluation; an audit that gates becomes the engine's optimisation target.
+- **A third model family.** The reporting auditor needs one, neither Claude nor Gemini.
+
+**Checked here before the review**, beyond the citation checker's 0 problems:
+- ScientistOne's section labels: §6.1 is a real subsection, and the appendix letters D, E.1, E.2
+  and F match the order of its files;
+- each quoted ScientistOne line says what the document says it says, and 13 + 4 = 17 of its 22
+  score-verification errors;
+- every quote sits within the lines its anchor names, or on the PDF page its tag names;
+- the 40 or so register rows in the "Rows it constrains" tables exist, with the owning tasks the
+  document gives them.
+
+**The review, wave 1.** Three reviews ran in parallel on `a2e7eb0`, one lens each, and each is
+kept verbatim in `docs/reviews/integrity-blockers-2026-10-02/`:
+- **`research-engineer`, two blockers:**
+  - Training-seed luck survives the held-out split. The test event scored the very fitted models
+    that search had chosen, so the noise that came from fitting reached the test numbers intact.
+    At equal fit and evaluation noise, the winner of 20 null candidates keeps +1.32 of its +2.65
+    search gain on the test split. Its script re-runs in `playground/integrity/`, and reproduces
+    the numbers here.
+  - Weights an agent places in its code tree pass the provenance rule. The fit re-run of the audit
+    then reproduces them exactly.
+- **`system-architect`, one blocker:** the rules count harness jobs, not released results, and
+  define no resume. So a crash in the test event cannot be told from a second use of the test set.
+- **`paper-analyst`, no blocker:**
+  - every quote and anchor is exact, and every image-page fact holds;
+  - but the two readings of A-INT-1 were misattributed, departures from the paper went unnamed,
+    and I1's scope departs from the definition it claims to apply.
+
+**The fix list.** `fix-list.md` in the same folder merges every finding into 47 entries, F-0 to
+F-46, and declines none. F-0 splits the document by decision, since the fixes take it past the
+600-line cap. F-46 is a question for Vlad. `CLAUDE.md` says the test set is used "once, at the
+end", yet three reads of the test split go beyond that wording:
+- the sealed baseline check;
+- the audit's re-fits after export;
+- a correction event after a defect in a locked scoring item.
+
+None of the three can reach a decision that changes the method or the frozen rows. The document
+states them as proposed exceptions awaiting Vlad's confirmation, and `CLAUDE.md` stays unchanged.
+
+**A usage limit, then two facts from task 2.** The owner stopped midway at a usage limit, and
+resumed from the files on disk once it reset. Then the task 2 session wrote to say what it adopts
+from the fix list, and pointed to an instruction of Vlad's that this session had not seen. Before
+acting on it, I checked the instruction on `origin/claude/engine`.
+
+**Vlad, verbatim,** as `claude/engine`'s `DEVELOPMENT_PROCESS.md` records it (2026-10-02):
+
+> "As a result I expect to see working engine for auto research which replicates engine from paper ScientistTwo. I am going to use it based on my claude subscription – "claude -p" backend in future, take it into account. I don't wanna pay for API.
+> Don't ask me anything, deliver replicated engine."
+
+**What it changes here:**
+- **F-46 is decided in place, not put to Vlad.** The three reads of the test split are recorded as
+  our reading of `CLAUDE.md`'s "used once, at the end", with their reasons. Rewording that line is
+  flagged to the coordinating session.
+- **The engine is already being built** on `claude/engine`. It runs every agent through
+  `claude -p` on the subscription, and folds in the outputs of tasks 2 and 6 when they land.
+- **The owner received five amendments, A1 to A5,** recorded at the end of `fix-list.md`:
+  - A1: F-46 decided;
+  - A2: the subscription, so the reporting auditor's non-Claude family must also run on a
+    subscription;
+  - A3: whether an exhausted identity fails or the run is suspended is left to U-TOP-2's owner;
+  - A4: job arguments, such as task 2's mechanism switches, are part of a job's identity;
+  - A5: C_base's code hash.
+- **The reply to task 2:** nothing it adopted contradicts our decisions. It got the conditions
+  under which its mechanism switches and its suspension rule keep the integrity rules.
+
+**The coordinating session agreed.** Through task 2, the coordinating session ("Google
+Autoresearch") relayed its own decision on F-46. It is the same reading as A1, with one clause made
+explicit: any read of the report split that could feed a decision is a violation. Its engine
+contract, `docs/architecture/engine.md` §5 on `origin/claude/engine`, gives the same reading. The
+owner received the clause as A6.
+
+That contract's task manifest gives the validation and test splits the same seeds, `[0, 1, 2]`.
+That is the case of the research-engineer's blocker B1: the test numbers would inherit the seed luck
+that selection exploited on validation. So the coordinating session was told directly, together with
+the lineage rule and the rule of released results per identity, which its harness will also need to
+meet.
+
+**The second version.** The owner applied F-0 to F-46 and A1 to A6. The result is an index,
+`docs/integrity/blocking-decisions.md`, and four decision files in `docs/integrity/decisions/`,
+920 lines in all. The citation checker finds 0 problems; each file is under 600 lines; the 147
+sub-IDs that are referenced are all defined; and nothing private appears. The owner contested
+seven points of the fix list, with reasons, and all seven are accepted (`fix-list.md`, section 5).
+
+**The closure checks, and the third version.** Each wave-1 reviewer checked its own findings
+against the second version, and each report is kept verbatim as `closure-*.md`:
+- **`system-architect`:** all 30 of its findings and tensions are fixed, and it found 5 new
+  MINOR defects.
+- **`paper-analyst`:** all 16 of its findings are fixed. It read the three external sources from
+  their own text and found every paraphrase faithful, and it found 3 new MINOR defects.
+- **`research-engineer`:** 16 of its 19 findings are fixed, and its blocker on seed luck holds. It
+  found two MAJOR points:
+  - weights chunked into many small text files still passed the per-file bound;
+  - the near-duplicate check would refuse large tasks on false flags.
+
+The owner applied all of them as C-1 to C-14, in a third version (`fix-list.md`, section 6).
+
+**The register and the TODO.** The four rows of `docs/paper/unspecified.md` now point to their
+decision files, and nothing else in that file changed. `register_coverage.py` and the default run of
+`check_citations.py` still pass. `TODO.md` marks task 6's `P0` part done, and lists what it found
+for tasks 4, 5 and 7, for the coordinating session, and for the owner of `docs/paper/`.
+
+**The Codex gate, four passes** (`docs/reviews/integrity-blockers-2026-10-02/codex-review.md`).
+Each pass ran on `gpt-6-astra`, with the range named in the instructions.
+- **Pass 1, FAIL:**
+  - a check after a runner change would have returned a cached record instead of running;
+  - the audit's noise was calibrated on the wrong row;
+  - a control ignored that every seed is checked;
+  - a baseline correction had no scope it was allowed to run in.
+- **Pass 2, FAIL.** Pass 1's fixes held, but:
+  - calibration re-fits had no identity of their own;
+  - the tolerance treated an estimated noise as known, and flagged 20% to 34% of honest rows;
+  - the search cap counted seeds instead of whole evaluations.
+
+  The owner replaced the tolerance with a pre-registered finite-sample rule per kind of fit,
+  backed by `playground/integrity/audit_tolerance.py`.
+- **Pass 3, PASS, with four P2:**
+  - the rule's Gaussian assumption, now checked at packaging;
+  - a paired gain under a shared noise estimate;
+  - a fit learning its data role from its seed, now closed by a derived seed;
+  - builders seeing the auditor's verdicts in the published table, which now retires the auditor.
+- **Pass 4, PASS, with one P2:** the role can still be discovered through the search aggregates.
+  It is now classified as detection-only, with a control.
+
+**Two exchanges with other sessions, along the way:**
+- **Task 2** asked for two rules, and both are in: how a suspended run is resumed (IR-33.3), and
+  its switch-scope check in the measured corpus (IR-31.1).
+- **The engine session** adopted the rule on disjoint seeds, B1, in its commit `c1850a5`. It
+  reproduced the simulation: a gain of +2.647 on search keeps +1.322 on test with shared seeds,
+  and −0.005 with disjoint ones. Its first run on the subscription scores the test split once, on
+  10 disjoint seeds: a gain of +0.0532, against +0.0594 on validation.
+
+  It names one gap against these rules: it refuses data files, but records no lineage of where an
+  artifact came from (IR-3.1, IR-3.2).
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: done; the PR is open)
+
+- **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
+  which sits on top of `claude/paper-analysis` (PR #1, still open).
+- **Done and pushed:**
+  - the decisions, in `docs/integrity/` (the index and four decision files, rules IR-1 to IR-41);
+  - the pointers in the four register rows;
+  - the `TODO.md` entry;
+  - three persona reviews, their closure checks, the fix list and four Codex passes, in
+    `docs/reviews/integrity-blockers-2026-10-02/`;
+  - the scripts behind the statistics, in `playground/integrity/`.
+- **The PR:** `claude/integrity-blockers` into `claude/paper-analysis`. Merge PR #1 first; after
+  that, retarget this PR to `main`.
+- **Next steps:**
+  1. Vlad reviews the PR. "Don't ask me anything" covers decisions, not merging; nothing reaches
+     `main` without review.
+  2. The engine session folds in the rules it does not yet meet. The first is lineage, IR-3.1 and
+     IR-3.2.
+  3. Task 6's `P1` part: the audit's settings (U-NOTE-4), α and the success test (A-EVAL-1,
+     U-EVAL-1), the form of the verified table, and the reporting judge.
