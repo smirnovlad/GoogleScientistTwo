@@ -69,3 +69,26 @@ Full review comments:
 
 - [P2] Count exposure through reported tables when retiring auditors — docs/integrity/decisions/a-int-3-checker-and-auditor.md:24-24
   A builder can read final-test integrity verdicts through the reporter's published per-task table, then change an engine prompt without ever reading the audit store directly. The store logs the reporter's identity, not that builder, so this retirement check leaves the auditor eligible despite feedback-driven optimization. This uses the intended reporting path, not administrator access. Track exposure through reporter outputs or retire the auditor conservatively after publication to preserve the [held-out-judge rule](CLAUDE.md#L48).
+
+## Pass 4, on `06c8600` (gate: PASS, one [P2])
+
+The findings of pass 3 hold as fixed, apart from the one below. Verbatim, with local path prefixes cut as above:
+
+No remaining P1 was confirmed, but the previous seed-side-channel fix remains incomplete. Scripts and citation/register checks completed successfully; register edits are limited to the four pointers. No added secrets, email addresses, or absolute local paths were found.
+
+Review comment:
+
+- [P2] Account for derived-seed leakage through search aggregates — docs/integrity/decisions/u-top-5-which-split.md:33-33
+  The seed fix still permits role discovery through IR-5.4's per-seed aggregates. For an MAE regression task with labels in [0,1] and unrestricted finite predictions, two candidates predicting constants `1` and `1 + fingerprint(seed)/2^24` expose the seed fingerprint by subtracting their released MAEs. Later fits reuse these derived seeds, so code can recognize the recovered search fingerprints and pass a role bit to predict without reading artifacts or accessing the network. HMAC therefore does not establish the claimed setup guarantee. Close this feedback channel or classify it as detection-only, and add a control covering aggregate-mediated discovery, consistent with [R3–R4](docs/integrity/README.md#L62-L63).
+
+## Outcome
+
+- **Four passes.** The gate failed passes 1 and 2, each with [P1] findings, and passed passes 3 and
+  4, which raised [P2] findings only.
+- **Every finding is fixed:**
+  - pass 1, 2 and 3: in `157cec7`, `5da3029` and `06c8600`;
+  - pass 4's one [P2]: in the commit that records this outcome. IR-11.5's derived seed is now
+    stated as hardening, and telling the data role apart through the search aggregates is
+    detection-only, with a control.
+- **The stopping rule is task 1's:** fix every [P1] before the PR, and fix a [P2] when it is
+  cheap. Pass 4's fix only changes a classification, so no fifth pass was run.

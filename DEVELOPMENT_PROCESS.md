@@ -676,19 +676,56 @@ decision files, and nothing else in that file changed. `register_coverage.py` an
 `check_citations.py` still pass. `TODO.md` marks task 6's `P0` part done, and lists what it found
 for tasks 4, 5 and 7, for the coordinating session, and for the owner of `docs/paper/`.
 
-## HANDOFF, 2026-10-02 (task 6's `P0` part: decided; the Codex gate, then the PR)
+**The Codex gate, four passes** (`docs/reviews/integrity-blockers-2026-10-02/codex-review.md`).
+Each pass ran on `gpt-6-astra`, with the range named in the instructions.
+- **Pass 1, FAIL:**
+  - a check after a runner change would have returned a cached record instead of running;
+  - the audit's noise was calibrated on the wrong row;
+  - a control ignored that every seed is checked;
+  - a baseline correction had no scope it was allowed to run in.
+- **Pass 2, FAIL.** Pass 1's fixes held, but:
+  - calibration re-fits had no identity of their own;
+  - the tolerance treated an estimated noise as known, and flagged 20% to 34% of honest rows;
+  - the search cap counted seeds instead of whole evaluations.
+
+  The owner replaced the tolerance with a pre-registered finite-sample rule per kind of fit,
+  backed by `playground/integrity/audit_tolerance.py`.
+- **Pass 3, PASS, with four P2:**
+  - the rule's Gaussian assumption, now checked at packaging;
+  - a paired gain under a shared noise estimate;
+  - a fit learning its data role from its seed, now closed by a derived seed;
+  - builders seeing the auditor's verdicts in the published table, which now retires the auditor.
+- **Pass 4, PASS, with one P2:** the role can still be discovered through the search aggregates.
+  It is now classified as detection-only, with a control.
+
+**Two exchanges with other sessions, along the way:**
+- **Task 2** asked for two rules, and both are in: how a suspended run is resumed (IR-33.3), and
+  its switch-scope check in the measured corpus (IR-31.1).
+- **The engine session** adopted the rule on disjoint seeds, B1, in its commit `c1850a5`. It
+  reproduced the simulation: a gain of +2.647 on search keeps +1.322 on test with shared seeds,
+  and −0.005 with disjoint ones. Its first run on the subscription scores the test split once, on
+  10 disjoint seeds: a gain of +0.0532, against +0.0594 on validation.
+
+  It names one gap against these rules: it refuses data files, but records no lineage of where an
+  artifact came from (IR-3.1, IR-3.2).
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: done; the PR is open)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
-  which sits on top of `claude/paper-analysis`. PR #1 is still open.
+  which sits on top of `claude/paper-analysis` (PR #1, still open).
 - **Done and pushed:**
-  - the decisions, in their third version: `docs/integrity/blocking-decisions.md` (the index) and
-    `docs/integrity/decisions/`;
+  - the decisions, in `docs/integrity/` (the index and four decision files, rules IR-1 to IR-41);
   - the pointers in the four register rows;
-  - the `TODO.md` entry for task 6's `P0` part;
-  - the reviews, closure checks and fix list, in `docs/reviews/integrity-blockers-2026-10-02/`.
+  - the `TODO.md` entry;
+  - three persona reviews, their closure checks, the fix list and four Codex passes, in
+    `docs/reviews/integrity-blockers-2026-10-02/`;
+  - the scripts behind the statistics, in `playground/integrity/`.
+- **The PR:** `claude/integrity-blockers` into `claude/paper-analysis`. Merge PR #1 first; after
+  that, retarget this PR to `main`.
 - **Next steps:**
-  1. Run the Codex gate on `git diff claude/paper-analysis...HEAD`, using the model override and
-     the range named in the instructions (the memory note on Codex's quirks).
-  2. Open a PR into `claude/paper-analysis`, and send its link to the coordinating session.
-- **If this session is lost:** run `bash playground/paper/fetch_sources.sh`, then read
-  `docs/integrity/README.md` and the index.
+  1. Vlad reviews the PR. "Don't ask me anything" covers decisions, not merging; nothing reaches
+     `main` without review.
+  2. The engine session folds in the rules it does not yet meet. The first is lineage, IR-3.1 and
+     IR-3.2.
+  3. Task 6's `P1` part: the audit's settings (U-NOTE-4), α and the success test (A-EVAL-1,
+     U-EVAL-1), the form of the verified table, and the reporting judge.
