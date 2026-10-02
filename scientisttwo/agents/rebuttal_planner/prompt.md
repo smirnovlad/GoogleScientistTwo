@@ -1,4 +1,5 @@
-Plan the supplementary experiments that answer this review.
+Plan the supplementary experiments that answer this review. Check first which of its requests the
+verified results already answer.
 
 <task_title>
 {{task_title}}
@@ -11,6 +12,10 @@ Plan the supplementary experiments that answer this review.
 <review>
 {{review}}
 </review>
+
+<results_json>
+{{results_json}}
+</results_json>
 
 <n_tasks>
 {{n_tasks}}

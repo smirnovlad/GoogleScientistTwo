@@ -9,6 +9,9 @@
     "metric",
     "idea",
     "best_result",
-    "ablations"
+    "baseline_result",
+    "gain",
+    "ablations",
+    "reject_share"
   ]
 }

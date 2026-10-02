@@ -2,7 +2,8 @@
 
 An output is built in three layers, the first that matches wins:
 1. a scripted rule: `{"agent": name, "key": regex, "output": {...}, "edits": {path: text},
-   "raise": "transient" | "rate_limit" | "timeout" | "failed"}`, matched against the unit key;
+   "raise": "transient" | "rate_limit" | "timeout" | "failed" | "invalid" | "environment"}`,
+   matched against the unit key;
 2. a semantic default for the agents whose output the engine acts on (verdicts, plans, files);
 3. an instance synthesised from the agent's own schema, so the mock always fits the data.
 
@@ -18,8 +19,8 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, Backend, InvalidOutput,
-                   RateLimited, TransientError)
+from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, Backend, EnvironmentFault,
+                   InvalidOutput, RateLimited, TransientError)
 
 
 def synth(schema: dict, name: str = "x") -> Any:
@@ -147,6 +148,8 @@ class MockBackend(Backend):
             raise AgentFailed(f"mock failure for {call.key}")
         if failure == "invalid":
             raise InvalidOutput(f"mock invalid output for {call.key}")
+        if failure == "environment":
+            raise EnvironmentFault(f"mock machine fault for {call.key}: ENOSPC")
 
         schema = call.schema or self.schemas.get(call.agent) or {"type": "object"}
         output = synth(schema, call.agent)

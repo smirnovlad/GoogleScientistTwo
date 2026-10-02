@@ -15,9 +15,14 @@ Read the paper first, then check the set against it.
 2. **Specificity.** Each limitation names a component, assumption or design choice of this method,
    and what it gets wrong. A remark that fits any method ("needs more data", "could be more
    efficient") cannot guide an improvement.
-3. **Actionability.** Some limitations can be addressed by changing the method or its code. Limits
-   that only more compute, more data, a larger model, or a change to the evaluation protocol could
-   fix do not count towards sufficiency.
+3. **Actionability.** Some limitations can be addressed by changing the method or its code. The
+   comparison budget is the baseline's (its number of optimizer steps and its model size), not the
+   task's time limit: a limitation whose only fix is to train longer, use a bigger model, tune the
+   hyperparameters or apply a generic control (input normalisation or other standard preprocessing,
+   a learning-rate schedule, weight averaging, label smoothing, ensembling) is not actionable, and
+   neither is one that needs more data or a change to the evaluation protocol. Such items do not
+   count towards sufficiency: name them in the feedback as not actionable, so that the Extractor
+   removes them.
 4. **Coverage.** No important, actionable limitation is missing. Go through the method's main
    components one by one, the assumptions the paper states, the weak or failed results it reports,
    and its own limitations or discussion section.
@@ -26,7 +31,8 @@ Return `sufficient` only when all four hold: the set is accurate, specific, cont
 limitations, and misses nothing important that an idea could address.
 
 Return `insufficient` only for a gap that would change which ideas get generated: a missing
-actionable limitation, a factual error, or items too vague to act on. Do not return `insufficient`
+actionable limitation, a factual error, an item that is not actionable, or items too vague to act
+on. Do not return `insufficient`
 for wording, ordering, or limitations of minor consequence: each extra round costs time, and the
 loop stops after a fixed number of rounds anyway.
 

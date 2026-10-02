@@ -4,6 +4,11 @@ Each version is a directory under `<run>/workspaces/`, a full copy of its parent
 history, so every change an agent made is a commit and a diff. A version is never edited in
 place: a coding unit works in `<name>.tmp`, and `finalize` commits and renames it, so a crash
 mid-session leaves no half-made version, and the next attempt starts from a fresh copy.
+
+A version IS its commit. A copy is reset to its parent's commit, and the harness evaluates an
+export of the commit, so nothing left in a working tree after its commit (a stray process still
+writing, an uncommitted file) reaches a later version or a result (infrastructure review, I5).
+Agents cannot write a version's `.git` (policies.py), so a git failure here is the machine's.
 """
 from __future__ import annotations
 
@@ -15,6 +20,23 @@ from typing import Optional
 GIT = ["git", "-c", "user.name=scientisttwo", "-c", "user.email=engine@localhost",
        "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
 IGNORE = "__pycache__/\n*.pyc\n.ipynb_checkpoints/\n"
+
+
+def archive_commit(repo: Path, commit: str, dest: Path) -> None:
+    """The files of `commit`, and nothing else, into `dest` (made fresh)."""
+    import io
+    import tarfile
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.mkdir(parents=True)
+    r = subprocess.run([*GIT, "-C", str(repo), "archive", "--format=tar", commit], capture_output=True)
+    if r.returncode != 0:
+        raise WorkspaceError(f"git archive {commit} in {repo}: {r.stderr.decode(errors='replace')}")
+    with tarfile.open(fileobj=io.BytesIO(r.stdout)) as tar:
+        tar.extractall(dest, filter="data")
+
+
+class WorkspaceError(RuntimeError):
+    """A git operation on a version failed: the machine's fault, since no agent can write `.git`."""
 
 
 class Workspaces:
@@ -31,7 +53,7 @@ class Workspaces:
     def _git(self, ws: Path, *args: str, check: bool = True) -> str:
         r = subprocess.run([*GIT, "-C", str(ws), *args], capture_output=True, text=True)
         if check and r.returncode != 0:
-            raise RuntimeError(f"git {' '.join(args)} in {ws}: {r.stderr.strip()}")
+            raise WorkspaceError(f"git {' '.join(args)} in {ws}: {r.stderr.strip()}")
         return r.stdout
 
     def init_from(self, source: Path, name: str, message: str) -> Path:
@@ -55,6 +77,8 @@ class Workspaces:
         tmp = self.root / f"{name}.tmp"
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.copytree(self.path(parent), tmp, symlinks=True)
+        self._git(tmp, "reset", "-q", "--hard", "HEAD")      # exactly the parent's commit
+        self._git(tmp, "clean", "-q", "-fdx")
         return tmp
 
     def finalize(self, tmp: Path, name: str, message: str) -> str:
@@ -91,6 +115,9 @@ class Workspaces:
             files.append({"path": path, "binary": added == "-",
                           "bytes": target.stat().st_size if target.exists() else 0})
         return "\n".join(lines), files
+
+    def archive(self, name: str, commit: str, dest: Path) -> None:
+        archive_commit(self.path(name), commit, dest)
 
     def export(self, name: str, dest: Path) -> None:
         shutil.rmtree(dest, ignore_errors=True)

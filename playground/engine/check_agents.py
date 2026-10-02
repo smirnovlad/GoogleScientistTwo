@@ -15,9 +15,11 @@ For every agent folder it proves:
      and type broken;
   6. the prompt names every output field; the reasoning prompt says the answer is the structured
      output; and the "Rules of the workspace" section is word for word the same across the agents
-     of one kind, since the four-file contract forces a copy of it into each.
-Across agents: the 27 names equal section 7's, and the held-out judge never mentions the in-loop
-review loop. A self-test then corrupts a temporary copy in known ways and shows that each
+     of one kind, since the four-file contract forces a copy of it into each;
+  7. each rule that a real run showed to be needed (AGENT_RULES) is still in its agent's prompt.
+Across agents: the names equal section 7's rows; the held-out judge never mentions the in-loop
+review loop; and every value an agent's enum can return is named in the prompt of the agent that
+consumes it (CONSUMED_ENUMS), so a new status never reaches its reader unhandled. A self-test then corrupts a temporary copy in known ways and shows that each
 corruption is caught, so a pass comes from a check that can fail.
 
 Run: python3 playground/engine/check_agents.py      exit 0 = pass, 1 = problems
@@ -55,7 +57,8 @@ VALIDATORS = (jsonschema.Draft202012Validator, jsonschema.Draft7Validator)
 SHARED_HEADING = "## Rules of the workspace"
 REQUIRED_PHRASES = {
     "reasoning": ["structured output"],
-    "coding": ["Operation not permitted", "holdout", "entrypoint", "structured output"],
+    "coding": ["Operation not permitted", "holdout", "entrypoint", "structured output",
+               "optimizer steps", "after your last edit", "byte for byte"],
     "writer": ["\\input", "Operation not permitted", "structured output"],
     "readonly": ["read-only", "line numbers", "Operation not permitted", "structured output"],
 }
@@ -63,6 +66,35 @@ REQUIRED_PHRASES = {
 # know the review loop exists.
 HELD_OUT_FORBIDDEN = {"final_judge": ["scholarpeer", "peer review", "peer-review", "peer reviewer",
                                       "rebuttal", "in-loop", "meta-review", "optimis", "optimiz"]}
+# Rules a real run showed to be needed, with the evidence: a prompt rewrite that drops one fails
+# here, so that dropping it is a decision rather than an accident. Run 1 is digits-quick-1
+# (2026-10-02); its units are in runs/digits-quick-1/units/.
+RUN1_GENERIC = "run 1: standardisation, which s3 listed as a component, carried 84.1% of its gain"
+RUN1_BUDGET = "run 1: RFKD trained 9,900 optimizer steps against the baseline's 300"
+AGENT_RULES = {
+    "initial_idea_generator": [("input normalisation", RUN1_GENERIC), ("optimizer steps", RUN1_BUDGET)],
+    "idea_generator": [("input normalisation", RUN1_GENERIC), ("optimizer steps", RUN1_BUDGET)],
+    "idea_evolver": [("input normalisation", RUN1_GENERIC), ("optimizer steps", RUN1_BUDGET)],
+    "limitation_extractor": [("optimizer steps", "run 1: L2 'train longer' was kept, citing the 120 s limit"),
+                             ("not actionable", "run 1: the feedback could not remove L2 or L5")],
+    "limitation_verifier": [("optimizer steps", "run 1: L2 was passed as sufficient"),
+                            ("not actionable", "run 1: L2 and L5 were never named")],
+    "ablation_critic": [("reject_share", "App. B: gains 'primarily driven by general training controls'"),
+                        ("Read each plan's `change`", "run 1: A1 named one component but switched off two")],
+    "ablation_planner": [("Generic controls first", "run 1: C1, the generic control, was never ablated"),
+                         ("Not ablated:", "run 1: the unablated component went unmentioned")],
+    "rebuttal_planner": [("Never plan a variant whose result is already reported",
+                          "run 1: rebuttal T1 repeated ablation A1")],
+    "test_reporter": [("evaluated once", "run 1: the text denied a test table that existed")],
+    "reference_checker": [("WebFetch", "run 1: a real repository was marked not_found and deleted"),
+                          ("Never mark an entry that has an address `not_found`", "the same case")],
+    "novelty_checker": [("code repository", "run 1: a GitHub repository was returned as a paper")],
+    "method_code_auditor": [("exact line numbers", "run 1: the audit cited 'lines ~88-90'")],
+}
+# (producer, path to an enum in its schema, consumer whose system.md must name every value).
+# The reference check's statuses decide what the writer deletes: a status the writer does not
+# know, such as a search outage, would delete valid citations (run digits-quick-1, 2026-10-02).
+CONSUMED_ENUMS = [("reference_checker", ("entries", "status"), "paper_enhancer")]
 PLACEHOLDER = re.compile(r"\{\{(.*?)\}\}", re.S)
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
@@ -359,9 +391,13 @@ def check_agent(folder, row, idea, say):
         if not re.search(rf"\b{re.escape(field)}\b", system + prompt):
             say(f"no prompt text names the output field '{field}'")
     kind = spec.get("kind")
+    flat = " ".join(system.split()).lower()          # phrases may wrap across lines
     for phrase in REQUIRED_PHRASES.get(kind, []):
-        if phrase.lower() not in system.lower():
+        if phrase.lower() not in flat:
             say(f"system.md lacks the {kind} phrase {phrase!r}")
+    for phrase, why in AGENT_RULES.get(folder.name, []):
+        if phrase.lower() not in flat:
+            say(f"system.md lacks the rule {phrase!r} ({why})")
     for phrase in HELD_OUT_FORBIDDEN.get(folder.name, []):
         if phrase in (system + prompt).lower():
             say(f"the held-out judge's prompt mentions {phrase!r}")
@@ -373,6 +409,21 @@ def check_agent(folder, row, idea, say):
             "idea": [{k: v for k, v in n.items() if k != "description"}  # per-use wording
                      for _, n in walk(schema)
                      if set(n.get("properties", {})) == set(idea["fields"])]}
+
+
+def check_consumed_enum(agents_dir, producer, path, consumer):
+    """Each value of the producer's enum must appear, as `value`, in the consumer's system.md."""
+    try:
+        node = json.loads((agents_dir / producer / "schema.json").read_text())
+        for key in path:
+            node = node["properties"][key]
+            node = node.get("items", node)
+        values = node["enum"]
+        text = (agents_dir / consumer / "system.md").read_text()
+    except (OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        return [f"{consumer}: cannot read {producer}'s enum at {'.'.join(path)} ({exc!r})"]
+    return [f"{consumer}: never names {producer}'s {'.'.join(path)} value `{v}`, so an output "
+            f"with it reaches {consumer} unhandled" for v in values if f"`{v}`" not in text]
 
 
 def check_all(agents_dir, engine_text):
@@ -400,6 +451,8 @@ def check_all(agents_dir, engine_text):
             first = sorted(texts)[0]
             drift = sorted(n for n, t in texts.items() if t != texts[first])
             problems.append(f"{kind}: '{SHARED_HEADING}' differs from {first}'s in {drift}")
+    for producer, path, consumer in CONSUMED_ENUMS:
+        problems.extend(check_consumed_enum(agents_dir, producer, path, consumer))
     ideas = [json.dumps(n, sort_keys=True) for r in results.values() if r for n in r["idea"]]
     if len(set(ideas)) > 1:
         problems.append(f"the IDEA object differs between schemas ({len(set(ideas))} variants)")
@@ -466,6 +519,28 @@ CORRUPTIONS = [  # (what is broken, the problem text that must report it, how)
         d / "ablation_coder/system.md", "of your own", "of yours")),
     ("the judge told of the loop", "held-out judge", lambda d: _text_edit(
         d / "final_judge/system.md", "You are", "Unlike the in-loop peer reviewer, you are")),
+    ("a status dropped from the reference check", "enum", lambda d: _json_edit(
+        d / "reference_checker/schema.json", lambda s: s["properties"]["entries"]["items"]
+        ["properties"]["status"].update(enum=["verified", "not_found", "mismatch"]))),
+    ("a status the writer does not handle", "never names", lambda d: (
+        d / "paper_enhancer/system.md").write_text(
+            (d / "paper_enhancer/system.md").read_text().replace("`unchecked`", "`skipped`"))),
+    ("the planner's results dropped", "prompt.md placeholders", lambda d: _text_edit(
+        d / "rebuttal_planner/prompt.md", "{{results_json}}", "RESULTS")),
+    ("the test reporter removed", "missing ['test_reporter']",
+     lambda d: shutil.rmtree(d / "test_reporter")),
+    ("the test reporter's rules drifted", "differs from", lambda d: _text_edit(
+        d / "test_reporter/system.md", "a standard TeX Live installation", "TeX Live")),
+    ("a run-1 rule dropped", "lacks the rule 'optimizer steps'", lambda d: (
+        d / "idea_evolver/system.md").write_text(
+            (d / "idea_evolver/system.md").read_text().replace("optimizer steps", "updates"))),
+    ("reject_share dropped from the critic", "prompt.md placeholders", lambda d: _text_edit(
+        d / "ablation_critic/prompt.md", "{{reject_share}}", "0.5")),
+    ("WebFetch taken from the reference check", "agent.json tools", lambda d: _json_edit(
+        d / "reference_checker/agent.json", lambda a: a.update(tools=["WebSearch"]))),
+    ("a coding rule dropped", "lacks the coding phrase 'byte for byte'", lambda d: (
+        d / "rebuttal_coder/system.md").write_text(
+            (d / "rebuttal_coder/system.md").read_text().replace("byte for byte", "exactly"))),
     ("an output field unnamed", "names the output field", lambda d: (
         d / "selector/system.md").write_text(
             (d / "selector/system.md").read_text().replace("choice", "pick"))),

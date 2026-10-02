@@ -24,5 +24,5 @@ Revise this idea and its codebase, in your working directory, to act on the feed
 {{entrypoint}}
 </entrypoint>
 
-The harness fills the entrypoint's placeholders; the rules say where the public training data is.
+The harness fills the entrypoint's placeholders; the entrypoint section says where the public training data is.
 Finish with the structured output: `idea`, `summary` and `files_changed`.

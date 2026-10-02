@@ -12,27 +12,10 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
-
 from ..harness.harness import gain, summarize
-from .coder import Baseline, Trace, a_coder
+from ..state import Baseline, Core, Trace
+from .coder import a_coder
 from .common import Ctx, RunEnded
-
-
-@dataclass
-class Core:
-    """The core state (h_best, E_best, C_best), P-STATE-9."""
-    id: str
-    idea: dict
-    ws: str
-    result: dict                     # E_best: the harness result on `full`
-    compliant: bool = True
-    lineage: list = field(default_factory=list)
-
-    def to_dict(self) -> dict:
-        return {"id": self.id, "idea": self.idea, "ws": self.ws, "result": self.result,
-                "compliant": self.compliant, "lineage": self.lineage}
 
 
 def idea_rounds(ctx: Ctx, seeds: list[dict], base: Baseline, limitations: list[dict]) -> list[Trace]:

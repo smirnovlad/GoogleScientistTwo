@@ -104,7 +104,7 @@ def test_agent_code_cannot_forge_results_or_write_outside(toy_task, tmp_path, ta
 
 @needs_sandbox
 def test_agent_code_cannot_reach_the_network(tmp_path):
-    pol = sbx.SandboxPolicy.build(writable=[tmp_path], network=False)
+    pol = sbx.SandboxPolicy.build(writable=[tmp_path], network="none")
     import subprocess
     out = subprocess.run(sbx.wrap(["/usr/bin/curl", "-s", "-m", "5", "https://example.com"], pol),
                          capture_output=True, text=True)
@@ -223,3 +223,170 @@ def test_an_added_data_file_is_rejected(toy_task, tmp_path):
     ws.finalize(tmp, "data", "data")
     r = ctx.evaluate("data", "data", "full")
     assert r["status"] == "failed" and "lookup.npy" in r["error"]
+
+
+# ---- the integrity and infrastructure reviews of 2026-10-02, each hole closed by mechanism -----
+import subprocess
+import sys
+import time
+import uuid
+
+from scientisttwo.harness.egress import EgressProxy, host_allowed
+from scientisttwo.harness.policies import RunRules, python_read_paths
+from scientisttwo.runtime.procs import ProcRegistry, kill_groups, run_tree, started
+
+
+def run_in(policy, code: str, cwd: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(sbx.wrap([sys.executable, "-c", code], policy), cwd=str(cwd),
+                          capture_output=True, text=True, timeout=60)
+
+
+@needs_sandbox
+def test_a_dataset_copy_under_home_is_unreadable_unless_allowlisted(toy_task, tmp_path):
+    """The review read one of 9 un-denied copies of the digits data in conda environments."""
+    vault = Path.home() / ".cache" / f"scientisttwo-test-{uuid.uuid4().hex}"
+    vault.mkdir(parents=True)
+    try:
+        import numpy as np
+        np.savez(vault / "digits.npz", y=np.zeros(300, dtype=np.int64))
+        task, run, h, ws = setup(toy_task, tmp_path)
+        r = cheat_run(h, ws, "homecopy", vault / "digits.npz")
+        assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+        assert h.evaluate("fine", ws.path("base"), "full")["status"] == "ok"    # Python itself still runs
+    finally:
+        shutil.rmtree(vault, ignore_errors=True)
+
+
+@needs_sandbox
+def test_a_deny_pattern_hides_every_copy_anywhere(toy_task, tmp_path):
+    copy = tmp_path / "elsewhere" / "pkg" / "vault-data"
+    copy.mkdir(parents=True)
+    import numpy as np
+    np.savez(copy / "labels.npz", y=np.zeros(300, dtype=np.int64))
+    d = json.loads((toy_task / "task.json").read_text())
+    d["deny_patterns"] = ["/vault-data(/|$)"]
+    (toy_task / "task.json").write_text(json.dumps(d))
+    task, run, h, ws = setup(toy_task, tmp_path)
+    policy = sbx.SandboxPolicy.build(readable=[tmp_path, *python_read_paths()], deny_patterns=task.deny_patterns)
+    out = run_in(policy, f"open({str(copy / 'labels.npz')!r}, 'rb').read()", tmp_path)
+    assert out.returncode != 0 and "Operation not permitted" in out.stderr
+    ok = run_in(policy, f"open({str(toy_task / 'paper.md')!r}).read()", tmp_path)
+    assert ok.returncode == 0
+
+
+@needs_sandbox
+def test_evaluation_runs_the_commit_not_the_working_tree(toy_task, tmp_path):
+    task, run, h, ws = setup(toy_task, tmp_path)
+    tmp = ws.fresh("base", "v1")
+    (tmp / "params.json").write_text(json.dumps({"threshold": 0.3}))
+    ws.finalize(tmp, "v1", "v1")
+    # after the commit, something rewrites the working tree (a stray process, by hand)
+    (ws.path("v1") / "params.json").write_text(json.dumps({"threshold": 0.9}))
+    r = h.evaluate("v1", ws.path("v1"), "full", commit=ws.commit("v1"))
+    assert r["mean"] == 1.0
+    # and a copy for the next version starts from the commit too
+    child = ws.fresh("v1", "v2")
+    assert json.loads((child / "params.json").read_text())["threshold"] == 0.3
+
+
+@needs_sandbox
+def test_one_seed_cannot_read_what_another_left(toy_task, tmp_path):
+    task, run, h, ws = setup(toy_task, tmp_path)
+    tmp = ws.fresh("base", "seedleak")
+    (tmp / "run.py").write_text(
+        "import argparse, os, pathlib, numpy as np\n"
+        "ap = argparse.ArgumentParser(); [ap.add_argument(a) for a in ('--train-dir','--inputs','--out','--seed')]\n"
+        "a = ap.parse_args()\n"
+        "out = pathlib.Path(a.out)\n"
+        "if a.seed == '1':\n"
+        "    print(open(out.parent.parent / 'seed0' / 'note.txt').read())\n"
+        "(out.parent / 'note.txt').write_text('left by seed 0')\n"
+        "np.save(a.out, np.zeros(len(np.load(a.inputs)['X']), dtype=np.int64))\n")
+    ws.finalize(tmp, "seedleak", "seedleak")
+    r = h.evaluate("sl", ws.path("seedleak"), "full")
+    assert r["status"] == "failed" and "seed 1" in r["error"] and "Operation not permitted" in r["log_tail"]
+
+
+def _rules(tmp_path, port=0) -> RunRules:
+    return RunRules(run_dir=tmp_path / "run", denied=(), deny_patterns=(), public=tmp_path / "public",
+                    python=tuple(python_read_paths()), api_proxy_port=port, open_proxy_port=port)
+
+
+@needs_sandbox
+def test_a_coding_agent_cannot_write_its_versions_git(tmp_path):
+    work = tmp_path / "run" / "workspaces" / "v.tmp"
+    (work / ".git").mkdir(parents=True)
+    pol = _rules(tmp_path, 1).agent("coding", ("Bash",), tmp_path / "run" / "tmp", tmp_path / "run" / "scratch", work)
+    out = run_in(pol, "open('.git/index.lock', 'w')", work)
+    assert out.returncode != 0 and "Operation not permitted" in out.stderr
+    assert run_in(pol, "open('model.py', 'w').write('x = 1')", work).returncode == 0
+
+
+@needs_sandbox
+def test_no_agent_can_write_the_users_claude_setup_or_read_its_history(tmp_path):
+    """settings, hooks and CLAUDE.md there run in the user's own, unsandboxed sessions."""
+    work = tmp_path / "run" / "workspaces" / "v.tmp"
+    work.mkdir(parents=True)
+    pol = _rules(tmp_path, 1).agent("coding", ("Bash",), tmp_path / "run" / "tmp", tmp_path / "run" / "scratch", work)
+    target = Path.home() / ".claude" / f"scientisttwo-probe-{uuid.uuid4().hex}"
+    out = run_in(pol, f"open({str(target)!r}, 'w')", work)
+    assert out.returncode != 0 and not target.exists()
+    projects = Path.home() / ".claude" / "projects"
+    if projects.exists():
+        out = run_in(pol, f"import os; print(os.listdir({str(projects)!r}))", work)
+        assert out.returncode != 0 and "Operation not permitted" in out.stderr
+
+
+@needs_sandbox
+def test_an_agent_reaches_the_proxy_and_nothing_else(tmp_path):
+    proxy = EgressProxy(allow=("api.anthropic.com",), log_path=tmp_path / "egress.jsonl")
+    port = proxy.start()
+    try:
+        work = tmp_path / "run" / "workspaces" / "v.tmp"
+        work.mkdir(parents=True)
+        pol = _rules(tmp_path, port).agent("coding", ("Bash",), tmp_path / "run" / "tmp",
+                                           tmp_path / "run" / "scratch", work)
+        direct = run_in(pol, "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)", work)
+        assert direct.returncode != 0 and "not permitted" in direct.stderr.lower()
+        refused = run_in(pol, (
+            "import socket; s = socket.create_connection(('127.0.0.1', %d), timeout=5);"
+            "s.sendall(b'CONNECT archive.ics.uci.edu:443 HTTP/1.1\\r\\n\\r\\n');"
+            "print(s.recv(100).decode())") % port, work)
+        assert refused.returncode == 0 and "403" in refused.stdout
+        log = [json.loads(l) for l in (tmp_path / "egress.jsonl").read_text().splitlines()]
+        assert log[-1] == {**log[-1], "host": "archive.ics.uci.edu", "allowed": False}
+    finally:
+        proxy.stop()
+
+
+def test_the_allowlist_matches_hosts_not_suffixes():
+    allow = ("api.anthropic.com", "*.claude.ai")
+    assert host_allowed("api.anthropic.com", allow) and host_allowed("x.claude.ai", allow)
+    assert not host_allowed("evil-api.anthropic.com.example", allow)
+    assert not host_allowed("claude.ai.example.com", allow) and not host_allowed("notclaude.ai", allow)
+
+
+def test_a_hung_child_holding_the_output_cannot_hang_the_harness(tmp_path):
+    """A detached grandchild kept the pipe open, and the engine waited for its whole life (I6)."""
+    script = ("import subprocess, sys, time\n"
+              "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)\n"
+              "time.sleep(60)\n")
+    started_at = time.time()
+    rc, timed_out = run_tree([sys.executable, "-c", script], cwd=tmp_path, env=dict(os.environ),
+                             timeout=1.5, output=tmp_path / "log.txt", key="hang", grace=0.5)
+    assert timed_out and time.time() - started_at < 10
+
+
+def test_orphans_of_a_crashed_engine_are_killed_on_resume_and_only_they(tmp_path):
+    victim = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], start_new_session=True)
+    bystander = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], start_new_session=True)
+    try:
+        time.sleep(0.2)
+        reg = ProcRegistry(tmp_path)
+        reg.record(victim.pid, "unit/a", {victim.pid: started(victim.pid)})
+        reg.record(bystander.pid, "unit/b", {bystander.pid: "Thu Jan  1 00:00:00 1970"})   # pid reused since
+        reaped = ProcRegistry(tmp_path).reap_orphans()
+        assert [r["key"] for r in reaped] == ["unit/a"]
+        assert victim.wait(timeout=5) is not None and bystander.poll() is None
+    finally:
+        kill_groups([bystander.pid, victim.pid], grace=0.2)

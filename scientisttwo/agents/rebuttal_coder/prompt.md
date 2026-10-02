@@ -20,5 +20,5 @@ Build this rebuttal experiment as a variant of the codebase in your working dire
 {{entrypoint}}
 </entrypoint>
 
-The harness fills the entrypoint's placeholders; the rules say where the public training data is.
+The harness fills the entrypoint's placeholders; the entrypoint section says where the public training data is.
 Finish with the structured output: `summary`, `files_changed` and `notes`.

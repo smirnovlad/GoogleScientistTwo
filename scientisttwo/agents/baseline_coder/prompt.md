@@ -18,5 +18,5 @@ paper's method.
 </entrypoint>
 
 The harness fills the entrypoint's placeholders: the interpreter, the public training data
-directory, the inputs to predict, the predictions path and the seed. The rules say where the public
-training data is. Finish with the structured output: `faithful`, `changes` and `notes`.
+directory, the inputs to predict, the predictions path and the seed. The entrypoint section says where
+the public training data is. Finish with the structured output: `faithful`, `changes` and `notes`.

@@ -47,6 +47,9 @@ class Task:
     coding_timeout_s: int
     reported: str
     deny_read: tuple[Path, ...] = ()           # more paths no agent and no evaluated code may read
+    deny_patterns: tuple[str, ...] = ()        # path regexes never readable, anywhere (a dataset dir)
+    network_allow: tuple[str, ...] = ()        # hosts coding agents may reach beyond the API
+    baseline_check: Optional[dict] = None      # U-BASE-2: {split, expected, tolerance}
     forbidden_in_diff: tuple[str, ...] = ()    # strings an evaluated change may not add
     allow_data_files: bool = False             # may a change add data files (binary, .npz, .csv …)?
     min_delta: Optional[float] = None          # the task's noise floor for "strictly better"
@@ -124,6 +127,12 @@ def load_task(path: Path | str) -> Task:
     if isinstance(reported, dict):
         reported = reported.get("text") or json.dumps(reported)
     deny_read = tuple(Path(_expand(x)).expanduser() for x in d.get("deny_read", []))
+    check = d.get("baseline_check")
+    if check is not None:
+        if check.get("split") not in SPLITS or check["split"] == "test":
+            raise TaskError("baseline_check.split must be 'subset' or 'full'")
+        if not all(isinstance(check.get(k), (int, float)) for k in ("expected", "tolerance")):
+            raise TaskError("baseline_check needs a numeric 'expected' and 'tolerance'")
     return Task(root=root, id=d["id"], title=d["title"],
                 paper_text=(root / d["paper"]).read_text(), rules_text=(root / d["rules"]).read_text(),
                 code_dir=(root / d["code"]).resolve(), public_data_dir=(root / d["public_data"]).resolve(),
@@ -133,6 +142,9 @@ def load_task(path: Path | str) -> Task:
                 coding_timeout_s=int(timeouts.get("coding_session_seconds", 2400)),
                 reported=str(reported), deny_read=deny_read,
                 forbidden_in_diff=tuple(str(x) for x in d.get("forbidden_in_diff", [])),
+                deny_patterns=tuple(str(x) for x in d.get("deny_patterns", [])),
+                network_allow=tuple(str(x) for x in d.get("network_allow", [])),
+                baseline_check=check,
                 allow_data_files=bool(d.get("allow_data_files", False)),
                 min_delta=float(d["min_delta"]) if d.get("min_delta") is not None else None, raw=d)
 

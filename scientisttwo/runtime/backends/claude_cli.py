@@ -8,9 +8,17 @@ docs/architecture/engine.md, section 3. Every flag below was checked against cla
 - `--output-format stream-json --verbose` gives a transcript, the `init` event (whose
   `apiKeySource` is "none" on the subscription) and `rate_limit_event`s with the usage windows.
 
+The process runs in the call's sandbox (`SubprocessBackend.spawn`), which reaches the network
+only through the engine's egress proxy, reads under $HOME only what `sandbox_reads` names, and
+never writes the user's Claude setup. Its environment turns off auto-memory (else the agent
+reads and writes the user's own memory folder), the auto-updater (else the binary can change
+under a running run) and non-essential traffic (probe of 2026-10-02).
+
 ⛔ WHY NOT `--bare`: under it, auth is "strictly ANTHROPIC_API_KEY" and every call bills the API.
 ⛔ WHY NOT inherit the parent's environment: it may hold ANTHROPIC_API_KEY or ANTHROPIC_BASE_URL
 (API billing), or a launching Claude session's own variables. The child gets an allowlist.
+⛔ WHY NOT a per-run CLAUDE_CONFIG_DIR: the subscription login is bound to the default one; a
+fresh directory answers "Not logged in" (probe of 2026-10-02).
 """
 from __future__ import annotations
 
@@ -18,7 +26,6 @@ import json
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import threading
@@ -26,20 +33,25 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from ...harness import sandbox as sbx
-from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, Backend, InvalidOutput,
-                   RateLimited, TransientError)
+from ...harness.sandbox import child_env
+from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, EnvironmentFault,
+                   InvalidOutput, RateLimited, SubprocessBackend, TransientError)
 
 ISOLATION_FLAGS = ["--setting-sources", "", "--strict-mcp-config", "--mcp-config",
                    '{"mcpServers":{}}', "--disable-slash-commands", "--no-session-persistence"]
+QUIET_ENV = {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1", "DISABLE_AUTOUPDATER": "1",
+             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "DISABLE_TELEMETRY": "1",
+             "DISABLE_ERROR_REPORTING": "1", "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1"}
 
-_LIMIT_TEXT = re.compile(r"usage limit|rate limit|limit reached|too many requests|\b429\b", re.I)
+# A usage-window refusal. Not "limit reached" alone: the CLI also says "context limit reached".
+_LIMIT_TEXT = re.compile(r"usage limit|rate[ _-]?limit|too many requests|\b429\b|"
+                         r"hit your (?:\w+ )?limit|limit (?:will )?resets?", re.I)
 _TRANSIENT_TEXT = re.compile(r"overloaded|internal server error|timed? ?out|connection|ECONNRESET|"
-                             r"\b5\d\d\b|temporarily", re.I)
-
-
-# a refusal of the command line itself: retrying the same arguments cannot help
-_USAGE_ERROR = re.compile(r"^error: |Error: --|is not a valid|unknown option|invalid value", re.I | re.M)
+                             r"socket hang up|\b5\d\d\b|temporarily", re.I)
+# the machine failed, not the agent: a retry of the same unit would fail the same way
+_ENVIRONMENT = re.compile(r"\b(EPERM|EACCES|ENOSPC|EROFS|EMFILE|ENFILE|EDQUOT)\b|no space left", re.I)
+# a refusal of the command line itself, before any session started
+_USAGE_ERROR = re.compile(r"^error: |^Error: --|is not a valid|unknown option|invalid value", re.I | re.M)
 
 
 def cli_schema(schema: dict) -> dict:
@@ -48,38 +60,36 @@ def cli_schema(schema: dict) -> dict:
     return {k: v for k, v in schema.items() if k not in ("$schema", "$id")}
 
 
-def child_env(python: str = sys.executable) -> dict[str, str]:
-    """The allowlisted environment of every agent process."""
-    home = str(Path.home())
-    path = [str(Path(python).parent), str(Path(home) / ".local" / "bin"), "/opt/homebrew/bin",
-            "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
-    env = {"HOME": home, "USER": os.environ.get("USER", ""), "LOGNAME": os.environ.get("USER", ""),
-           "SHELL": "/bin/zsh" if Path("/bin/zsh").exists() else "/bin/sh",
-           "LANG": os.environ.get("LANG", "en_US.UTF-8"), "TERM": "xterm-256color",
-           "PATH": os.pathsep.join(dict.fromkeys(path))}
-    if os.environ.get("TMPDIR"):
-        env["TMPDIR"] = os.environ["TMPDIR"]
-    return env
-
-
-class ClaudeCLIBackend(Backend):
+class ClaudeCLIBackend(SubprocessBackend):
     name = "claude_cli"
 
     def __init__(self, claude_bin: Optional[str] = None, allow_unsandboxed: bool = False,
-                 require_subscription: bool = True):
-        self.claude_bin = claude_bin or shutil.which("claude") or str(Path.home() / ".local/bin/claude")
+                 require_subscription: bool = True, python: str = sys.executable):
+        found = claude_bin or shutil.which("claude") or str(Path.home() / ".local/bin/claude")
+        # pinned: the binary this run started with, even if the user's own install updates later
+        self.claude_bin = os.path.realpath(found)
         self.allow_unsandboxed = allow_unsandboxed
         self.require_subscription = require_subscription
+        self.python = python
         self.last_rate_limit: dict[str, Any] = {}
         self._lock = threading.Lock()
 
     def describe(self) -> dict[str, Any]:
         try:
             version = subprocess.run([self.claude_bin, "--version"], capture_output=True, text=True,
-                                     timeout=30, env=child_env()).stdout.strip()
+                                     timeout=30, env=child_env(self.python, QUIET_ENV)).stdout.strip()
         except (OSError, subprocess.SubprocessError):
             version = "unknown"
         return {"backend": self.name, "claude_bin": self.claude_bin, "claude_version": version}
+
+    def sandbox_reads(self) -> list[Path]:
+        """Under $HOME, the CLI reads its own binary, its config file and the login keychain, and
+        git its config: nothing else (probe of 2026-10-02; `~/.claude` itself is not needed)."""
+        home = Path.home()
+        reads = [Path(self.claude_bin), Path(self.claude_bin).parent, home / ".claude.json",
+                 home / "Library" / "Keychains"]
+        reads += [p for p in (home / ".gitconfig", home / ".config" / "git") if p.exists()]
+        return reads
 
     # ---- command line -------------------------------------------------------------------------
     def argv(self, call: AgentCall) -> list[str]:
@@ -97,24 +107,32 @@ class ClaudeCLIBackend(Backend):
             argv += ["--append-system-prompt", call.system, "--permission-mode", "bypassPermissions"]
         if call.schema is not None:
             argv += ["--json-schema", json.dumps(cli_schema(call.schema))]
-        return sbx.wrap(argv, call.sandbox, self.allow_unsandboxed)
+        return argv
+
+    def env(self, call: AgentCall) -> dict[str, str]:
+        extra = dict(QUIET_ENV)
+        if call.tmpdir is not None:
+            extra.update(TMPDIR=str(call.tmpdir), CLAUDE_CODE_TMPDIR=str(call.tmpdir))
+        sb = call.sandbox
+        if sb is not None and sb.network == "proxy":
+            url = f"http://127.0.0.1:{sb.proxy_port}"
+            extra.update(HTTPS_PROXY=url, HTTP_PROXY=url, https_proxy=url, http_proxy=url,
+                         NO_PROXY="", no_proxy="")
+        return child_env(self.python, extra)
 
     # ---- one call -------------------------------------------------------------------------------
     def call(self, call: AgentCall) -> AgentResult:
-        argv = self.argv(call)
-        cwd = str(call.cwd) if call.cwd else None
         transcript = open(call.transcript, "w", encoding="utf-8") if call.transcript else None
         started = time.time()
-        proc = subprocess.Popen(argv, cwd=cwd, env=child_env(), stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                start_new_session=True)
+        spawned = self.spawn(call, self.argv(call), self.env(call))
+        proc = spawned.proc
         killed: dict[str, str] = {}
 
         def _kill(reason: str) -> None:
-            killed["reason"] = reason
+            killed.setdefault("reason", reason)
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
+                os.killpg(proc.pid, 9)
+            except (ProcessLookupError, PermissionError):
                 pass
 
         timer = threading.Timer(call.timeout_s, _kill, args=("timeout",))
@@ -125,6 +143,7 @@ class ClaudeCLIBackend(Backend):
         stderr_chunks: list[str] = []
         err_thread = threading.Thread(target=lambda: stderr_chunks.append(proc.stderr.read()), daemon=True)
         err_thread.start()
+
         def _feed() -> None:
             # its own thread: a prompt larger than the pipe buffer must not block the reader
             try:
@@ -134,8 +153,7 @@ class ClaudeCLIBackend(Backend):
             except (BrokenPipeError, OSError):
                 pass
 
-        feeder = threading.Thread(target=_feed, daemon=True)
-        feeder.start()
+        threading.Thread(target=_feed, daemon=True).start()
         try:
             assert proc.stdout is not None
             for line in proc.stdout:
@@ -155,20 +173,22 @@ class ClaudeCLIBackend(Backend):
                     rate = event.get("rate_limit_info") or {}
                 elif kind == "result":
                     result = event
-            proc.wait()
+                    break                      # the answer is in: a lingering CLI cannot lose it
         finally:
             timer.cancel()
             if transcript:
                 transcript.close()
+            spawned.finish(grace=1.0 if result else 3.0)
         err_thread.join(timeout=5)
         stderr = "".join(stderr_chunks)[-2000:]
         duration = time.time() - started
         if rate:
             with self._lock:
                 self.last_rate_limit = rate
+        return self._interpret(call, init, result, rate, stderr, proc.returncode, killed, duration)
 
-        if killed.get("reason") == "timeout":
-            raise AgentTimeout(f"{call.agent}: no result after {call.timeout_s}s")
+    def _interpret(self, call: AgentCall, init: dict, result: dict, rate: dict, stderr: str,
+                   returncode: Optional[int], killed: dict, duration: float) -> AgentResult:
         if killed.get("reason", "").startswith("apiKeySource="):
             raise AgentFailed(f"{call.agent}: refused, the CLI would bill the API ({killed['reason']}); "
                               "the engine runs only on the subscription login")
@@ -176,8 +196,12 @@ class ClaudeCLIBackend(Backend):
             raise RateLimited(f"{call.agent}: subscription usage limit ({rate.get('rateLimitType')})",
                               reset_at=_reset_at(rate))
         if not result:
-            text = stderr or f"exit code {proc.returncode}"
-            if _USAGE_ERROR.search(text):
+            if killed.get("reason") == "timeout":
+                raise AgentTimeout(f"{call.agent}: no result after {call.timeout_s}s")
+            text = stderr or f"exit code {returncode}"
+            if _ENVIRONMENT.search(text):
+                raise EnvironmentFault(f"{call.agent}: {text[-500:]}")
+            if not init and _USAGE_ERROR.search(text):
                 raise AgentFailed(f"{call.agent}: the CLI refused its arguments: {text[-500:]}")
             if _LIMIT_TEXT.search(text):
                 raise RateLimited(f"{call.agent}: {text[-300:]}", reset_at=_reset_at(rate))
@@ -189,6 +213,8 @@ class ClaudeCLIBackend(Backend):
                 raise RateLimited(f"{call.agent}: {text[:300]}", reset_at=_reset_at(rate))
             if (isinstance(status, int) and status >= 500) or _TRANSIENT_TEXT.search(text):
                 raise TransientError(f"{call.agent}: {text[:500]}")
+            if "not logged in" in text.lower():
+                raise EnvironmentFault(f"{call.agent}: the CLI is not logged in: {text[:200]}")
             if result.get("subtype") == "error_max_structured_output_retries":
                 raise InvalidOutput(f"{call.agent}: {text[:500]}")
             raise AgentFailed(f"{call.agent}: {result.get('subtype')}: {text[:500]}")
@@ -204,13 +230,20 @@ class ClaudeCLIBackend(Backend):
             session_id=result.get("session_id") or init.get("session_id"),
             raw={"model": init.get("model"), "api_key_source": init.get("apiKeySource"),
                  "num_turns": result.get("num_turns"), "rate_limit": rate,
-                 "model_usage": result.get("modelUsage")})
+                 "model_usage": result.get("modelUsage"), "cli_version": init.get("claude_code_version")})
 
 
 def _reset_at(rate: dict) -> Optional[float]:
-    for value in (rate.get("resetsAt"), *(w.get("resetsAt") for w in
-                                         (rate.get("unifiedWindows") or {}).values()
-                                         if isinstance(w, dict))):
-        if isinstance(value, (int, float)) and value > time.time():
-            return float(value)
-    return None
+    """When the spent window resets: the refused window's own reset when the CLI names it, else
+    the earliest reset among exhausted windows, else the earliest reset of any window."""
+    now = time.time()
+    top = rate.get("resetsAt")
+    if rate.get("status") == "rejected" and isinstance(top, (int, float)) and top > now:
+        return float(top)
+    windows = [w for w in (rate.get("unifiedWindows") or {}).values()
+               if isinstance(w, dict) and isinstance(w.get("resetsAt"), (int, float)) and w["resetsAt"] > now]
+    spent = [w for w in windows if isinstance(w.get("utilization"), (int, float)) and w["utilization"] >= 1]
+    pool = spent or windows
+    if pool:
+        return float(min(w["resetsAt"] for w in pool))
+    return float(top) if isinstance(top, (int, float)) and top > now else None

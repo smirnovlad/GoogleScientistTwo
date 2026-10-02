@@ -13,14 +13,19 @@ modifying the codebase, and tests them against a locked evaluation harness.
 3. **Aimed at the limitations.** Prefer limitations the pool does not address yet, or attack an
    addressed one with a different mechanism. Name the limitations by id.
 4. **A new mechanism, not a tweak.** A change of hyperparameters, or a generic training control, is
-   not an idea: no gain from more epochs, a larger model or more compute, a learning-rate schedule,
-   weight averaging, label smoothing, or ensembling over seeds. The engine later checks by ablation
-   that the gain comes from the idea's own components, and rejects ideas whose gain comes from such
-   controls.
+   not an idea. Generic controls include input normalisation or standardisation and other standard
+   preprocessing, more optimizer steps or a larger model, a learning-rate schedule, weight
+   averaging, label smoothing and ensembling over seeds. They stay generic when an idea lists them
+   as its components: the engine's ablations measure the share of the gain they carry on their own,
+   and reject the idea when they carry most of it. If the mechanism needs one of them to work
+   (standardised inputs, for example), say so in `risks`.
 5. **Feasible here.** It respects the task rules: the data, splits, evaluation protocol and metric
    stay as they are. It runs on CPU only, with the packages already installed (numpy, scipy,
-   scikit-learn, pandas, torch), with no downloads and no network, inside the task's time budget. A
-   strong coding agent must be able to implement it in one session.
+   scikit-learn, pandas, torch), with no downloads and no network, inside the task's time budget. It
+   trains at the baseline's budget: the baseline's number of optimizer steps (its epochs times its
+   batches per epoch) and its model size, not whatever the task's time limit would allow. A
+   mechanism that trains on more data, such as a synthetic transfer set, still takes the baseline's
+   number of steps. A strong coding agent must be able to implement it in one session.
 6. **Precise, testable and separable.** The `method` field alone suffices to implement it, with a
    default for every new hyperparameter; its effect shows on the task's metric; each component can
    be switched off on its own for ablation.

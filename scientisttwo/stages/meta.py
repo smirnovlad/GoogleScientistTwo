@@ -10,21 +10,35 @@
         limit N_meta = 1, keep the best pass)
     A failed guard exports the previous pass, which the meta-reviewer had sent back (A-TOP-3); the
     run records whether the exported manuscript was accepted.
+
+An ablation `Reject` on the first pass ends the run (A-ABL-1, App. B). On a restarted pass it ends
+only the restart: the refined core's gain is not the idea's, so the previous pass, whose ablation
+the critic accepted, is exported (engine.md §8).
 """
 from __future__ import annotations
 
-from ..primitive import ACCEPT, REFINE, StageParams, run_stage
-from .ablation import ablation_stage, admits, full_set_refine
-from .coder import Baseline
-from .common import Ctx
-from .evolution import Core
+from ..primitive import StageParams, run_stage
+from ..state import Baseline, Core
+from .ablation import ablation_stage
+from .common import Ctx, RunEnded
 from .manuscript import manuscript_text
+from .roles import verdict_map, verdict_of
+from .shared import admits, full_set_refine
 from .writing import audit, writing_stage
+
+
+class RestartRejected(Exception):
+    """A restarted pass whose ablation the critic rejected."""
 
 
 def downstream(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
                references: list[dict], pass_i: int) -> dict:
-    core, abl, abl_status = ablation_stage(ctx, core, pass_i)
+    core, abl, abl_status, abl_feedback = ablation_stage(ctx, base, core, pass_i)
+    if abl_status == "rejected" and ctx.stage("ablation").get("reject_ends_run", True):
+        if pass_i == 0:
+            raise RunEnded("ablation_rejected", "the Ablation Critic attributes the gain to generic "
+                           f"controls, not the idea (App. B): {abl_feedback}")
+        raise RestartRejected(abl_feedback)
     written = writing_stage(ctx, base, core, abl, limitations, references, pass_i)
     written, report = audit(ctx, base, core, abl, written, pass_i)
     ctx.event("downstream", pass_i=pass_i, version=written["version"],
@@ -37,27 +51,32 @@ def downstream(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
 def meta_stage(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
                references: list[dict]) -> dict:
     assert ctx.papers is not None
-    first = downstream(ctx, base, core, limitations, references, 0)
+    passes = [downstream(ctx, base, core, limitations, references, 0)]
 
     def critic(c: dict, i: int) -> tuple[str, str]:
         o = ctx.think(f"meta/review/{i}", "meta_reviewer", {
             "manuscript": manuscript_text(ctx.papers.path(c["version"])), "review": c["review"]})
         c["meta"] = o
-        return o["decision"], o["feedback"]
+        return verdict_of("meta_reviewer", o), o["feedback"]
 
     def refine(c: dict, feedback: str, i: int) -> dict:
         return {**c, "core": full_set_refine(ctx, c["core"], feedback, f"meta/refine/{i}")}
 
     def after_guard(c: dict, i: int) -> dict:
-        return downstream(ctx, base, c["core"], limitations, references, i)
+        passes.append(downstream(ctx, base, c["core"], limitations, references, i))
+        return passes[-1]
 
     cfg = ctx.stage("meta")
-    outcome = run_stage(first, StageParams(
-        "meta", critic, refine, {"Accept": ACCEPT, "Refine": REFINE}, limit=ctx.L("n_meta"),
-        counting=cfg.get("counting", "refinements"), exhaustion=cfg.get("exhaustion", "keep_best"),
-        guard=lambda new, best: admits(ctx, new["core"], best["core"]), after_guard=after_guard))
-    final = outcome.candidate or first
-    final["meta_status"] = outcome.status
-    final["meta_accepted"] = outcome.status == "accepted"
-    ctx.event("meta", status=outcome.status, accepted=final["meta_accepted"], pass_i=final["pass"])
+    try:
+        outcome = run_stage(passes[0], StageParams(
+            "meta", critic, refine, verdict_map("meta_reviewer"), limit=ctx.L("n_meta"),
+            counting=cfg.get("counting", "refinements"), exhaustion=cfg.get("exhaustion", "keep_best"),
+            guard=lambda new, best: admits(ctx, new["core"], best["core"]), after_guard=after_guard))
+        final, status = outcome.candidate or passes[0], outcome.status
+    except RestartRejected as e:
+        final, status = passes[-1], "restart_rejected"
+        ctx.event("restart_rejected", reason=str(e)[:200], kept_pass=final["pass"])
+    final["meta_status"] = status
+    final["meta_accepted"] = status == "accepted"
+    ctx.event("meta", status=status, accepted=final["meta_accepted"], pass_i=final["pass"])
     return final

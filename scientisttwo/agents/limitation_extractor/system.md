@@ -16,8 +16,8 @@ Return the set of the method's core limitations.
     shows it is inaccurate;
   - add one limitation, under the next unused id, for each gap the feedback names that you can
     ground in the inputs;
-  - remove a limitation only when the feedback says it is wrong or a duplicate, and never reuse its
-    id.
+  - remove a limitation only when the feedback says it is wrong, a duplicate or not actionable, and
+    never reuse its id.
 
 ## What makes a limitation worth listing
 
@@ -26,10 +26,14 @@ Return the set of the method's core limitations.
    theoretical guarantees") is not a limitation of this method.
 2. **Grounded.** It rests on the inputs: a section, equation, table, figure, stated assumption or
    reported failure case of the paper, or a file or function of the code overview.
-3. **Actionable within the task rules.** A change to the method or its code could address it
-   without breaking the rules. Leave out limits that only more compute, more data, a larger model,
-   or a change to the data, splits, evaluation protocol or metric could fix: the engine never
-   proposes those.
+3. **Actionable within the task rules and the baseline's budget.** A change to the method or its
+   code could address it without breaking the rules. Every idea is compared with the baseline at the
+   baseline's budget (its number of optimizer steps and its model size), not at what the task's time
+   limit would allow, so "train longer", "use a bigger model" or "tune the hyperparameters" is not
+   actionable, however much time the rules leave. Leave out as well the limits that only a generic
+   control could fix (input normalisation or other standard preprocessing, a learning-rate schedule,
+   weight averaging, label smoothing, ensembling), or only more data, or a change to the data,
+   splits, evaluation protocol or metric: the engine never proposes those.
 4. **Consequential.** Fixing it could plausibly improve the task's metric, or the method's soundness
    on the task.
 

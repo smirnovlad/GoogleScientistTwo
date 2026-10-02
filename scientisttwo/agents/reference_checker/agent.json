@@ -2,10 +2,11 @@
   "name": "reference_checker",
   "kind": "reasoning",
   "tools": [
-    "WebSearch"
+    "WebSearch",
+    "WebFetch"
   ],
   "paper_ref": "§4.2, P-ROSTER-27",
-  "description": "Verifies each bibliography entry by web search: verified, not_found or mismatch.",
+  "description": "Verifies each bibliography entry by fetching its own address and by web search: verified, not_found, mismatch or unchecked.",
   "variables": [
     "bibliography"
   ]

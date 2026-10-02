@@ -22,7 +22,8 @@
     "max_hours": 12
   },
   "rate_limit": {
-    "max_wait_minutes": 60
+    "max_wait_minutes": 60,
+    "max_waits": 3
   },
   "routing": {
     "description": "Quick runs spend less of the subscription's usage windows: every session on sonnet. The final judge stays on opus, so it never shares the in-loop reviewer's model.",

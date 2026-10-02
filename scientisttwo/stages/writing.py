@@ -2,27 +2,28 @@
 (docs/paper/stages/05-drafting-peer-review.md, 07-integrity.md).
 
     draft:   a manuscript version holding the engine's results.tex/json → initial_drafter (writer)
-    review:  peer_reviewer(manuscript) → score s in [1, 10]
+    review:  peer_reviewer(manuscript, with the tables regenerated from the result files) → s
     run_stage({version, review},
         critic = s >= threshold (8, App. A.2) → accept, else refine       a number, not an agent
-        refine = rebuttal_planner → N_t rebuttal experiments (rebuttal_coder + harness, in parallel)
+        refine = rebuttal_planner(review, the results already reported)
+                 → N_t rebuttal experiments (run_variants: rebuttal_coder + harness, in parallel)
                  → results regenerated → paper_enhancer (writer) → review again
-        limit N_peer, keep the last manuscript (§3.5; U-TOP-7 as data))
-    audit:   reference_checker (search) and method_code_auditor (read-only); any finding goes to
-             the paper_enhancer, never back to the auditor (A-INT-3)
+        limit N_peer; exhausted: the last manuscript, or the best-scored (U-TOP-7, as data))
+    audit:   reference_checker (search, fetch), method_code_auditor (read-only), and two checks by
+             code: a writer edited the engine's tables; a number in the prose is in no result.
+             Any finding goes to the paper_enhancer, never back to the auditor (A-INT-3)
 """
 from __future__ import annotations
 
 import json
-from typing import Optional
 
-from ..harness.harness import gain, summarize
 from ..primitive import ACCEPT, REFINE, StageParams, run_stage
 from ..runtime.agents import UnitFailed
-from .coder import Baseline
+from ..state import Baseline, Core
 from .common import Ctx
-from .evolution import Core
-from .manuscript import compile_pdf, manuscript_text, payload, write_results
+from .manuscript import (compile_pdf, manuscript_text, payload, results_tex, tables_edited,
+                         unverified_numbers, write_results)
+from .shared import run_variants
 
 
 def _results(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], reb: list[dict]) -> dict:
@@ -51,14 +52,20 @@ def _refresh_results(ctx: Ctx, parent: str, name: str, p: dict) -> str:
     return name
 
 
-def build(ctx: Ctx, name: str) -> dict:
+def build(ctx: Ctx, name: str, p: dict) -> dict:
+    """The PDF of a version, built against the engine's tables, never the version's own copy."""
     assert ctx.papers is not None
-    rules = ctx.harness.integrity()
-    report = compile_pdf(ctx.papers.path(name), ctx.run_dir / "builds" / name,
-                         denied=rules["denied"], allow_unsandboxed=ctx.harness.allow_unsandboxed,
-                         protected=tuple(rules["protected"]))
+    folder, out = ctx.papers.path(name), ctx.run_dir / "builds" / name
+    report = compile_pdf(folder, out, ctx.harness.rules.build(folder, out),
+                         ctx.harness.allow_unsandboxed, tables=results_tex(p))
     ctx.event("pdf", version=name, ok=report["ok"])
     return report
+
+
+def read(ctx: Ctx, name: str, p: dict) -> str:
+    """The manuscript as every reader gets it: the tables regenerated from the result files."""
+    assert ctx.papers is not None
+    return manuscript_text(ctx.papers.path(name), tables=results_tex(p))
 
 
 def draft(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitations: list[dict],
@@ -71,34 +78,31 @@ def draft(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitations: li
         "task_title": ctx.task.title, "paper": ctx.task.paper_text, "idea": core.idea,
         "limitations": limitations, "references": references, "results_tex": "results.tex",
         "results_json": json.dumps(p, indent=1, default=str)}, seed, name, on=ctx.papers)
-    build(ctx, name)
+    build(ctx, name, p)
     return name
 
 
-def review(ctx: Ctx, key: str, version: str) -> dict:
-    assert ctx.papers is not None
-    return ctx.think(key, "peer_reviewer", {"manuscript": manuscript_text(ctx.papers.path(version))})
+def review(ctx: Ctx, key: str, version: str, p: dict) -> dict:
+    return ctx.think(key, "peer_reviewer", {"manuscript": read(ctx, version, p)})
 
 
-def rebuttal_round(ctx: Ctx, core: Core, rev: dict, tag: str) -> list[dict]:
+def rebuttal_round(ctx: Ctx, core: Core, rev: dict, tag: str, known: dict) -> list[dict]:
+    """`known` is the verified results payload so far: the planner never re-runs a reported experiment."""
     t = ctx.task
     n = ctx.L("n_t")
     plan = ctx.think(f"{tag}/plan", "rebuttal_planner", {
-        "task_title": t.title, "idea": core.idea, "review": rev, "n_tasks": n})
+        "task_title": t.title, "idea": core.idea, "review": rev,
+        "results_json": json.dumps(known, indent=1, default=str), "n_tasks": n})
     tasks = plan["tasks"][:n]
-
-    def run(i_task: tuple[int, dict]) -> dict:
-        i, task = i_task
-        rid = f"R{i + 1}"
-        name = f"{core.id}.{tag.replace('/', '-')}.{rid}"
-        _, err = ctx.code(f"{tag}/{rid}/code", "rebuttal_coder", {
-            "task_title": t.title, "rules": t.rules_text, "entrypoint": ctx.entrypoint_text(),
-            "idea": core.idea, "task": task}, core.ws, name)
-        result = ctx.evaluate(f"{tag}/{rid}/eval", name, "full")
-        return {"id": f"{tag.split('/')[-1]}-{rid}", "task": task, "result": summarize(result),
-                "delta_vs_full_method": gain(result, core.result), "agent_error": err}
-
-    return ctx.map(run, list(enumerate(tasks)))
+    if len(plan["tasks"]) != n:
+        ctx.event("plan_count", key=f"{tag}/plan", asked=n, got=len(plan["tasks"]))
+    out = run_variants(ctx, tag, core, tasks, "R", "rebuttal_coder", lambda task: {
+        "task_title": t.title, "rules": t.rules_text, "entrypoint": ctx.entrypoint_text(),
+        "idea": core.idea, "task": task})
+    for r in out:
+        r["task"] = r.pop("item")
+        r["id"] = f"{tag.split('/')[-1]}-{r['id']}"
+    return out
 
 
 def writing_stage(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitations: list[dict],
@@ -107,15 +111,16 @@ def writing_stage(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitat
     assert ctx.papers is not None
     tag = f"write/p{pass_i}"
     v0 = draft(ctx, base, core, abl, limitations, references, tag)
-    start = {"version": v0, "review": review(ctx, f"{tag}/review/0", v0), "rebuttals": []}
-    seen = [start]
+    p0 = _results(ctx, base, core, abl, [])
+    start = {"version": v0, "review": review(ctx, f"{tag}/review/0", v0, p0), "rebuttals": []}
     threshold = ctx.L("review_threshold")
 
     def critic(c: dict, i: int) -> tuple[str, dict]:
         return ("met" if int(c["review"]["score"]) >= threshold else "below"), c["review"]
 
     def refine(c: dict, rev: dict, i: int) -> dict:
-        reb = c["rebuttals"] + rebuttal_round(ctx, core, rev, f"{tag}/rebut{i}")
+        known = _results(ctx, base, core, abl, c["rebuttals"])
+        reb = c["rebuttals"] + rebuttal_round(ctx, core, rev, f"{tag}/rebut{i}", known)
         p = _results(ctx, base, core, abl, reb)
         staged = _refresh_results(ctx, c["version"], f"{tag}.r{i + 1}.results", p)
         name = f"{tag}.r{i + 1}"
@@ -123,18 +128,17 @@ def writing_stage(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitat
             "review": rev, "rebuttal_results_json": json.dumps(p, indent=1, default=str),
             "audit": "No audit findings yet: the integrity audit runs after the review loop."},
             staged, name, on=ctx.papers)
-        build(ctx, name)
-        new = {"version": name, "review": review(ctx, f"{tag}/review/{i + 1}", name), "rebuttals": reb}
-        seen.append(new)
-        return new
+        build(ctx, name, p)
+        return {"version": name, "review": review(ctx, f"{tag}/review/{i + 1}", name, p), "rebuttals": reb}
 
     cfg = ctx.stage("peer_review")
+    exhaustion = cfg.get("exhaustion", "keep_last")
+    # U-TOP-7: §3.5 keeps the last manuscript; "keep_best" keeps the best-scored one instead
+    rank = (lambda c: int(c["review"]["score"])) if exhaustion == "keep_best" else None
     outcome = run_stage(start, StageParams(
         "peer_review", critic, refine, {"met": ACCEPT, "below": REFINE}, limit=ctx.L("n_peer"),
-        counting=cfg.get("counting", "refinements"), exhaustion="keep_last"))
-    kept = outcome.candidate or seen[-1]
-    if cfg.get("keep") == "best_score":       # U-TOP-7's other reading, as data
-        kept = max(seen, key=lambda c: int(c["review"]["score"]))
+        counting=cfg.get("counting", "refinements"), exhaustion=exhaustion, rank=rank))
+    kept = outcome.candidate
     ctx.event("peer_review", status=outcome.status, score=int(kept["review"]["score"]),
               version=kept["version"], rounds=outcome.refinements)
     return {**kept, "status": outcome.status}
@@ -146,32 +150,55 @@ def audit(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], written: dict, 
     tag = f"audit/p{pass_i}"
     integ = ctx.cfg.get("integrity", {})
     folder = ctx.papers.path(written["version"])
+    p = _results(ctx, base, core, abl, written["rebuttals"])
     report: dict = {"references": None, "method_code": None, "repaired": False}
     problems: list = []
+    if tables_edited(folder, p):
+        report["tables_edited"] = True
+        problems.append({"severity": "critical", "claim": "results.tex",
+                         "evidence": "a writer edited the engine's results tables; every reader gets "
+                                     "them regenerated from the result files, so restore "
+                                     "\\input{results} and edit nothing in results.tex"})
+    if integ.get("prose_check", True):
+        context = ctx.task.paper_text + "\n" + json.dumps(core.idea)
+        report["unverified_numbers"] = unverified_numbers(folder, p, context)
+        if report["unverified_numbers"]:
+            problems.append({"severity": "major", "claim": "numbers in the text",
+                             "evidence": "these numbers are in no result of results.json: "
+                                         f"{', '.join(report['unverified_numbers'])}. Cite results "
+                                         "as results.json gives them, or remove the number."})
     try:
         if integ.get("reference_check", True):
             bib = (folder / "references.bib").read_text() if (folder / "references.bib").exists() else ""
             if bib.strip():
                 report["references"] = ctx.think(f"{tag}/references", "reference_checker", {"bibliography": bib})
-                problems += [e for e in report["references"].get("entries", []) if e.get("status") != "verified"]
+                entries = report["references"].get("entries", [])
+                # an `unchecked` entry met a failed search: no evidence against it, so it is kept and
+                # reported, never handed to the enhancer for removal
+                problems += [e for e in entries if e.get("status") in ("not_found", "mismatch")]
+                report["unchecked"] = [e.get("key") for e in entries if e.get("status") == "unchecked"]
         if integ.get("method_code_audit", True):
             report["method_code"] = ctx.think(f"{tag}/method_code", "method_code_auditor", {
-                "manuscript": manuscript_text(folder), "diff": ctx.diff(core.ws)}, readonly=ctx.ws.path(core.ws))
+                "manuscript": read(ctx, written["version"], p), "diff": ctx.diff(core.ws)},
+                workdir=ctx.ws.path(core.ws))
             if not report["method_code"].get("consistent", True):
                 problems += report["method_code"].get("issues", [])
     except UnitFailed as e:
         report["error"] = e.error
         ctx.event("audit_error", error=e.error[:200])
     if problems:
-        p = _results(ctx, base, core, abl, written["rebuttals"])
         name = f"{tag}.repaired"
+        staged = _refresh_results(ctx, written["version"], f"{tag}.results", p)
         _, err = ctx.code(f"{tag}/repair", "paper_enhancer", {
             "review": {"summary": "No new review: this revision repairs only the integrity audit's findings."},
             "rebuttal_results_json": json.dumps(p, indent=1, default=str),
-            "audit": {"problems": problems, "report": report}}, written["version"], name, on=ctx.papers)
+            "audit": {"problems": problems, "report": report}}, staged, name, on=ctx.papers)
         if err is None:
-            build(ctx, name)
+            build(ctx, name, p)
             written = {**written, "version": name}
             report["repaired"] = True
-    ctx.event("audit", problems=len(problems), repaired=report["repaired"])
+            report["unverified_after_repair"] = unverified_numbers(
+                ctx.papers.path(name), p, ctx.task.paper_text + "\n" + json.dumps(core.idea))
+    ctx.event("audit", problems=len(problems), unchecked=len(report.get("unchecked") or []),
+              repaired=report["repaired"])
     return written, report

@@ -49,8 +49,16 @@
     "text": "TinyMLP (code/ as released: a 64-32-10 perceptron with ReLU, on raw pixel counts 0..16 without scaling, trained with Adam, learning rate 1e-3, batches of 200, L2 1e-4, for 50 epochs). Validation accuracy (split full, n=359), mean +/- sample sd over seeds 0, 1, 2: 0.9118 +/- 0.0170 (per seed 0.9081, 0.8969, 0.9304); macro-F1 0.9121 +/- 0.0173. Over 20 seeds (0-19): full 0.9162 +/- 0.0133 (range 0.8886-0.9359); subset (n=141) 0.9043 +/- 0.0213 (range 0.8723-0.9504), and 0.8723 with seed 0. One run, one seed: about 1 s wall-clock on one Apple M4 Max CPU."
   },
   "min_delta": 0.02,
+  "baseline_check": {
+    "split": "full",
+    "expected": 0.9118,
+    "tolerance": 0.02
+  },
   "deny_read": [
     "{site_packages}/sklearn/datasets/data"
+  ],
+  "deny_patterns": [
+    "/sklearn/datasets/data(/|$)"
   ],
   "forbidden_in_diff": [
     "load_digits",
@@ -65,5 +73,5 @@
     "https://"
   ],
   "allow_data_files": false,
-  "integrity_notes": "min_delta 0.02 is about two standard errors of a 3-vs-3-seed difference on full (20-seed SD 0.0133, measured 2026-10-02). deny_read hides scikit-learn's bundled digits, which hold every evaluation image with its label; forbidden_in_diff stops a change from loading or downloading them."
+  "integrity_notes": "min_delta 0.02 is about two standard errors of a 3-vs-3-seed difference on full (20-seed SD 0.0133, measured 2026-10-02). baseline_check: the released code scores 0.9118 on full over seeds 0-2, and is deterministic per seed, so a faithful reproduction lands within 0.02 of it; a weaker baseline would inflate every gain (U-BASE-2). deny_patterns hides every copy of scikit-learn's bundled data, which holds every evaluation image with its label (the integrity review found 9 copies in conda environments); deny_read names the engine's own copy; forbidden_in_diff stops a change from loading or downloading them."
 }

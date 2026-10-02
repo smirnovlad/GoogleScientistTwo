@@ -56,3 +56,53 @@ def apply_overrides(profile: dict, overrides: list[str]) -> dict:
 def load_routing(profile: dict) -> dict:
     routing = json.loads((CONFIG_DIR / "routing.json").read_text())
     return deep_merge(routing, profile.get("routing") or {})
+
+
+# What each stage may set, and the exhaustion rules its code can honour (architecture review
+# 2026-10-02, finding 2: a setting the code ignores must be refused, not accepted silently).
+STAGE_RULES = {
+    "limitations": {"exhaustion": ("keep_last",)},             # a set is needed to go on (§3.1)
+    "subset": {"exhaustion": ("discard",)},                    # exhausted → Bad (§3.2)
+    "full": {"exhaustion": ("discard",)},
+    "ablation": {"exhaustion": ("keep_best",), "extra": ("reject_ends_run", "reject_share")},
+    "peer_review": {"exhaustion": ("keep_last", "keep_best")},  # U-TOP-7's two readings
+    "meta": {"exhaustion": ("keep_best",)},
+}
+LIMITS = ("limitation_rounds", "n_seed", "n0", "n_eng_subset", "n_eng_full", "n_k", "n_e", "K", "S",
+          "n_p", "n_abl", "review_threshold", "n_t", "n_peer", "n_meta")
+TOP_KEYS = {"name", "description", "limits", "stages", "guard", "integrity", "parallel", "budget",
+            "rate_limit", "retries", "routing", "export"}
+
+
+class ProfileError(ValueError):
+    pass
+
+
+def validate_profile(profile: dict) -> None:
+    """Refuse a profile whose settings the engine would not honour."""
+    unknown = set(profile) - TOP_KEYS
+    if unknown:
+        raise ProfileError(f"unknown profile keys {sorted(unknown)}")
+    limits = profile.get("limits", {})
+    missing = [k for k in LIMITS if k not in limits]
+    extra = [k for k in limits if k not in LIMITS]
+    if missing or extra:
+        raise ProfileError(f"limits: missing {missing}, unknown {extra}")
+    bad = [k for k in LIMITS if not isinstance(limits[k], int) or limits[k] < 0]
+    if bad:
+        raise ProfileError(f"limits must be integers >= 0: {bad}")
+    for name, cfg in (profile.get("stages") or {}).items():
+        rules = STAGE_RULES.get(name)
+        if rules is None:
+            raise ProfileError(f"unknown stage {name!r}")
+        allowed_keys = {"counting", "exhaustion", *rules.get("extra", ())}
+        if set(cfg) - allowed_keys:
+            raise ProfileError(f"stages.{name}: unknown keys {sorted(set(cfg) - allowed_keys)}")
+        if "exhaustion" in cfg and cfg["exhaustion"] not in rules["exhaustion"]:
+            raise ProfileError(f"stages.{name}.exhaustion must be one of {rules['exhaustion']}, "
+                               f"not {cfg['exhaustion']!r}: the stage's code cannot honour it")
+        if cfg.get("counting", "refinements") not in ("refinements", "critic_calls"):
+            raise ProfileError(f"stages.{name}.counting must be 'refinements' or 'critic_calls'")
+    share = (profile.get("stages") or {}).get("ablation", {}).get("reject_share")
+    if share is not None and not (isinstance(share, (int, float)) and 0 < share <= 1):
+        raise ProfileError("stages.ablation.reject_share must be in (0, 1]")

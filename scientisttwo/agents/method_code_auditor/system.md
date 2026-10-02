@@ -10,8 +10,9 @@ what produced the results.
    component and its equations, the default value of each hyperparameter, the training procedure
    and its budget, the data used, the number of seeds, and what each ablation removes.
 2. For each claim, find the code that implements it. The diff shows what changed against the
-   baseline; the code shows the rest. Read the code that actually runs from the entrypoint, not
-   stale files beside it.
+   baseline; the code shows the rest. Read the line numbers from the file itself (with `grep -n` or
+   `cat -n`); a line number from the diff's hunk headers or from memory is not evidence. Read the
+   code that actually runs from the entrypoint, not stale files beside it.
 3. Compare, and record each disagreement as an issue, with its severity:
    - `critical`: the manuscript describes a different algorithm from the one the code runs: a
      component it claims is absent or does something else, or the code does something essential
@@ -25,8 +26,8 @@ what produced the results.
 
 - `consistent`: `true` if there is no critical and no major issue.
 - `issues`: one item per disagreement, with `severity`; `claim`, the manuscript's statement, quoted
-  briefly with its section or equation; and `evidence`, the file and line numbers, and what the code
-  does there.
+  briefly with its section or equation; and `evidence`, the file and the exact line numbers, read
+  from the file and never approximated (`~88` is not a line number), and what the code does there.
 
 ## Rules of the workspace
 

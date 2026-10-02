@@ -7,7 +7,7 @@ import pytest
 
 from conftest import params
 from scientisttwo.config import apply_overrides, load_profile
-from scientisttwo.orchestrator import prepare, run
+from scientisttwo.orchestrator import RunLocked, close, prepare, run
 from scientisttwo.runtime.backends.mock import MockBackend
 from scientisttwo.runtime.store import read_json
 
@@ -44,12 +44,17 @@ def test_a_full_run_exports_a_paper_and_code(tmp_path, toy_task):
     assert "Held-out test set" in tex and "1.0000" in tex                # engine-written numbers
     assert "\\input{results}" in (out / "paper" / "main.tex").read_text()
     assert (out / "report.md").exists() and (out / "changes.patch").read_text()
-    # the test split was evaluated exactly twice, at export; every decision in the loop read
-    # validation splits only (U-TOP-5)
+    # the test split was evaluated only at export, once per version: the baseline, the proposed
+    # method and each final variant; every decision in the loop read validation splits (U-TOP-5)
     splits = {str(f.relative_to(ctx.run_dir / "results")): read_json(f)["split"]
               for f in (ctx.run_dir / "results").rglob("*.json")}
-    assert sorted(k for k, s in splits.items() if s == "test") == ["export/test/baseline.json",
-                                                                  "export/test/proposed.json"]
+    on_test = sorted(k for k, s in splits.items() if s == "test")
+    assert on_test == ["export/test/A1.json", "export/test/A2.json", "export/test/baseline.json",
+                       "export/test/proposed.json"]
+    assert [v["id"] for v in result["test"]["variants"]] == ["A1", "A2"]
+    assert sorted(f.name for f in (out / "variants").iterdir()) == ["A1.patch", "A2.patch"]
+    assert ("test_reporter", "export/test_report") in backend.calls       # the text reports the test
+    assert result["final_checks"]["unverified_numbers"] == []
     agents = {a for a, _ in backend.calls}
     for a in ("limitation_extractor", "limitation_verifier", "initial_idea_generator", "novelty_checker",
               "idea_generator", "baseline_coder", "subset_coder", "subset_critic", "full_set_coder",
@@ -124,3 +129,127 @@ def test_a_paused_run_resumes_without_paying_twice(tmp_path, toy_task):
     assert rec2["status"] == "done", rec2.get("reason")
     repaid = {k for _, k in backend2.calls} & finished
     assert repaid == set(), f"units paid twice: {sorted(repaid)[:5]}"
+
+
+
+# ---- the reviews of 2026-10-02 -----------------------------------------------------------------
+MAIN = (r"\documentclass{article}\begin{document}" "\n" r"\section{Results}" "\n{prose}\n"
+        r"\input{results}" "\n" r"\end{document}" "\n")
+BIB = "@misc{mock2026, title = {A mock reference}, author = {Mock, A.}, year = {2026}}\n"
+
+
+def prompt(ctx, key):
+    return read_json(ctx.run_dir / "prompts" / f"{key}.json")["user"]
+
+
+def set_task(toy_task, **fields):
+    d = json.loads((toy_task / "task.json").read_text())
+    d.update(fields)
+    (toy_task / "task.json").write_text(json.dumps(d))
+
+
+def test_a_baseline_that_misses_the_reported_number_ends_the_run(tmp_path, toy_task):
+    """U-BASE-2: a weaker baseline would inflate every gain (integrity review, finding 3)."""
+    set_task(toy_task, baseline_check={"split": "full", "expected": 0.95, "tolerance": 0.02})
+    rec, ctx, backend = go(tmp_path, toy_task, [GOOD_IDEA])
+    assert rec["status"] == "baseline_failed" and "U-BASE-2" in rec["reason"]
+    assert not any(a == "subset_coder" for a, _ in backend.calls)
+
+
+def test_the_ablation_critic_reads_the_baseline(tmp_path, toy_task):
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT])
+    text = prompt(ctx, "abl/p0/critic/0")
+    base_mean = read_json(ctx.run_dir / "results" / "base/eval/full.json")["mean"]
+    assert "<baseline_result>" in text and f"{base_mean}" in text
+    assert "<reject_share>\n0.5\n</reject_share>" in text
+
+
+def test_a_rebuttal_plan_reads_the_results_already_reported(tmp_path, toy_task):
+    low = {"agent": "peer_reviewer", "key": "^write/p0/review/0$", "output": {"score": 3}}
+    rec, ctx, backend = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, low])
+    assert rec["status"] == "done", rec.get("reason")
+    text = prompt(ctx, "write/p0/rebut0/plan")
+    assert '"ablations"' in text and '"A1"' in text
+    assert ("paper_enhancer", "write/p0/enhance/0") in backend.calls
+    result = read_json(ctx.run_dir / "export" / "results.json")
+    assert [r["id"] for r in result["rebuttals"]] == ["rebut0-R1"]
+    assert "S1" in [v["id"] for v in result["test"]["variants"]]
+
+
+def test_a_reference_whose_search_failed_is_kept(tmp_path, toy_task):
+    refs = {"agent": "reference_checker", "output": {"entries": [
+        {"key": "mock2026", "status": "unchecked", "evidence": "the search tool failed"},
+        {"key": "ghost2020", "status": "not_found", "evidence": "searched twice"}]}}
+    rec, ctx, backend = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, refs])
+    audit = read_json(ctx.run_dir / "export" / "audit.json")
+    assert audit["unchecked"] == ["mock2026"] and audit["repaired"] is True
+    repair = prompt(ctx, "audit/p0/repair")
+    problems = repair.split('"problems"')[1].split('"report"')[0]
+    assert "ghost2020" in problems and "mock2026" not in problems
+
+
+def test_a_writer_cannot_change_the_numbers_a_reviewer_reads(tmp_path, toy_task):
+    """Integrity review, finding 5: the drafter edits the engine's table."""
+    forged = {"agent": "initial_drafter", "edits": {
+        "main.tex": MAIN.replace("{prose}", "We report our results."),
+        "references.bib": BIB, "results.tex": "Proposed & 0.9999 \\\\\n"}}
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, forged])
+    review = prompt(ctx, "write/p0/review/0")
+    assert "0.9999" not in review and "1.0000" in review           # the engine's table, regenerated
+    audit = read_json(ctx.run_dir / "export" / "audit.json")
+    assert audit["tables_edited"] is True and audit["repaired"] is True
+
+
+def test_a_number_in_the_prose_that_no_result_holds_is_flagged(tmp_path, toy_task):
+    """Integrity review, finding 4."""
+    invented = {"agent": "initial_drafter", "edits": {
+        "main.tex": MAIN.replace("{prose}", "Our method reaches an accuracy of 0.4242 on average."),
+        "references.bib": BIB}}
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, invented])
+    audit = read_json(ctx.run_dir / "export" / "audit.json")
+    assert audit["unverified_numbers"] == ["0.4242"] and audit["repaired"] is True
+
+
+def test_a_restart_the_ablation_critic_rejects_keeps_the_previous_pass(tmp_path, toy_task):
+    """Architecture review, finding 6: a Reject on a restarted pass used to end the run."""
+    near = {"agent": "subset_coder", "key": "^evo/r0/s1/", "edits": {"params.json": params(0.35)}}
+    refine = {"agent": "meta_reviewer", "key": "^meta/review/0$", "output": {"decision": "Refine"}}
+    better = {"agent": "full_set_engineer", "key": "^meta/refine/0", "edits": {"params.json": params(0.3)}}
+    reject = {"agent": "ablation_critic", "key": "^abl/p1/", "output": {"verdict": "Reject"}}
+    rec, ctx, backend = go(tmp_path, toy_task, [near, BAD_IDEA, BAD_VERDICT, refine, better, reject])
+    assert rec["status"] == "done", rec.get("reason")
+    result = read_json(ctx.run_dir / "export" / "results.json")
+    assert result["meta_status"] == "restart_rejected" and result["meta_accepted"] is False
+    assert result["validation"]["proposed"]["mean"] < 1.0               # pass 0's core, not the restart's
+
+
+def test_a_failure_that_stops_the_run_is_retried_on_resume(tmp_path, toy_task):
+    """Architecture review, finding 4: a stored failure used to replay on every resume."""
+    broken = {"agent": "peer_reviewer", "key": "^write/p0/review/0$", "raise": "failed"}
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, broken])
+    assert rec["status"] == "error" and rec["retry_on_resume"] == "write/p0/review/0"
+    ctx2 = prepare(ctx.run_dir, None, None, MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}),
+                   sleep=lambda s: None)
+    assert run(ctx2)["status"] == "done"
+
+
+def test_one_engine_per_run(tmp_path, toy_task):
+    ctx = prepare(tmp_path / "run", toy_task, profile(), MockBackend(), sleep=lambda s: None)
+    try:
+        with pytest.raises(RunLocked):
+            prepare(tmp_path / "run", None, None, MockBackend(), sleep=lambda s: None)
+    finally:
+        close(ctx)
+    close(prepare(tmp_path / "run", None, None, MockBackend(), sleep=lambda s: None))   # released
+
+
+def test_a_run_keeps_its_own_prompts_and_refuses_a_changed_one(tmp_path, toy_task):
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT])
+    snapshot = ctx.run_dir / "agents" / "limitation_extractor" / "prompt.md"
+    assert snapshot.exists() and read_json(ctx.run_dir / "run.json")["agents_sha256"]
+    snapshot.write_text(snapshot.read_text() + "\nA new instruction.\n")
+    rec2 = run(prepare(ctx.run_dir, None, None, MockBackend(), sleep=lambda s: None))
+    assert rec2["status"] == "error" and "InputsChanged" in rec2["reason"]
+    rec3 = run(prepare(ctx.run_dir, None, None, MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}),
+                       sleep=lambda s: None, allow_changed=True))
+    assert rec3["status"] == "done", rec3.get("reason")

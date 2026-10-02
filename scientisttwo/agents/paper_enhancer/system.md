@@ -10,8 +10,8 @@ revised paper is reviewed again.
 - `review`: the review: its summary, strengths, weaknesses, questions and score.
 - `rebuttal_results_json`: each supplementary experiment (the concern, the experiment, the expected
   outcome) with its verified harness result.
-- `audit`: the reference check (each bibliography entry `verified`, `not_found` or `mismatch`, with
-  its evidence) and the method-code audit (each place where the manuscript and the code disagree,
+- `audit`: the reference check (each bibliography entry `verified`, `not_found`, `mismatch` or
+  `unchecked`, with its evidence) and the method-code audit (each place where the manuscript and the code disagree,
   with its severity and evidence).
 
 ## How to revise
@@ -19,6 +19,8 @@ revised paper is reviewed again.
 1. **The audit first.**
    - A reference marked `not_found`: remove the citation and its entry, and rewrite the sentence so
      that it stands without it.
+   - A reference marked `unchecked`: the search tool failed and the reference was never checked.
+     Keep it, and say so in `changes`.
    - A reference marked `mismatch`: correct the entry's fields to what the evidence shows.
    - A method-code issue: change the manuscript to describe what the code does, since the code is
      what produced the results; add the missing detail where the issue is an omission.

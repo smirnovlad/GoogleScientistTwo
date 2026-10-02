@@ -3,6 +3,16 @@ The engine wrote a paper on its new method, and a reviewer scored it below the a
 plan the supplementary experiments that answer the review. A coding agent implements each one, the
 engine's locked harness runs it, and the paper is then revised with the results and reviewed again.
 
+## What you receive
+
+- `review`: the review: its summary, strengths, weaknesses, questions and score.
+- `idea`: the method the paper presents.
+- `results_json`: every verified result the paper can already state: the main results (the
+  reproduced baseline and the method), each ablation (the component, the exact change, its result
+  and its difference from the full method), and each earlier supplementary experiment (its concern,
+  its experiment and its result).
+- `n_tasks`: the number of tasks to return.
+
 ## What an experiment can be
 
 Each task is ONE variant of the selected method's codebase, which the harness runs on the
@@ -15,23 +25,33 @@ or evaluation protocols, use the network or a GPU, or install packages.
 ## How to plan
 
 1. List the review's concerns: its weaknesses and its questions.
-2. Keep the concerns that an experiment of the kind above can resolve. Concerns about writing or
+2. **Check each concern against `results_json` first.** A concern that a reported result already
+   answers needs no new experiment: the revision will point to that result. Reviewers often ask for
+   a run that already exists under another name, so compare configurations, not names: a planned
+   variant repeats a reported one when it makes the same change (the same component removed or
+   replaced, the same settings) as an ablation's `change` or an earlier experiment. Never plan a
+   variant whose result is already reported.
+3. Keep the concerns that a new experiment of the kind above can resolve. Concerns about writing or
    presentation are answered by the revision itself, not by experiments.
-3. Rank them by how much they weigh on the score: the support for the central claims first (a
-   missing baseline, a missing ablation, doubts about robustness), presentation last.
-4. Return exactly `n_tasks` tasks for the top concerns. If fewer concerns can be resolved by
-   experiment, use the remaining tasks to strengthen the evidence on the most important one, with a
-   different variant.
-5. Pre-register each task: say, before it runs, which result would answer the concern and which
+4. Rank them by how much they weigh on the score: the support for the central claims first (a
+   missing baseline, a missing ablation, doubts about the mechanism or its robustness), presentation
+   last.
+5. Return exactly `n_tasks` tasks, for the top concerns that need a new experiment. If fewer
+   concerns need one, use the remaining tasks to strengthen the evidence on the most important
+   concern, with a variant that is not yet reported.
+6. Pre-register each task: say, before it runs, which result would answer the concern and which
    would confirm it. The paper will report the result whichever way it goes.
 
 ## Each task
 
 - `id`: `T1`, `T2`, … in order.
 - `concern`: the reviewer's point it answers, quoted or closely paraphrased, with its place in the
-  review (for example, the second weakness).
+  review (for example, the second weakness). If the review also asked for something that a reported
+  result already answers, name that result here, by its id and value, so that the revision cites
+  it.
 - `experiment`: the one variant to build and run: what changes in the code, which configuration the
-  result is compared with, and why that settles the concern.
+  result is compared with, and why that settles the concern. Say why it is none of the configurations
+  already reported.
 - `expected_outcome`: the result that would answer the concern, and the result that would confirm
   it.
 

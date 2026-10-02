@@ -1,0 +1,47 @@
+<!-- The evaluation-integrity-engineer persona's review of claude/engine at 7e3f0c3 plus uncommitted edits, saved verbatim on 2026-10-02 as it was handed back. Only machine paths are replaced (<engine>, <scratchpad>, ~), since this repository is public. Its probe is copied to playground/engine/integrity-review/. -->
+
+## Evaluation-integrity review — ScientistTwo replication (worktree `.../worktrees/engine`, branch claude/engine)
+
+I read CLAUDE.md §"Research integrity", `docs/architecture/engine.md` §5/6/8, the harness, sandbox, all stages, task.py, claude_cli.py, the digits task, both test files, and the live run `runs/digits-quick-1/` (completed: status done, final_judge 3/10 reject — the agents behaved honestly this run; the holes below are latent). Core result-writing is sound; the leaks are at the read side and the writer side.
+
+---
+
+### [P1] Eval-time label leakage: `deny_read` is a denylist and misses every other copy of the dataset
+**Attack.** Evaluated code (C_best, run by the harness) reads an un-denied copy of scikit-learn's bundled digits — which contains every full/subset/test image *with its label* — builds a pixel→label lookup, and emits perfect predictions. No method, perfect score, on validation and on the once-only test split.
+**Evidence.** `tasks/digits/task.json:52` denies only `{site_packages}/sklearn/datasets/data`; `scientisttwo/task.py:140-143` expands `{site_packages}` to the **engine** python only (`<conda>/lib/python3.13/...`). `scientisttwo/harness/harness.py:159-160` + `integrity()` (122-130) deny only `self.root`, `task.root`, and `deny_read`. I found **9 byte-identical copies** (sha256 `09f66e6d…`) under `<conda>/envs/*/…/sklearn/datasets/data/digits.csv.gz`, none denied. Running a lookup builder **under the exact `Harness.evaluate` policy** (script at `<scratchpad>`) read `envs/rl-env/.../digits.csv.gz` and scored **accuracy 1.0 on the test split** via the locked `metric.score`.
+**Control (proves the mechanism works where applied).** In the same probe, the *engine* copy and the run's locked labels returned "Operation not permitted" — the sandbox rule is correct; only its **coverage** is incomplete.
+**Root fix.** Make eval reads an **allowlist**, not a denylist: deny-all file-read then allow only the workspace, `public_data`, and the specific python prefix needed to import sklearn — so no stray dataset copy, env, or cache is reachable. (Enumerating dataset copies in `deny_read` cannot be complete.)
+
+### [P1] Coding-time network + evadable diff checks let an agent bake labels into code
+**Attack.** Coding agents run with **network ON** (`scientisttwo/stages/common.py:80-82` `policy_coding` never sets `network=False`; default is True — the rendered coding profile has no `(deny network*)`). An agent fetches the dataset at coding time and embeds the lookup as a `.py` literal (<1 MB, integer literals only). `Ctx.check_change` (`common.py:140-155`) is a **substring denylist** (`forbidden_in_diff`) plus a suffix/size data-file check (`DATA_SUFFIXES`, `MAX_ADDED_BYTES` at `common.py:21-24`): a `.py` file with raw ints trips none of them, and the string list is trivially evaded (`__import__('ur'+'llib')`, variable-built URLs).
+**Evidence.** Only `harness.py:160` sets `network=False`, and only for evaluation; `check_change` scans `+` lines for literal substrings.
+**Control.** `tests/test_harness.py:208-225` shows the guard fires on `load_digits` and on a `.npy` file — and nothing exercises an embedded numeric `.py` table or an obfuscated import, which pass.
+**Root fix.** Turn coding-session network **off by default** (allow per-task only), and replace the substring/suffix denylist with the read-allowlist above so fetching/reading the data is impossible regardless of how the diff is written. The model-based `spec_filter` is a prompt guard and does not count.
+
+### [P1] The reproduced baseline has no numeric guard — sandbagging inflates every reported gain
+**Attack.** `baseline_coder` writes version `base`; the headline numbers `export/results.json → validation.gain` and `test.gain` are `proposed − base` (`scientisttwo/stages/export.py:64-67,29-31`). A baseline trained weaker (fewer epochs, worse seed handling) lowers `base.full`, inflating both reported gains without any method change.
+**Evidence.** `scientisttwo/stages/coder.py:66-80` ends the run only if `base.status != "ok"`; there is **no** check of `base.full` against the paper's reported numbers. The recorded design decision **U-BASE-2** (`docs/paper/unspecified.md:90`) explicitly specifies "E_base checked against the paper's reported numbers with a per-task tolerance; on failure the task ends" — unimplemented. `task.reported` is only fed as *context* to the model `full_set_critic` (`coder.py:148`); `min_delta` (`common.py:56-61`) guards only `strictly_better`, never the baseline.
+**Control.** This run's baseline matched 0.9118 exactly, so nothing fired; with a deliberately weak baseline nothing *can* fire. A tolerance gate would end the run instead.
+**Root fix.** Implement U-BASE-2: after `reproduce_baseline`, assert `base` means are within a per-task tolerance of `task.reported` (add the band to `task.json`); on failure raise `RunEnded("baseline_failed")`.
+
+### [P2] Manuscript prose numbers are never checked against `results.json`
+**Attack.** The engine-generated tables are safe (`\input{results}`, regenerated by `write_results`), but the drafter/enhancer write **prose** freely. A writer can state a validation/test score or gain in text that is not in `results.json`; only the model reviewer/judge might notice.
+**Evidence.** No code compares prose to results (searched `writing.py`, `export.py`, `manuscript.py`). `manuscript_text` (`manuscript.py:122-133`) inlines the table but does not validate prose. Scanning the run's three manuscripts, prose contains `0.0121`, `0.0167`, `0.05` — deltas the agent computed, which the drafter prompt forbids — proving prose numbers flow unchecked.
+**Root fix.** Before each review and before export, run a deterministic check that every decimal token in `main.tex` prose matches a value in `results.json` within rounding; fail/flag otherwise. (I prototyped this; it works.)
+
+### [P2] The in-loop reviewer and meta-reviewer read an agent-writable `results.tex`
+**Attack.** `results.tex` is regenerated only at seed/refresh/export (`writing.py:43-51`, `export.py:34-38`); the drafter and paper_enhancer run **after** that with write access to their workspace (`policy_coding`). `review()` (`writing.py:78-80`) then inlines whatever `results.tex` is on disk. A writer editing the table shows the reviewer/meta-reviewer doctored numbers, inflating the reported **review score** and flipping **meta_accepted** (both in `export/results.json`/`report.md`). The final judge is safe because export regenerates the table first.
+**Root fix.** Regenerate `results.tex`/`results.json` from result files immediately before every reviewer/meta read, or keep them outside the writable workspace and verify their hash before each read.
+
+---
+
+### Checked and found sound
+- **Results are written only by the harness.** `evaluate`/`reject` (`harness.py:146-189,132-143`) via `atomic_write_json`; the run dir is `protected` and agents get write-denied — proven by `tests/test_harness.py:83-102` (forged result / escape all fail "Operation not permitted"). I confirmed every `results/*.json` in the live run was harness-written and traces to `export/results.json`.
+- **Validation/test separation.** Only `export()` touches `test`, once; `tests/test_e2e_mock.py:47-52` asserts exactly two `test` result files, both at export. No agent sees a test number before export; `final_judge` has `tools:[]` and nothing runs after it. (But test *integrity* still rides on the P1 leak guards.)
+- **Harness tamper detection.** sha256 manifest re-verified before every eval, files chmod 0o444 (`harness.py:78-107`); `tests/test_harness.py:57-63` proves a 1-byte label edit raises `HarnessTampered`. Run/locked labels matched across worktrees.
+- **Cross-run isolation.** `LOCKED_DIRNAME` denied for all runs; sibling runs hidden when the parent dir is `runs/` (`sandbox.py:101-107`, tests 154-178). Note: hiding depends on the `runs/` parent name; a run dir elsewhere loses sibling-hiding.
+- **Guarded updates / failed flow.** `gain` returns None if either side failed → `strictly_better` False (`harness.py:211-222`); task `min_delta`=0.02 overrides profile (`common.py:56-61`); selector fallback can only pick a Good idea (`evolution.py:83-91`); failed evals become `status:"failed"`, critic-judged, discarded. All sound. (Caveat: "Good" is a *model* verdict, not a numeric gate — the headline gain is not min_delta-gated, matching the paper.)
+- **Judge independence.** `peer_reviewer`/`meta_reviewer` run on sonnet (default/`agents`), `final_judge` on opus with a separate rubric, once, after the loop (`config/routing.json`, `export.py:41-47`). Different model + prompt. Recorded limitation: both are Claude-family (paper used a cross-family held-out judge; A-CFG-1).
+- **Subscription/billing isolation & env allowlist** (`claude_cli.py:51-62,149-153`), **unsandboxed refusal** (`sandbox.py:113-123`), **resume without double-pay** (`agents.py:149-156`, test 113-126): all sound.
+
+Key files: `scientisttwo/harness/{harness.py,sandbox.py}`, `scientisttwo/stages/{common.py,coder.py,writing.py,manuscript.py,export.py}`, `scientisttwo/task.py`, `tasks/digits/task.json`, `docs/paper/unspecified.md` (U-BASE-2). Probe: `<scratchpad>/probe1/`.

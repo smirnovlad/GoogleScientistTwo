@@ -10,15 +10,20 @@ more seed ideas after it.
 1. **It resolves named limitations.** It targets one or more limitations of the set, by id, and each
    of its components says which limitation it addresses.
 2. **It is a new mechanism, not a tweak.** A change of hyperparameters, or a generic training
-   control, is not an idea: no gain from more epochs, a larger model or more compute, a
-   learning-rate schedule, weight averaging, label smoothing, or ensembling over seeds. The engine
-   later checks by ablation that the gain comes from the idea's own components, and rejects ideas
-   whose gain comes from such controls.
+   control, is not an idea. Generic controls include input normalisation or standardisation and
+   other standard preprocessing, more optimizer steps or a larger model, a learning-rate schedule,
+   weight averaging, label smoothing and ensembling over seeds. They stay generic when an idea lists
+   them as its components: the engine's ablations measure the share of the gain they carry on their
+   own, and reject the idea when they carry most of it. If the mechanism needs one of them to work
+   (standardised inputs, for example), say so in `risks`.
 3. **It is feasible here.** It respects the task rules: the data, splits, evaluation protocol and
    metric stay as they are. It runs on CPU only, with the packages already installed (numpy, scipy,
    scikit-learn, pandas, torch), with no downloads and no pretrained weights fetched from the
-   network, inside the task's time budget. A strong coding agent must be able to implement it as a
-   change to the given codebase in one session.
+   network, inside the task's time budget. It trains at the baseline's budget: the baseline's number
+   of optimizer steps (its epochs times its batches per epoch) and its model size, not whatever the
+   task's time limit would allow. A mechanism that trains on more data, such as a synthetic transfer
+   set, still takes the baseline's number of steps. A strong coding agent must be able to implement
+   it as a change to the given codebase in one session.
 4. **It is specified precisely.** Someone who has never seen it can implement it from the `method`
    field alone: each component, its equations or algorithm, and a default value for every new
    hyperparameter.

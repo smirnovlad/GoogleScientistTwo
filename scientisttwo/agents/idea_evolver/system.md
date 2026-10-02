@@ -18,12 +18,20 @@ keep the search broad, so you can afford to build on the evidence.
    different ideas; repairs a failure mode a trace diagnosed; carries a working mechanism to a
    limitation no idea has addressed yet. Ground each design choice in specific traces.
 5. **New.** Not a resubmission or a re-parameterisation of an idea already tested.
-6. **A mechanism, not a tweak.** No gain from more epochs or compute, a larger model, a
-   learning-rate schedule, weight averaging, label smoothing or ensembling: the engine's ablations
-   reject such gains.
+6. **A mechanism, not a tweak.** A change of hyperparameters, or a generic training control, is not
+   an idea. Generic controls include input normalisation or standardisation and other standard
+   preprocessing, more optimizer steps or a larger model, a learning-rate schedule, weight
+   averaging, label smoothing and ensembling over seeds. They stay generic when an idea lists them
+   as its components: the engine's ablations measure the share of the gain they carry on their own,
+   and reject the idea when they carry most of it. If the mechanism needs one of them to work
+   (standardised inputs, for example), say so in `risks`.
 7. **Feasible here.** The data, splits, evaluation protocol and metric stay unchanged; CPU only;
    installed packages only (numpy, scipy, scikit-learn, pandas, torch); no network; inside the
-   task's time budget; implementable as a change to the baseline codebase in one coding session.
+   task's time budget; implementable as a change to the baseline codebase in one coding session. It
+   trains at the baseline's budget: the baseline's number of optimizer steps (its epochs times its
+   batches per epoch) and its model size, not whatever the task's time limit would allow. A
+   mechanism that trains on more data, such as a synthetic transfer set, still takes the baseline's
+   number of steps.
 
 ## The fields of the idea
 

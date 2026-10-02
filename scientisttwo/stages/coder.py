@@ -4,12 +4,11 @@
                          E_base on subset and full, by the harness             (A-BASE-1: once)
 
     a_coder(h):                                                                 [§3.2, Eq. 2]
-        subset:  subset_coder(h) on a copy of "base"; harness on subset
-                 run_stage(critic = subset_critic(E, E_base) → Good | Engineer | Bad,
-                           refine = subset_engineer + harness, limit N_eng, discard)
-        full:    full_set_coder on a copy of the subset version; harness on full
-                 run_stage(critic = full_set_critic(E, E_base_full, reported) …,
-                           refine = full_set_engineer + harness, limit N_eng_full, discard)
+        for level in (subset, full):                                            one function, two levels
+            coder(h) on a copy of the previous version; harness on the level's split
+            run_stage(critic = level critic(E, E_base) → Good | Engineer | Bad,
+                      refine = level engineer + harness, limit N_eng, discard)
+            not Good → Trace(h, Bad), ended at this level
         filter:  spec_filter, read-only, on the diff against "base"             [§4.2]
         → Trace(h, E, C, Good | Bad, feedback)                                  [P-STATE-7]
 
@@ -18,49 +17,16 @@ the run goes on. Only a pause (budget, usage window) or a tampered harness stops
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from typing import Any, Optional
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from ..harness.harness import gain, summarize
-from ..primitive import ACCEPT, REFINE, REJECT, StageParams, run_stage
+from ..primitive import StageOutcome, StageParams, run_stage
 from ..runtime.agents import UnitFailed
-from .common import Ctx, RunEnded, gain_text
-
-VERDICTS = {"Good": ACCEPT, "Engineer": REFINE, "Bad": REJECT}
-
-
-@dataclass
-class Baseline:
-    ws: str
-    subset: dict
-    full: dict
-
-
-@dataclass
-class Trace:
-    id: str
-    idea: dict
-    verdict: str                      # Good | Bad
-    level: str                        # where it ended: subset | full | spec | error
-    feedback: str
-    ws: str
-    subset: Optional[dict] = None
-    full: Optional[dict] = None
-    history: list = field(default_factory=list)
-
-    def view(self) -> dict:
-        """What the Idea Evolver and the Selector read (P-STATE-7)."""
-        last = self.full or self.subset or {}
-        v = {"id": self.id, "idea": self.idea, "verdict": self.verdict, "ended_at": self.level,
-             "feedback": self.feedback,
-             "subset_result": summarize(self.subset) if self.subset else None,
-             "full_result": summarize(self.full) if self.full else None}
-        if self.verdict == "Bad" and last.get("log_tail"):
-            v["diagnostic_log_tail"] = last["log_tail"][-2000:]
-        return v
-
-    def to_dict(self) -> dict:
-        return asdict(self)
+from ..state import Baseline, Trace
+from .common import Ctx, RunEnded
+from .roles import verdict_map, verdict_of
+from .shared import spec_check
 
 
 def reproduce_baseline(ctx: Ctx) -> Baseline:
@@ -75,9 +41,71 @@ def reproduce_baseline(ctx: Ctx) -> Baseline:
     full = ctx.evaluate("base/eval/full", "base", "full")
     ctx.event("baseline", subset=_fmt(subset), full=_fmt(full), agent_error=err or "")
     if subset["status"] != "ok" or full["status"] != "ok":
+        # U-BASE-2 (engine.md §8): no idea can be judged against a baseline that does not run
         raise RunEnded("baseline_failed", f"the reproduced baseline does not run: "
                                           f"{subset.get('error') or full.get('error')}")
+    check_baseline(ctx, {"subset": subset, "full": full})
     return Baseline("base", subset, full)
+
+
+def check_baseline(ctx: Ctx, results: dict) -> None:
+    """U-BASE-2: the reproduced baseline must score what the task reports, within its tolerance.
+    Every reported gain is measured against it, so a weaker baseline would inflate them all
+    (integrity review 2026-10-02, finding 3). A better one fails too: it is not the paper's."""
+    check = ctx.task.baseline_check
+    if not check:
+        ctx.event("baseline_unchecked", reason="the task declares no baseline_check")
+        return
+    r = results[check["split"]]
+    off = r["mean"] - float(check["expected"])
+    ctx.event("baseline_check", split=check["split"], mean=r["mean"], expected=check["expected"],
+              tolerance=check["tolerance"], ok=abs(off) <= float(check["tolerance"]))
+    if abs(off) > float(check["tolerance"]):
+        raise RunEnded("baseline_failed",
+                       f"the reproduced baseline scores {r['mean']:.4f} on {check['split']}; the task "
+                       f"reports {check['expected']} ± {check['tolerance']} (U-BASE-2)")
+
+
+@dataclass(frozen=True)
+class Level:
+    """One evaluation level of A_Coder: its split, its agents and its engineering limit."""
+    split: str                 # subset | full: also the key segment and the stage's settings
+    tag: str                   # version suffix: sub | full
+    coder: str
+    critic: str
+    engineer: str
+    limit: str
+
+
+SUBSET = Level("subset", "sub", "subset_coder", "subset_critic", "subset_engineer", "n_eng_subset")
+FULL = Level("full", "full", "full_set_coder", "full_set_critic", "full_set_engineer", "n_eng_full")
+
+
+def run_level(ctx: Ctx, k: str, idea_id: str, lvl: Level, idea: dict, parent: str,
+              coder_vars: Callable[[dict], dict], critic_vars: Callable[[dict], dict],
+              engineer_vars: Callable[[dict, Any], dict], history: list) -> StageOutcome:
+    """The level's first implementation, then its critic–engineer loop, as one primitive."""
+    name = f"{idea_id}.{lvl.tag}0"
+    _, err = ctx.code(f"{k}/{lvl.split}/code", lvl.coder, coder_vars(idea), parent, name)
+    start = {"idea": idea, "ws": name, "agent_error": err,
+             "result": ctx.evaluate(f"{k}/{lvl.split}/eval0", name, lvl.split)}
+
+    def critic(st: dict, i: int) -> tuple[str, str]:
+        o = ctx.think(f"{k}/{lvl.split}/critic/{i}", lvl.critic, critic_vars(st))
+        history.append((lvl.split, i, verdict_of(lvl.critic, o), o["feedback"]))
+        return verdict_of(lvl.critic, o), o["feedback"]
+
+    def refine(st: dict, feedback: Any, i: int) -> dict:
+        new = f"{idea_id}.{lvl.tag}{i + 1}"
+        out, err = ctx.code(f"{k}/{lvl.split}/engineer/{i}", lvl.engineer, engineer_vars(st, feedback),
+                            st["ws"], new)
+        return {"idea": (out or {}).get("idea") or st["idea"], "ws": new, "agent_error": err,
+                "result": ctx.evaluate(f"{k}/{lvl.split}/eval{i + 1}", new, lvl.split)}
+
+    cfg = ctx.stage(lvl.split)
+    return run_stage(start, StageParams(
+        lvl.split, critic, refine, verdict_map(lvl.critic), limit=ctx.L(lvl.limit),
+        counting=cfg.get("counting", "refinements"), exhaustion=cfg.get("exhaustion", "discard")))
 
 
 def a_coder(ctx: Ctx, idea_id: str, idea: dict, base: Baseline, round_tag: str) -> Trace:
@@ -94,81 +122,42 @@ def _a_coder(ctx: Ctx, k: str, idea_id: str, idea: dict, base: Baseline) -> Trac
     common = {"task_title": t.title, "rules": t.rules_text, "entrypoint": ctx.entrypoint_text()}
     history: list = []
 
-    # ---- subset level -------------------------------------------------------------------------
-    name = f"{idea_id}.sub0"
-    _, err = ctx.code(f"{k}/subset/code", "subset_coder", {**common, "idea": idea}, "base", name)
-    state = {"idea": idea, "ws": name, "result": ctx.evaluate(f"{k}/subset/eval0", name, "subset"),
-             "agent_error": err}
-    last = {"state": state}
-
-    def sub_critic(st: dict, i: int) -> tuple[str, str]:
-        o = ctx.think(f"{k}/subset/critic/{i}", "subset_critic", {
+    sub = run_level(
+        ctx, k, idea_id, SUBSET, idea, "base",
+        coder_vars=lambda h: {**common, "idea": h},
+        critic_vars=lambda st: {
             "task_title": t.title, "metric": t.metric_info, "idea": st["idea"],
             "baseline_result": summarize(base.subset), "idea_result": summarize(st["result"]),
-            "gain": gain_text(st["result"], base.subset, t), "log_tail": _log(st),
-            "diff_summary": ctx.diff(st["ws"])})
-        history.append(("subset", i, o["verdict"], o["feedback"]))
-        return o["verdict"], o["feedback"]
-
-    def sub_refine(st: dict, feedback: str, i: int) -> dict:
-        new = f"{idea_id}.sub{i + 1}"
-        out, err = ctx.code(f"{k}/subset/engineer/{i}", "subset_engineer", {
-            **common, "idea": st["idea"], "feedback": feedback,
-            "idea_result": summarize(st["result"]), "log_tail": _log(st)}, st["ws"], new)
-        revised = out.get("idea") if out else None
-        nxt = {"idea": revised or st["idea"], "ws": new, "agent_error": err,
-               "result": ctx.evaluate(f"{k}/subset/eval{i + 1}", new, "subset")}
-        last["state"] = nxt
-        return nxt
-
-    sub_cfg = ctx.stage("subset")
-    outcome = run_stage(state, StageParams(
-        "subset", sub_critic, sub_refine, VERDICTS, limit=ctx.L("n_eng_subset"),
-        counting=sub_cfg.get("counting", "refinements"), exhaustion=sub_cfg.get("exhaustion", "discard")))
-    st = last["state"]
-    if outcome.status != "accepted":
+            "gain": ctx.gain_text(st["result"], base.subset), "log_tail": _log(st),
+            "diff_summary": ctx.diff(st["ws"])},
+        engineer_vars=lambda st, fb: {
+            **common, "idea": st["idea"], "feedback": fb, "idea_result": summarize(st["result"]),
+            "log_tail": _log(st)},
+        history=history)
+    if sub.candidate is None:
+        st = sub.last
         ctx.event("idea", id=idea_id, verdict="Bad", level="subset", gain=_g(st["result"], base.subset))
-        return Trace(idea_id, st["idea"], "Bad", "subset", str(outcome.last_feedback or ""), st["ws"],
+        return Trace(idea_id, st["idea"], "Bad", "subset", str(sub.last_feedback or ""), st["ws"],
                      subset=st["result"], history=history)
-    subset_result = outcome.candidate["result"]
-    st = outcome.candidate
+    subset_result = sub.candidate["result"]
 
-    # ---- full level ---------------------------------------------------------------------------
-    name = f"{idea_id}.full0"
-    _, err = ctx.code(f"{k}/full/code", "full_set_coder", {
-        **common, "idea": st["idea"], "subset_result": summarize(subset_result)}, st["ws"], name)
-    fstate = {"idea": st["idea"], "ws": name, "result": ctx.evaluate(f"{k}/full/eval0", name, "full"),
-              "agent_error": err}
-    flast = {"state": fstate}
-
-    def full_critic(s: dict, i: int) -> tuple[str, str]:
-        o = ctx.think(f"{k}/full/critic/{i}", "full_set_critic", {
-            "task_title": t.title, "metric": t.metric_info, "idea": s["idea"],
-            "baseline_result": summarize(base.full), "idea_result": summarize(s["result"]),
-            "gain": gain_text(s["result"], base.full, t), "reported": t.reported, "log_tail": _log(s)})
-        history.append(("full", i, o["verdict"], o["feedback"]))
-        return o["verdict"], o["feedback"]
-
-    def full_refine(s: dict, feedback: str, i: int) -> dict:
-        new = f"{idea_id}.full{i + 1}"
-        out, err = ctx.code(f"{k}/full/engineer/{i}", "full_set_engineer", {
-            **common, "idea": s["idea"], "feedback": feedback,
-            "best_result": summarize(base.full)}, s["ws"], new)
-        nxt = {"idea": (out or {}).get("idea") or s["idea"], "ws": new, "agent_error": err,
-               "result": ctx.evaluate(f"{k}/full/eval{i + 1}", new, "full")}
-        flast["state"] = nxt
-        return nxt
-
-    full_cfg = ctx.stage("full")
-    outcome = run_stage(fstate, StageParams(
-        "full", full_critic, full_refine, VERDICTS, limit=ctx.L("n_eng_full"),
-        counting=full_cfg.get("counting", "refinements"), exhaustion=full_cfg.get("exhaustion", "discard")))
-    fs = flast["state"]
-    if outcome.status != "accepted":
+    full = run_level(
+        ctx, k, idea_id, FULL, sub.candidate["idea"], sub.candidate["ws"],
+        coder_vars=lambda h: {**common, "idea": h, "subset_result": summarize(subset_result)},
+        critic_vars=lambda st: {
+            "task_title": t.title, "metric": t.metric_info, "idea": st["idea"],
+            "baseline_result": summarize(base.full), "idea_result": summarize(st["result"]),
+            "gain": ctx.gain_text(st["result"], base.full), "reported": t.reported,
+            "log_tail": _log(st)},
+        engineer_vars=lambda st, fb: {
+            **common, "idea": st["idea"], "feedback": fb, "best_result": summarize(base.full)},
+        history=history)
+    if full.candidate is None:
+        fs = full.last
         ctx.event("idea", id=idea_id, verdict="Bad", level="full", gain=_g(fs["result"], base.full))
-        return Trace(idea_id, fs["idea"], "Bad", "full", str(outcome.last_feedback or ""), fs["ws"],
+        return Trace(idea_id, fs["idea"], "Bad", "full", str(full.last_feedback or ""), fs["ws"],
                      subset=subset_result, full=fs["result"], history=history)
-    fs = outcome.candidate
+    fs = full.candidate
 
     # ---- specification filter, §4.2: an in-run gate, read-only (A-INT-1, A-INT-3) -------------
     ok, why = spec_check(ctx, f"{k}/spec", fs["idea"], fs["ws"])
@@ -177,20 +166,8 @@ def _a_coder(ctx: Ctx, k: str, idea_id: str, idea: dict, base: Baseline) -> Trac
         return Trace(idea_id, fs["idea"], "Bad", "spec", why, fs["ws"], subset=subset_result,
                      full=fs["result"], history=history)
     ctx.event("idea", id=idea_id, verdict="Good", level="full", gain=_g(fs["result"], base.full))
-    return Trace(idea_id, fs["idea"], "Good", "full", str(outcome.last_feedback or ""), fs["ws"],
+    return Trace(idea_id, fs["idea"], "Good", "full", str(full.last_feedback or ""), fs["ws"],
                  subset=subset_result, full=fs["result"], history=history)
-
-
-def spec_check(ctx: Ctx, key: str, idea: dict, ws: str) -> tuple[bool, str]:
-    """The specification filter: does the solution obey the task's rules? (§4.2)"""
-    if not ctx.cfg.get("integrity", {}).get("spec_filter", True):
-        return True, "specification filter disabled by the profile"
-    o = ctx.think(key, "spec_filter", {"task_title": ctx.task.title, "rules": ctx.task.rules_text,
-                                       "idea": idea, "diff": ctx.diff(ws)}, readonly=ctx.ws.path(ws))
-    if o.get("compliant"):
-        return True, ""
-    return False, "specification filter: " + "; ".join(
-        f"{v.get('rule')}: {v.get('evidence')}" for v in o.get("violations", []))
 
 
 def _log(state: dict) -> str:

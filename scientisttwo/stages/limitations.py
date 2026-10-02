@@ -13,8 +13,9 @@ Seeds, a different shape (analysis §3.3): a scoring critic and a count stop.
 """
 from __future__ import annotations
 
-from ..primitive import ACCEPT, REFINE, StageParams, run_stage
+from ..primitive import StageParams, run_stage
 from .common import Ctx
+from .roles import verdict_map, verdict_of
 
 
 def find_limitations(ctx: Ctx) -> list[dict]:
@@ -27,7 +28,7 @@ def find_limitations(ctx: Ctx) -> list[dict]:
     def critic(limitations: list, i: int) -> tuple[str, str]:
         out = ctx.think(f"lim/verify/{i}", "limitation_verifier",
                         {"task_title": t.title, "paper": t.paper_text, "limitations": limitations})
-        return out["verdict"], out["feedback"]
+        return verdict_of("limitation_verifier", out), out["feedback"]
 
     def refine(limitations: list, feedback: str, i: int) -> list:
         out = ctx.think(f"lim/extract/{i + 1}", "limitation_extractor",
@@ -37,10 +38,10 @@ def find_limitations(ctx: Ctx) -> list[dict]:
     cfg = ctx.stage("limitations")
     outcome = run_stage(first["limitations"], StageParams(
         name="limitations", critic=critic, refine=refine,
-        verdict_map={"sufficient": ACCEPT, "insufficient": REFINE},
+        verdict_map=verdict_map("limitation_verifier"),
         limit=ctx.L("limitation_rounds"), counting=cfg.get("counting", "critic_calls"),
         exhaustion=cfg.get("exhaustion", "keep_last")))
-    limitations = outcome.candidate if outcome.candidate is not None else first["limitations"]
+    limitations = outcome.candidate          # keep_last (config.STAGE_RULES): never None
     ctx.event("limitations", status=outcome.status, n=len(limitations), critic_calls=outcome.critic_calls)
     return limitations
 
@@ -56,7 +57,9 @@ def generate_seeds(ctx: Ctx, limitations: list[dict]) -> list[dict]:
         if i == 0:
             idea = ctx.think("seeds/0/generate", "initial_idea_generator", base)["idea"]
         else:
-            view = [{"idea": s["idea"], "novelty_score": s["novelty"]["novelty_score"]} for s in pool]
+            # each seed goes with its whole novelty check, references and rationale included, so the
+            # generator can steer away from mechanisms the literature already has
+            view = [{"idea": s["idea"], **s["novelty"]} for s in pool]
             idea = ctx.think(f"seeds/{i}/generate", "idea_generator", {**base, "pool": view})["idea"]
         novelty = ctx.think(f"seeds/{i}/novelty", "novelty_checker", {"task_title": t.title, "idea": idea})
         pool.append({"id": f"s{i + 1}", "idea": idea, "novelty": novelty, "order": i})

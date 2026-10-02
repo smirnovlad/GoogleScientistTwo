@@ -3,11 +3,12 @@
   "kind": "reasoning",
   "tools": [],
   "paper_ref": "§3.5, P-ROSTER-22",
-  "description": "Plans the supplementary experiments that answer the review's concerns.",
+  "description": "Plans the supplementary experiments that answer the review's concerns, never repeating a reported result.",
   "variables": [
     "task_title",
     "idea",
     "review",
+    "results_json",
     "n_tasks"
   ]
 }

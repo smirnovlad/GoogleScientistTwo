@@ -34,10 +34,12 @@ def test_reject_discards():
     assert (out.candidate, out.status) == (None, "rejected")
 
 
-@pytest.mark.parametrize("exhaustion,expected", [("discard", None), ("keep_last", 2), ("keep_best", 0)])
+@pytest.mark.parametrize("exhaustion,expected", [("discard", None), ("keep_last", 2), ("keep_best", 1)])
 def test_refinement_counting_allows_n_plus_one_critic_calls(exhaustion, expected):
     critic, calls = scripted(["Engineer"])
-    out = run_stage(0, StageParams("s", critic, lambda c, f, i: c + 1, V, limit=2, exhaustion=exhaustion))
+    rank = (lambda c: -abs(c - 1)) if exhaustion == "keep_best" else None   # candidates 0, 1, 2: 1 is best
+    out = run_stage(0, StageParams("s", critic, lambda c, f, i: c + 1, V, limit=2, exhaustion=exhaustion,
+                                   rank=rank))
     assert out.status == "exhausted"
     assert (out.critic_calls, out.refinements) == (3, 2)        # A-TOP-2 reading 2
     assert out.candidate == expected
@@ -83,3 +85,22 @@ def test_bad_parameters_are_refused():
         StageParams("s", lambda c, i: ("Good", ""), lambda c, f, i: c, V, limit=-1)
     with pytest.raises(ValueError):
         StageParams("s", lambda c, i: ("Good", ""), lambda c, f, i: c, V, limit=1, exhaustion="keep_some")
+
+
+def test_keep_best_needs_a_guard_or_a_rank():
+    """It used to return the first candidate silently (architecture review 2026-10-02, finding 2)."""
+    with pytest.raises(ValueError):
+        StageParams("s", lambda c, i: ("Good", ""), lambda c, f, i: c, V, limit=1, exhaustion="keep_best")
+    with pytest.raises(ValueError):
+        StageParams("s", lambda c, i: ("Good", ""), lambda c, f, i: c, V, limit=1, exhaustion="keep_best",
+                    guard=lambda n, b: True, rank=lambda c: c)
+
+
+def test_every_outcome_says_what_was_judged_last():
+    critic, _ = scripted(["Engineer", "Bad"])
+    out = run_stage(0, StageParams("s", critic, lambda c, f, i: c + 1, V, limit=2))
+    assert (out.candidate, out.last, out.status) == (None, 1, "rejected")
+    critic, _ = scripted(["Engineer"])
+    out = run_stage(10, StageParams("s", critic, lambda c, f, i: c - 1, V, limit=3,
+                                    guard=lambda new, best: new > best))
+    assert (out.candidate, out.last, out.best, out.status) == (10, 9, 10, "guard_failed")

@@ -43,3 +43,6 @@ wandb/
 tasks/*/data/
 tasks/*/harness/inputs/
 tasks/*/harness/labels/
+
+# Logs of local engine runs
+/runs-*.log

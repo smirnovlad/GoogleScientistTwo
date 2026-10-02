@@ -5,9 +5,10 @@ and a sha256 manifest is written. Then, for every evaluation of a codebase versi
 
   1. verify the manifest; any changed, added or removed file stops the run (`HarnessTampered`);
   2. copy the split's INPUTS (never its labels) into a fresh directory;
-  3. per seed, run the task's entrypoint in the version's workspace, inside the sandbox: the
-     workspace and the harness are read-only, the run's harness copy cannot even be read, only
-     the evaluation directory is writable, and there is no network;
+  3. per seed, run the task's entrypoint in the version's workspace, inside the sandbox
+     (policies.RunRules.evaluation): it reads only the version, the public data and Python under
+     $HOME, writes only the evaluation directory, and has no network; its output goes to a file,
+     and its whole process tree is killed at the end;
   4. score each predictions file in the ENGINE's process with the task's own `metric.score`;
   5. write one result file: per-seed scores, mean, standard deviation, status, log tail.
 
@@ -18,24 +19,30 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
-import json
 import math
 import os
 import shutil
-import signal
-import subprocess
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Optional
 
+from ..runtime.procs import ProcRegistry, run_tree
 from ..runtime.store import atomic_write_json, read_json
 from ..task import Task
+from ..workspace import archive_commit
 from . import sandbox as sbx
+from .policies import RunRules, python_read_paths
 
 
 class HarnessTampered(RuntimeError):
     pass
+
+
+class StaleResult(RuntimeError):
+    """A stored result belongs to another commit than the version it is asked for: an invariant
+    of the run store is broken, and reading it would judge new code by an old number."""
 
 
 # numpy 2.2 with Apple Accelerate on M4 warns on every matmul although the results are exact
@@ -65,7 +72,7 @@ class Harness:
     def __init__(self, task: Task, run_dir: Path, allow_unsandboxed: bool = False,
                  python: str = sys.executable):
         self.task = task
-        self.run_dir = Path(run_dir)
+        self.run_dir = Path(run_dir).resolve()
         self.root = self.run_dir / sbx.LOCKED_DIRNAME  # the locked copy: denied to every agent
         self.locked = self.root / "files"
         self.public = self.run_dir / "public_data"     # what training code may read
@@ -73,6 +80,17 @@ class Harness:
         self.allow_unsandboxed = allow_unsandboxed
         self.python = python
         self._metric = None
+        self.procs: Optional[ProcRegistry] = None
+        self.rules = RunRules(
+            run_dir=self.run_dir.resolve(),
+            denied=(self.root.resolve(), task.root, *task.deny_read),
+            deny_patterns=tuple(task.deny_patterns), public=self.public.resolve(),
+            python=tuple(python_read_paths(python)))
+
+    def configure(self, **fields) -> None:
+        """Complete the run's rules with what the orchestrator knows: the agent backend's own
+        reads and the egress proxies' ports."""
+        self.rules = replace(self.rules, **fields)
 
     # ---- setup ----------------------------------------------------------------------------------
     def install(self) -> dict[str, str]:
@@ -119,16 +137,6 @@ class Harness:
             self._metric = module
         return self._metric
 
-    def integrity(self) -> dict:
-        """The sandbox rules every process of this run gets, agents and evaluated code alike:
-        the task's own folder and its declared extra paths are unreadable, the run directory is
-        never writable, and, when runs share a `runs/` folder, other runs are unreadable."""
-        denied = [self.root, self.task.root, *self.task.deny_read]
-        rules: dict = {"denied": denied, "protected": [self.run_dir]}
-        if self.run_dir.parent.name == "runs":
-            rules.update(hidden=[self.run_dir.parent], visible=[self.run_dir])
-        return rules
-
     def reject(self, key: str, workspace: Path, split: str, reason: str, commit: str = "") -> dict:
         """A version that breaks a checkable rule is never run: its result is `failed`, with why."""
         out_file = self.results / f"{key}.json"
@@ -147,25 +155,39 @@ class Harness:
         """Evaluate a codebase version on a split. Memoised by `key` in results/."""
         out_file = self.results / f"{key}.json"
         if out_file.exists():
-            return read_json(out_file)
+            stored = read_json(out_file)
+            if commit and stored.get("commit") and stored["commit"] != commit:
+                raise StaleResult(f"{key}: the stored result is for commit {stored['commit'][:10]}, "
+                                  f"the version is now {commit[:10]}")
+            return stored
         self.verify()
         s = self.task.splits[split]
         eval_dir = self.run_dir / "evals" / key
         shutil.rmtree(eval_dir, ignore_errors=True)
         eval_dir.mkdir(parents=True)
+        # the version's COMMIT, exported fresh: never its working tree, which a stray process
+        # could still be changing after the commit (infrastructure review 2026-10-02, I5)
+        code = eval_dir / "code"
+        if commit:
+            archive_commit(workspace, commit, code)
+        else:
+            shutil.copytree(workspace, code, ignore=shutil.ignore_patterns(".git"))
         # a neutral name: the code cannot tell which split it is labelling
         inputs = eval_dir / ("inputs" + Path(s.inputs).suffix)
         shutil.copyfile(self._path(s.inputs), inputs)
-        policy = sbx.SandboxPolicy.build(writable=[eval_dir], readonly=[workspace, self.public],
-                                         network=False, **self.integrity())
         scores, logs, status, error = [], [], "ok", None
         started = time.time()
         for seed in s.seeds:
-            pred = eval_dir / f"pred_seed{seed}.npy"
+            # each seed writes only its own directory: no seed reads what another left behind
+            seed_dir = eval_dir / f"seed{seed}"
+            seed_dir.mkdir()
+            policy = self.rules.evaluation(code, seed_dir, inputs)
+            pred = seed_dir / "pred.npy"
             cmd = self.task.entrypoint.format(python=_shq(self.python), train_dir=_shq(str(self.public)),
                                               inputs=_shq(str(inputs)), out=_shq(str(pred)), seed=seed)
-            rc, output, timed_out = self._run(cmd, workspace, eval_dir, policy)
-            (eval_dir / f"log_seed{seed}.txt").write_text(output)
+            log_file = eval_dir / f"log_seed{seed}.txt"
+            rc, timed_out = self._run(cmd, code, seed_dir, policy, log_file, f"{key}/seed{seed}")
+            output = tail(log_file.read_text(errors="replace"), 20000)
             logs.append(f"--- seed {seed} (exit {rc}{', TIMEOUT' if timed_out else ''}) ---\n{output}")
             if timed_out or rc != 0:
                 status, error = "failed", (f"seed {seed}: timed out after {self.task.eval_timeout_s}s"
@@ -188,24 +210,16 @@ class Harness:
         atomic_write_json(out_file, result)
         return result
 
-    def _run(self, cmd: str, cwd: Path, eval_dir: Path, policy: sbx.SandboxPolicy) -> tuple[int, str, bool]:
-        from ..runtime.backends.claude_cli import child_env
-        env = child_env(self.python)
-        env.update({"PYTHONDONTWRITEBYTECODE": "1", "MPLBACKEND": "Agg", "HOME": str(eval_dir),
-                    "TMPDIR": str(eval_dir), "PYTHONWARNINGS": QUIET_WARNINGS})
+    def _run(self, cmd: str, cwd: Path, seed_dir: Path, policy: sbx.SandboxPolicy, log_file: Path,
+             key: str) -> tuple[int, bool]:
+        tmp = seed_dir / "tmp"
+        tmp.mkdir(exist_ok=True)
+        env = sbx.child_env(self.python, {
+            "PYTHONDONTWRITEBYTECODE": "1", "MPLBACKEND": "Agg", "HOME": str(seed_dir),
+            "TMPDIR": str(tmp), "PYTHONWARNINGS": QUIET_WARNINGS})
         argv = sbx.wrap(["/bin/sh", "-c", cmd], policy, self.allow_unsandboxed)
-        proc = subprocess.Popen(argv, cwd=str(cwd), env=env, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, text=True, start_new_session=True)
-        try:
-            out, _ = proc.communicate(timeout=self.task.eval_timeout_s)
-            return proc.returncode, tail(out, 20000), False
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            out, _ = proc.communicate()
-            return -9, tail(out or "", 20000), True
+        return run_tree(argv, cwd=cwd, env=env, timeout=self.task.eval_timeout_s, output=log_file,
+                        registry=self.procs, key=key)
 
 
 def gain(new: dict, ref: dict) -> Optional[float]:
@@ -224,7 +238,8 @@ def strictly_better(new: dict, best: dict, min_delta: float = 0.0) -> bool:
 
 def summarize(result: dict) -> dict:
     """What a critic reads: no log, numbers only."""
-    keys = ("split", "status", "error", "metric", "direction", "mean", "std", "n_seeds", "scores")
+    keys = ("split", "status", "error", "metric", "direction", "mean", "std", "n_seeds", "scores",
+            "key", "commit")
     return {k: result.get(k) for k in keys}
 
 

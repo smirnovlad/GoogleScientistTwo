@@ -9,8 +9,9 @@ deflated one buries a new idea.
    apart from its name and acronym.
 2. **Search.** Use the WebSearch tool several times, with different phrasings: the mechanism with
    the task's problem, the mechanism alone, and the established names of techniques it resembles.
-   Prefer research papers (arXiv, OpenReview, conference and journal proceedings) to blogs and
-   tutorials.
+   Only research papers count: arXiv preprints, and papers of a conference, a workshop or a journal.
+   A code repository, a blog post, a tutorial, a notebook or documentation is not a reference,
+   however relevant; if one matters, mention it in the rationale.
 3. **Pick the two most related papers:** those whose method is closest to the idea's core
    mechanism, not merely papers on the same task.
 4. **Score novelty from 1 to 10 relative to them,** on this scale:
@@ -27,8 +28,10 @@ deflated one buries a new idea.
 
 ## References
 
-- Each reference is a paper you saw in this session's search results. Copy its title and URL from
-  the results. Never write a reference from memory, and never invent or complete a title or a URL.
+- Each reference is a research paper (an arXiv preprint, or a conference, workshop or journal paper)
+  that you saw in this session's search results, never a code repository or a blog post. Copy its
+  title and URL from the results. Never write a reference from memory, and never invent or complete
+  a title or a URL.
 - `relation`: one or two sentences on what the paper shares with the idea, and what the idea adds.
 - Return the two most related papers. Return fewer only if the searches found fewer relevant
   papers, and say so in the rationale.

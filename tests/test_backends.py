@@ -7,34 +7,38 @@ from pathlib import Path
 
 import pytest
 
-from scientisttwo.runtime.agents import AgentRuntime, AgentSpec, Routing, UnitFailed
-from scientisttwo.runtime.backends.base import (AgentCall, AgentFailed, AgentTimeout, InvalidOutput,
-                                                RateLimited, TransientError)
-from scientisttwo.runtime.backends.claude_cli import ClaudeCLIBackend, child_env
+from scientisttwo.harness.sandbox import SandboxPolicy, SandboxUnavailable, child_env
+from scientisttwo.runtime.agents import AgentRuntime, AgentSpec, InputsChanged, Routing, UnitFailed
+from scientisttwo.runtime.backends import make_backend
+from scientisttwo.runtime.backends.base import (AgentCall, AgentFailed, AgentTimeout, EnvironmentFault,
+                                                InvalidOutput, RateLimited, TransientError)
+from scientisttwo.runtime.backends.claude_cli import QUIET_ENV, ClaudeCLIBackend, _reset_at
 from scientisttwo.runtime.backends.mock import MockBackend, synth
-from scientisttwo.runtime.budget import Budget, BudgetExceeded, Caps
+from scientisttwo.runtime.budget import Budget, BudgetExceeded, Caps, RunPaused
 from scientisttwo.runtime.store import RunStore
 
 FAKE = Path(__file__).parent / "fake_claude.py"
 SCHEMA = {"type": "object", "properties": {"verdict": {"type": "string", "enum": ["Good", "Bad"]},
                                            "feedback": {"type": "string"}},
           "required": ["verdict", "feedback"], "additionalProperties": False}
+TMP = Path(os.environ.get("TMPDIR", "/tmp"))
 
 
 @pytest.fixture
 def fake(tmp_path):
     os.chmod(FAKE, os.stat(FAKE).st_mode | stat.S_IXUSR)
-    return ClaudeCLIBackend(claude_bin=str(FAKE))
+    # these tests check how the backend reads the CLI, not the sandbox (tests/test_harness.py)
+    return ClaudeCLIBackend(claude_bin=str(FAKE), allow_unsandboxed=True)
 
 
-def call(scenario="success", kind="reasoning", timeout=20, transcript=None):
+def call(scenario="success", kind="reasoning", timeout=20, transcript=None, sandbox=None):
     return AgentCall(agent="critic", kind=kind, system="SYSTEM", user=f"hello\nSCENARIO={scenario}\n",
-                     schema=SCHEMA, model="sonnet", effort="medium", tools=(), cwd=None, sandbox=None,
+                     schema=SCHEMA, model="sonnet", effort="medium", tools=(), cwd=None, sandbox=sandbox,
                      timeout_s=timeout, transcript=transcript, key="t/1")
 
 
 def last_call() -> dict:
-    return json.loads((Path(os.environ.get("TMPDIR", "/tmp")) / "fake_claude_last_call.json").read_text())
+    return json.loads((TMP / "fake_claude_last_call.json").read_text())
 
 
 def test_success_and_isolation_flags(fake, tmp_path, monkeypatch):
@@ -50,8 +54,28 @@ def test_success_and_isolation_flags(fake, tmp_path, monkeypatch):
                  "--no-session-persistence", "--json-schema", "--system-prompt"):
         assert flag in argv
     assert argv[argv.index("--setting-sources") + 1] == "" and argv[argv.index("--tools") + 1] == ""
-    assert not any(k.startswith("ANTHROPIC") or k.startswith("CLAUDE_CODE") for k in env)
+    assert not any(k.startswith("ANTHROPIC") for k in env)
+    # the only Claude Code variables are the engine's own switches: none of the launching session's
+    assert {k for k in env if k.startswith("CLAUDE_CODE")} == {k for k in QUIET_ENV if k.startswith("CLAUDE_CODE")}
+    assert env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] == "1" and env["DISABLE_AUTOUPDATER"] == "1"
     assert (tmp_path / "t.jsonl").read_text().count("\n") == 3
+
+
+def test_the_proxy_and_the_unit_tmpdir_reach_the_cli(fake, tmp_path):
+    sb = SandboxPolicy.build(network="proxy", proxy_port=4321)
+    c = AgentCall(agent="critic", kind="reasoning", system="S", user="SCENARIO=success\n", schema=SCHEMA,
+                  model="sonnet", effort=None, tools=(), cwd=None, sandbox=sb, timeout_s=20,
+                  transcript=None, key="t/1", tmpdir=tmp_path)
+    fake.allow_unsandboxed = True
+    env = fake.env(c)
+    assert env["HTTPS_PROXY"] == "http://127.0.0.1:4321" and env["TMPDIR"] == str(tmp_path)
+    assert env["NO_PROXY"] == ""                 # nothing bypasses the proxy
+
+
+def test_no_policy_no_process():
+    b = ClaudeCLIBackend(claude_bin=str(FAKE))
+    with pytest.raises(SandboxUnavailable):
+        b.call(call())
 
 
 def test_coding_agents_keep_the_cli_prompt_and_bypass_inside_the_sandbox(fake):
@@ -70,8 +94,11 @@ def test_api_key_auth_is_refused(fake):
 
 @pytest.mark.parametrize("scenario,error", [("ratelimit", RateLimited), ("error429", RateLimited),
                                             ("overloaded", TransientError), ("crash", TransientError),
-                                            ("noschema", InvalidOutput)])
+                                            ("noschema", InvalidOutput), ("usage", AgentFailed),
+                                            ("eperm", EnvironmentFault), ("context", TransientError)])
 def test_failures_are_classified(fake, scenario, error):
+    """`context` once read as a usage limit ("limit reached"), `eperm` as an argument error
+    (infrastructure review 2026-10-02, I10)."""
     with pytest.raises(error):
         fake.call(call(scenario))
 
@@ -82,15 +109,50 @@ def test_rate_limit_carries_the_reset_time(fake):
     assert e.value.reset_at and e.value.reset_at > time.time()
 
 
+def test_the_reset_comes_from_the_spent_window():
+    now = time.time()
+    windows = {"five_hour": {"utilization": 1.0, "resetsAt": now + 3600},
+               "seven_day": {"utilization": 0.6, "resetsAt": now + 5 * 86400}}
+    # a warning about the 7-day window, while the 5-hour one is the one spent
+    assert abs(_reset_at({"status": "allowed_warning", "rateLimitType": "seven_day",
+                          "resetsAt": now + 5 * 86400, "unifiedWindows": windows}) - (now + 3600)) < 1
+    assert abs(_reset_at({"status": "rejected", "resetsAt": now + 7200, "unifiedWindows": windows}) - (now + 7200)) < 1
+
+
 def test_timeout_kills_the_call(fake):
     with pytest.raises(AgentTimeout):
         fake.call(call("slow", timeout=1))
 
 
+def test_a_delivered_result_survives_a_lingering_cli(fake):
+    started = time.time()
+    r = fake.call(call("linger", timeout=3))
+    assert r.output == {"verdict": "Good", "feedback": "fine"}
+    assert time.time() - started < 6           # not the CLI's 30 s, and not a timeout
+
+
+def test_the_whole_process_tree_dies_with_the_call(fake, tmp_path):
+    beat = tmp_path / "beat.txt"
+    c = call("orphan")
+    fake.call(AgentCall(**{**c.__dict__, "user": c.user + f"BEAT={beat}\n"}))
+    time.sleep(0.6)
+    size = beat.stat().st_size if beat.exists() else 0
+    time.sleep(0.8)
+    assert (beat.stat().st_size if beat.exists() else 0) == size, "a detached child outlived its call"
+
+
 def test_child_env_is_an_allowlist(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    env = child_env()
+    env = child_env("/usr/bin/python3")
     assert set(env) <= {"HOME", "USER", "LOGNAME", "SHELL", "LANG", "TERM", "PATH", "TMPDIR"}
+
+
+def test_the_registry_resumes_a_run_on_the_backend_it_recorded(tmp_path):
+    b = make_backend("claude_cli", claude_bin=str(FAKE))
+    assert isinstance(b, ClaudeCLIBackend) and b.claude_bin == os.path.realpath(FAKE)
+    assert isinstance(make_backend("mock"), MockBackend)
+    with pytest.raises(ValueError):
+        make_backend("gemini")
 
 
 # ---- the runtime, on the mock backend ---------------------------------------------------------
@@ -98,13 +160,18 @@ SPEC = AgentSpec(name="critic", kind="reasoning", tools=(), paper_ref="test", de
                  variables=("x",), system="sys", prompt="judge {{x}}", schema=SCHEMA)
 
 
-def runtime(tmp_path, script=None, caps=None, max_wait=0.0):
+def runtime(tmp_path, script=None, caps=None, max_wait=0.0, strict=True, spec=SPEC):
     backend = MockBackend(script)
     sleeps: list = []
     rt = AgentRuntime(backend, RunStore(tmp_path), Budget(tmp_path, caps or Caps(), time.time()),
-                      Routing({"default": {"model": "sonnet"}}), tmp_path, specs={"critic": SPEC},
-                      max_wait_minutes=max_wait, sleep=sleeps.append)
+                      Routing({"default": {"model": "sonnet"}}), tmp_path, specs={"critic": spec},
+                      max_wait_minutes=max_wait, sleep=sleeps.append, strict_replay=strict)
     return rt, backend, sleeps
+
+
+def ledger(tmp_path) -> list[dict]:
+    return [json.loads(l) for l in (tmp_path / "ledger.jsonl").read_text().splitlines()
+            if json.loads(l).get("type") == "agent"]
 
 
 def test_a_finished_unit_is_never_paid_twice(tmp_path):
@@ -112,12 +179,44 @@ def test_a_finished_unit_is_never_paid_twice(tmp_path):
     first = rt.run("a/1", "critic", {"x": 1})
     rt2, backend2, _ = runtime(tmp_path)                     # a resumed process
     assert rt2.run("a/1", "critic", {"x": 1}) == first and backend2.calls == []
+    assert (tmp_path / "prompts" / "a" / "1.json").exists()  # what was asked, in full
 
 
-def test_transient_errors_are_retried(tmp_path):
+def test_a_replay_with_other_inputs_is_refused(tmp_path):
+    rt, _, _ = runtime(tmp_path)
+    rt.run("a/1", "critic", {"x": 1})
+    rt2, backend2, _ = runtime(tmp_path)
+    with pytest.raises(InputsChanged):
+        rt2.run("a/1", "critic", {"x": 2})
+    rt3, backend3, _ = runtime(tmp_path, strict=False)       # resume --allow-changed: replayed, logged
+    rt3.run("a/1", "critic", {"x": 2})
+    assert backend3.calls == []
+
+
+def test_unknown_variables_are_refused(tmp_path):
+    rt, _, _ = runtime(tmp_path)
+    with pytest.raises(KeyError, match="not declared"):
+        rt.run("a/1", "critic", {"x": 1, "y": 2})
+
+
+def test_transient_errors_are_retried_and_each_attempt_is_in_the_ledger(tmp_path):
     rt, backend, sleeps = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "transient", "times": 2}]})
     assert rt.run("a/1", "critic", {"x": 1})["verdict"] in ("Good", "Bad")
     assert len(backend.calls) == 3 and len(sleeps) == 2
+    assert [e["outcome"] for e in ledger(tmp_path)] == ["transient", "transient", "ok"]
+
+
+def test_transient_errors_that_persist_pause_the_run_and_store_nothing(tmp_path):
+    rt, backend, _ = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "transient"}]})
+    with pytest.raises(RunPaused):
+        rt.run("a/1", "critic", {"x": 1})
+    assert not RunStore(tmp_path).has("a/1") and len(ledger(tmp_path)) == 3
+
+
+def test_a_machine_fault_pauses(tmp_path):
+    rt, _, _ = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "environment"}]})
+    with pytest.raises(RunPaused, match="machine"):
+        rt.run("a/1", "critic", {"x": 1})
 
 
 def test_persistent_failure_is_stored_and_replayed(tmp_path):
@@ -130,10 +229,21 @@ def test_persistent_failure_is_stored_and_replayed(tmp_path):
     assert backend2.calls == []
 
 
+def test_a_timeout_is_retried_once_then_fails(tmp_path):
+    rt, backend, _ = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "timeout", "times": 1}]})
+    rt.run("a/1", "critic", {"x": 1})
+    assert len(backend.calls) == 2
+    rt, backend, _ = runtime(tmp_path / "b", {"rules": [{"agent": "critic", "raise": "timeout"}]})
+    with pytest.raises(UnitFailed):
+        rt.run("a/1", "critic", {"x": 1})
+    assert len(backend.calls) == 2
+
+
 def test_invalid_output_is_retried_with_the_error(tmp_path):
     rt, backend, _ = runtime(tmp_path, {"rules": [{"agent": "critic", "output": {"verdict": "Maybe"}, "times": 1}]})
     assert rt.run("a/1", "critic", {"x": 1})["verdict"] == "Good"
     assert len(backend.calls) == 2
+    assert [e["outcome"] for e in ledger(tmp_path)] == ["invalid_output", "ok"]
 
 
 def test_usage_limit_waits_when_short_and_pauses_when_long(tmp_path):
@@ -147,12 +257,29 @@ def test_usage_limit_waits_when_short_and_pauses_when_long(tmp_path):
     assert not RunStore(tmp_path / "b").has("a/1")           # nothing half-written: resumable
 
 
+def test_usage_limit_waits_are_capped(tmp_path):
+    rt, backend, sleeps = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "rate_limit"}]}, max_wait=10)
+    with pytest.raises(BudgetExceeded):
+        rt.run("a/1", "critic", {"x": 1})
+    assert len(sleeps) == 3 and len(backend.calls) == 4
+
+
 def test_budget_caps_stop_before_the_call(tmp_path):
     rt, backend, _ = runtime(tmp_path, caps=Caps(max_agent_calls=1))
     rt.run("a/1", "critic", {"x": 1})
     with pytest.raises(BudgetExceeded):
         rt.run("a/2", "critic", {"x": 2})
     assert len(backend.calls) == 1
+
+
+def test_retries_count_against_the_caps(tmp_path):
+    """Three backend calls once counted as one (infrastructure review 2026-10-02, I2)."""
+    rt, backend, _ = runtime(tmp_path, {"rules": [{"agent": "critic", "raise": "transient", "times": 1}]},
+                             caps=Caps(max_agent_calls=2))
+    rt.run("a/1", "critic", {"x": 1})
+    with pytest.raises(BudgetExceeded):
+        rt.run("a/2", "critic", {"x": 2})
+    assert len(backend.calls) == 2
 
 
 def test_usage_window_ceiling_pauses(tmp_path):
@@ -162,6 +289,33 @@ def test_usage_window_ceiling_pauses(tmp_path):
     with pytest.raises(BudgetExceeded) as e:
         b.check("reasoning")
     assert e.value.resume_after and b.summary()["unknown_cost_calls"] == 1
+
+
+def test_a_window_with_no_reset_time_does_not_block_forever(tmp_path):
+    b = Budget(tmp_path, Caps(max_five_hour_utilization=0.5), time.time())
+    b.record({"agent": "x", "kind": "reasoning", "seconds": 1, "equiv_usd": 0.0,
+              "rate_limit": {"unifiedWindows": {"five_hour": {"utilization": 0.9}}}})
+    b.check("reasoning")
+
+
+def test_a_partial_ledger_line_is_repaired(tmp_path):
+    b = Budget(tmp_path, Caps(), time.time())
+    b.record({"agent": "x", "kind": "reasoning", "seconds": 1, "equiv_usd": 0.5})
+    with open(tmp_path / "ledger.jsonl", "a") as f:
+        f.write('{"type": "agent", "agent": "x", "equiv_')       # a crash mid-append
+    b2 = Budget(tmp_path, Caps(), time.time())
+    assert b2.totals.agent_calls == 1 and b2.totals.equiv_usd == 0.5
+
+
+def test_paused_time_does_not_count_as_running(tmp_path):
+    from scientisttwo.runtime.budget import running_hours
+    now = time.time()
+    (tmp_path / "run.json").write_text(json.dumps({"history": [
+        {"time": now - 10 * 3600, "status": "running"}, {"time": now - 9 * 3600, "status": "paused"},
+        {"time": now - 2 * 3600, "status": "running"}]}))
+    assert abs(running_hours(tmp_path, now) - 3.0) < 1e-6
+    b = Budget(tmp_path, Caps(max_hours=4), now - 10 * 3600)
+    b.check("reasoning")                                       # 3 h running of a 10 h-old run
 
 
 def test_synth_fits_its_schema():

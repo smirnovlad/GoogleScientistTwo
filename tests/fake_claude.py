@@ -22,6 +22,15 @@ def emit(event):
     print(json.dumps(event), flush=True)
 
 
+if scenario == "usage":
+    sys.stderr.write("error: unknown option '--frobnicate'\n")
+    sys.exit(1)
+if scenario == "eperm":
+    sys.stderr.write("Error: EPERM: operation not permitted, open '/x/.claude.json'\n")
+    sys.exit(1)
+if scenario == "context":
+    sys.stderr.write("API Error: context limit reached for this model\n")
+    sys.exit(1)
 source = "ANTHROPIC_API_KEY" if scenario == "apikey" else "none"
 emit({"type": "system", "subtype": "init", "apiKeySource": source, "model": "fake-model", "session_id": "s-1"})
 window = {"five_hour": {"utilization": 0.4, "resetsAt": int(time.time()) + 3600},
@@ -33,6 +42,17 @@ if scenario == "apikey":
     time.sleep(5)          # would bill the API: the backend must kill it before the result
 if scenario == "slow":
     time.sleep(30)
+if scenario == "orphan":
+    # a detached grandchild in its own session, as the Bash tool's shell is: it must not outlive the call
+    import subprocess
+    beat = next((Path(l.split("=", 1)[1].strip()) for l in prompt.splitlines() if l.startswith("BEAT=")),
+                Path(os.environ.get("TMPDIR", "/tmp")) / "fake_claude_orphan.txt")
+    subprocess.Popen([sys.executable, "-c", (
+        "import time, sys\n"
+        f"p = {str(beat)!r}\n"
+        "while True:\n"
+        "    open(p, 'a').write('beat\\n'); time.sleep(0.2)\n")], start_new_session=True,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 if scenario == "crash":
     sys.stderr.write("segfault-ish\n")
     sys.exit(2)
@@ -48,3 +68,5 @@ structured = None if scenario == "noschema" else {"verdict": "Good", "feedback":
 emit({"type": "result", "subtype": "success", "is_error": False, "result": json.dumps(structured),
       "structured_output": structured, "total_cost_usd": 0.0123, "num_turns": 2,
       "usage": {"input_tokens": 10, "output_tokens": 20}, "session_id": "s-1"})
+if scenario == "linger":
+    time.sleep(30)         # the result is out; a CLI that hangs now must not lose it

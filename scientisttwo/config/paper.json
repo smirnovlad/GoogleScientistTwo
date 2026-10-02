@@ -4,7 +4,6 @@
   "limits": {
     "limitation_rounds": 16,
     "n_seed": 6,
-    "novelty_refs": 2,
     "n0": 2,
     "n_eng_subset": 2,
     "n_eng_full": 2,
@@ -20,15 +19,44 @@
     "n_meta": 1
   },
   "stages": {
-    "limitations":  {"counting": "critic_calls", "exhaustion": "keep_last"},
-    "subset":       {"counting": "refinements",  "exhaustion": "discard"},
-    "full":         {"counting": "refinements",  "exhaustion": "discard"},
-    "ablation":     {"counting": "refinements",  "exhaustion": "keep_best", "reject_ends_run": true},
-    "peer_review":  {"counting": "refinements",  "exhaustion": "keep_last"},
-    "meta":         {"counting": "refinements",  "exhaustion": "keep_best"}
+    "limitations": {
+      "counting": "critic_calls",
+      "exhaustion": "keep_last"
+    },
+    "subset": {
+      "counting": "refinements",
+      "exhaustion": "discard"
+    },
+    "full": {
+      "counting": "refinements",
+      "exhaustion": "discard"
+    },
+    "ablation": {
+      "counting": "refinements",
+      "exhaustion": "keep_best",
+      "reject_ends_run": true,
+      "reject_share": 0.5
+    },
+    "peer_review": {
+      "counting": "refinements",
+      "exhaustion": "keep_last"
+    },
+    "meta": {
+      "counting": "refinements",
+      "exhaustion": "keep_best"
+    }
   },
-  "guard": {"min_delta": 0.0},
-  "integrity": {"spec_filter": true, "reference_check": true, "method_code_audit": true, "final_judge": true},
+  "guard": {
+    "min_delta": 0.0
+  },
+  "integrity": {
+    "spec_filter": true,
+    "reference_check": true,
+    "method_code_audit": true,
+    "final_judge": true,
+    "test_report": true,
+    "prose_check": true
+  },
   "parallel": 2,
   "budget": {
     "max_agent_calls": 800,
@@ -38,7 +66,17 @@
     "max_five_hour_utilization": 0.98,
     "max_seven_day_utilization": 0.95
   },
-  "rate_limit": {"max_wait_minutes": 300},
-  "retries": {"transient": 2, "invalid_output": 1},
-  "routing": {}
+  "rate_limit": {
+    "max_wait_minutes": 300,
+    "max_waits": 3
+  },
+  "retries": {
+    "transient": 2,
+    "invalid_output": 1,
+    "timeout": 1
+  },
+  "routing": {},
+  "export": {
+    "test_variants": true
+  }
 }

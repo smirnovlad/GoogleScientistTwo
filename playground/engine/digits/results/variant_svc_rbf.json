@@ -1,0 +1,41 @@
+[
+ {
+  "split": "full",
+  "seed": 0,
+  "rep": 0,
+  "primary": 0.9860724233983287,
+  "n": 359,
+  "n_correct": 354,
+  "macro_f1": 0.986103512258962,
+  "wall_s": 1.455,
+  "pred_sha256": "c6e46f881e77cb9e",
+  "stdout": "seed=0 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.06",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 1,
+  "rep": 0,
+  "primary": 0.9860724233983287,
+  "n": 359,
+  "n_correct": 354,
+  "macro_f1": 0.986103512258962,
+  "wall_s": 0.882,
+  "pred_sha256": "c6e46f881e77cb9e",
+  "stdout": "seed=1 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.06",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 2,
+  "rep": 0,
+  "primary": 0.9860724233983287,
+  "n": 359,
+  "n_correct": 354,
+  "macro_f1": 0.986103512258962,
+  "wall_s": 0.915,
+  "pred_sha256": "c6e46f881e77cb9e",
+  "stdout": "seed=2 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.06",
+  "stderr_lines": []
+ }
+]

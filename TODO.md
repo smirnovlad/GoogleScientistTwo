@@ -195,16 +195,87 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
 - [x] `P0` **E3 · The engine core** in `scientisttwo/`: the backends (`claude -p`, mock), the run
   store and resume, the budget guard and ledger, the sandbox, the locked harness, workspaces, the
   stage primitive, every stage of §3.1–§3.6 and §4.2, the export, the CLI.
-- [ ] `P0` **E4 · The 27 agents as data** (`scientisttwo/agents/`), checked by
-  `playground/engine/check_agents.py`. Owner `agent-engineer`.
-- [ ] `P0` **E5 · The demo task** `tasks/digits/`, with measured baseline numbers and headroom.
-  Owner `research-engineer`.
-- [ ] `P0` **E6 · Tests for $0:** the primitive, harness, sandbox, backends, runtime, and every
-  terminal branch end to end on the mock backend (`tests/`).
-- [ ] `P0` **E7 · A real run on the subscription:** `tasks/digits`, profile `quick`, through to
-  an exported paper and code; then its findings fixed.
-- [ ] `P1` **E8 · Review:** personas in parallel (system-architect, evaluation-integrity-engineer,
-  agent-engineer, infrastructure-engineer), then the `/codex` gate; findings fixed.
-- [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real run's behaviour.
+- [x] `P0` **E4 · The 27 agents as data** (`scientisttwo/agents/`), checked by
+  `playground/engine/check_agents.py`. Owner `agent-engineer`. Proof (2026-10-02): the checker
+  reports 27 agents and 0 problems, 291 schema mutants are rejected, and the self-test catches
+  21 of 21 corruptions. A live haiku call on a known-answer case returned the expected verdict.
+- [x] `P0` **E5 · The demo task** `tasks/digits/`, with measured baseline numbers and headroom.
+  Owner `research-engineer`. Baseline: subset 0.8960 ± 0.0217, full 0.9118 ± 0.0170, test
+  0.9090 ± 0.0196 (3 seeds). The lookup attack failed under the real policy.
+- [x] `P0` **E6 · Tests for $0:** the primitive, harness, sandbox, backends and runtime, plus
+  every terminal branch end to end on the mock backend (`tests/`, 56 passed on 2026-10-02).
+  The gaps the reviews found are F-items below.
+- [x] `P0` **E7 · A real run on the subscription:** `runs/digits-quick-1`, profile `quick`.
+  Status `done` in 0.16 h: 36 agent calls, 15 sessions, $2.91 API-equivalent, nothing billed.
+  Validation gain +0.0761, test gain +0.0548, peer review 3/10, final judge 3/10 (reject).
+  Its findings are R1–R4.
+- [ ] `P1` **E8 · Review:** personas in parallel, saved verbatim in
+  `docs/reviews/engine-2026-10-02/` (architecture, infrastructure, integrity; agent-engineer's
+  report in the hand-back), then the `/codex` gate. The findings, each fixed with a test:
+  - From run 1:
+    - [x] R1 · The ablation critic gets the baseline and the gain over it (P-ABL-7). Run 1's critic said
+      "The baseline score was not supplied", while standardisation alone carried 84% of the gain.
+    - [ ] R2 · The test results go into the text through a `test_reporter` writer. Run 1's judge
+      found the abstract saying "no test split" beside the test table.
+    - [ ] R3 · The rebuttal planner reads the results already reported. Run 1 re-ran ablation A1
+      as its only rebuttal experiment.
+    - [x] R4 · The critics' gain text states the margin `min_delta`, so the LLM gates and the guard
+      share one threshold.
+  - From the agent engineer:
+    - [x] A1 · `render` raises on undeclared variables.
+    - [x] A2 · The idea generator reads each seed's novelty references.
+    - [x] A3 · A reference whose search failed is `unchecked` and kept, never removed.
+    - [x] A4 · Read-only agents keep `Bash` for git history; engine.md §3 now says why.
+  - From the integrity review:
+    - [ ] G1 · `P1` Evaluated code and agents read through an allowlist under `$HOME`, plus a
+      task-declared deny pattern. The reviewer read one of 9 un-denied copies of the digits data
+      and scored 1.0 on the test split.
+    - [ ] G2 · `P1` Agents have no network beyond the Anthropic API: a local proxy with a host
+      allowlist, and the sandbox denies every other outbound connection. Per-task extra hosts.
+    - [ ] G3 · `P1` U-BASE-2: the reproduced baseline must match the task's reported numbers
+      within a tolerance, or the run ends `baseline_failed` (a sandbagged baseline inflates gains).
+    - [ ] G4 · `P2` Prose numbers in the manuscript are checked against `results.json`; unmatched
+      numbers go to the audit.
+    - [ ] G5 · `P2` Reviewers read results tables regenerated from result files, never the copy
+      a writer could edit; an edited copy is an audit finding.
+  - From the infrastructure review:
+    - [ ] I1 · `P1` A stale result can never be read for new code: `evaluate` checks the commit,
+      `rt.run` checks the inputs hash, exhausted transient retries pause the run, and each resume
+      records the engine commit and the CLI version.
+    - [ ] I2 · `P1` One ledger line per attempt, fsync'd, before the unit is stored.
+    - [ ] I3 · `P1` A truncated last ledger line is repaired, not fatal.
+    - [ ] I4 · `P1` `max_hours` counts running time, not paused time.
+    - [ ] I5 · `P1` A run lock; each session's process groups recorded and killed as a tree;
+      orphans from a crashed engine killed on resume.
+    - [ ] I6 · `P1` An evaluation cannot hang the engine: output to a file, a bounded wait, and the
+      whole tree killed.
+    - [ ] I7 · `P1` Agents cannot write a workspace's `.git`; git errors become unit failures.
+    - [ ] I8 · `P2` A result already delivered is used even if the CLI then lingers.
+    - [ ] I9 · `P2` Retries start clean: one transcript per attempt, the workspace reset, and a
+      cap on usage-limit waits.
+    - [ ] I10 · `P2` Errors are classified by exit code and the CLI's own usage text; environment
+      faults pause; the reset time comes from the exhausted window.
+    - [ ] I11 · `P2` The sandbox keeps the user's Claude setup read-only (settings, hooks,
+      CLAUDE.md, memory), auto-memory and auto-update are off, the CLI path is pinned, and each
+      unit gets its own TMPDIR.
+  - From the architecture review:
+    - [ ] S1 · `P1` A backend registry, a backend per route, and a subprocess base class that
+      always applies the sandbox.
+    - [ ] S2 · `P1` Stage settings are validated per stage; peer review's "keep the best" is a
+      rank, not an undocumented key; `novelty_refs` is removed; §4's pseudocode matches the code.
+    - [x] S3 · `P1` The critics' verdict maps are one table (`stages/roles.py`), checked against
+      the schemas before a run starts.
+    - [ ] S4 · `P2` A unit failure that stops the run is retried on resume, not replayed forever.
+    - [ ] S5 · `P2` A run pins its prompts: the agents are snapshotted into the run, and result
+      keys and commits are carried into the paper's payload.
+    - [ ] S6 · `P2` §8 records each departure the review listed, and §5 says who reads test results.
+      The export ships each ablation and rebuttal variant as a patch. An ablation `Reject` on a
+      restarted pass keeps the previous pass.
+    - [x] S7 · `P2` A_Coder's two levels are one `run_level`; ablations and rebuttals share
+      `run_variants`.
+    - [ ] S8 · `P2` The state types live in `state.py` and shared steps in `stages/shared.py`;
+      `child_env` moves to the sandbox module; the sandbox policy follows the agent's kind.
+- [ ] `P1` **E11 · A second real run** after the fixes, to check them on the subscription.
+- [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real runs' behaviour.
 - [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
   the harness with task 6's four blocking decisions.

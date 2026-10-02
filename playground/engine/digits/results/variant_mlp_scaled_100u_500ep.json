@@ -1,0 +1,41 @@
+[
+ {
+  "split": "full",
+  "seed": 0,
+  "rep": 0,
+  "primary": 0.9916434540389972,
+  "n": 359,
+  "n_correct": 356,
+  "macro_f1": 0.991665058846228,
+  "wall_s": 1.071,
+  "pred_sha256": "10d273d5d9763653",
+  "stdout": "seed=0 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.21",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 1,
+  "rep": 0,
+  "primary": 0.9888579387186629,
+  "n": 359,
+  "n_correct": 355,
+  "macro_f1": 0.9888459204702105,
+  "wall_s": 1.071,
+  "pred_sha256": "1821a682d7bda5fa",
+  "stdout": "seed=1 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.21",
+  "stderr_lines": []
+ },
+ {
+  "split": "full",
+  "seed": 2,
+  "rep": 0,
+  "primary": 0.9860724233983287,
+  "n": 359,
+  "n_correct": 354,
+  "macro_f1": 0.986107445280511,
+  "wall_s": 1.0,
+  "pred_sha256": "aa7f5ba5dcb61c9a",
+  "stdout": "seed=2 train_n=1079 train_accuracy=1.0000 predicted_n=359 seconds=0.19",
+  "stderr_lines": []
+ }
+]

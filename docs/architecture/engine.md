@@ -61,7 +61,11 @@ Every call is one `claude -p` process with:
   - ⛔ WHY NOT `--bare`: under it, auth is "strictly ANTHROPIC_API_KEY", which bills the API;
 - `--model` and `--effort` from `config/routing.json`;
 - `--tools`: `""` for a pure reasoning agent, `WebSearch` for the novelty and reference checks,
-  `Read,Glob,Grep` for read-only agents, `Bash,Read,Edit,Write,Glob,Grep` for coding agents;
+  `Read,Glob,Grep` for the ablation planner, `Read,Glob,Grep,Bash` for read-only agents, and
+  `Bash,Read,Edit,Write,Glob,Grep` for coding and writer agents;
+  - ⛔ WHY NOT read-only agents without `Bash`: an auditor ties a claim to the version that made
+    it with `git log`, `git show` and `git diff`. The sandbox, not the tool list, stops the writes
+    (section 5), so `Bash` adds reading and nothing else;
 - reasoning agents: `--system-prompt <system.md>`, replacing Claude Code's own; coding agents:
   `--append-system-prompt <system.md>`, keeping Claude Code's tool instructions;
 - coding agents: `--permission-mode bypassPermissions`, inside the sandbox (section 5);
@@ -182,16 +186,17 @@ expected_effect, risks}`.
 | selector | §3.3, P-ROSTER-15 | reasoning | task_title, metric, candidates | `{choice, rationale}` |
 | ablation_planner | §3.4, P-ROSTER-16 | reasoning, Read/Glob/Grep | task_title, idea, best_result, n_plans, diff_summary | `{plans: [{id, component, change, hypothesis}]}` |
 | ablation_coder | §3.4, P-ROSTER-17 | coding | task_title, rules, entrypoint, idea, plan | `{summary, files_changed, notes}` |
-| ablation_critic | §3.4, P-ROSTER-18 | reasoning | task_title, metric, idea, best_result, ablations | `{verdict: Good\|Refine\|Reject, feedback}` |
+| ablation_critic | §3.4, P-ROSTER-18 | reasoning | task_title, metric, idea, best_result, baseline_result, gain, ablations, reject_share | `{verdict: Good\|Refine\|Reject, feedback}` |
 | initial_drafter | §3.5, P-ROSTER-20 | writer | task_title, paper, idea, limitations, references, results_tex, results_json | `{title, abstract, notes}`, and `main.tex`, `references.bib` |
 | peer_reviewer | §3.5, P-ROSTER-21 | reasoning | manuscript | `{summary, strengths, weaknesses, questions, score: 1–10, confidence: 1–5}` |
-| rebuttal_planner | §3.5, P-ROSTER-22 | reasoning | task_title, idea, review, n_tasks | `{tasks: [{id, concern, experiment, expected_outcome}]}` |
+| rebuttal_planner | §3.5, P-ROSTER-22 | reasoning | task_title, idea, review, results_json, n_tasks | `{tasks: [{id, concern, experiment, expected_outcome}]}` |
 | rebuttal_coder | §3.5, P-ROSTER-23 | coding | task_title, rules, entrypoint, idea, task | `{summary, files_changed, notes}` |
 | paper_enhancer | §3.5, P-ROSTER-24 | writer | review, rebuttal_results_json, audit | `{changes, responses}` |
 | meta_reviewer | §3.6, P-ROSTER-25 | reasoning | manuscript, review | `{decision: Accept\|Refine, feedback}` |
 | spec_filter | §4.2, P-ROSTER-26 | read-only | task_title, rules, idea, diff | `{compliant, violations: [{rule, evidence}]}` |
-| reference_checker | §4.2, P-ROSTER-27 | reasoning, WebSearch | bibliography | `{entries: [{key, status: verified\|not_found\|mismatch, evidence}]}` |
+| reference_checker | §4.2, P-ROSTER-27 | reasoning, WebSearch/WebFetch | bibliography | `{entries: [{key, status: verified\|not_found\|mismatch\|unchecked, evidence}]}` |
 | method_code_auditor | §4.2, P-ROSTER-28 | read-only | manuscript, diff | `{consistent, issues: [{severity, claim, evidence}]}` |
+| test_reporter | ours, U-TOP-5 | writer | task_title, metric, test_results, validation_results | `{changes, notes}` |
 | final_judge | §4, held-out | reasoning | manuscript | `{score: 1–10, decision: accept\|reject, rationale}` |
 
 The Result Comparison Agent (P-ROSTER-19) is a numeric test, not an agent (section 5, A-ABL-3).
@@ -220,6 +225,7 @@ The Result Comparison Agent (P-ROSTER-19) is a numeric test, not an agent (secti
 | U-PEER-1 N_t | 3 | none |
 | P-ROSTER-45 PaperOrchestra | our drafter writes LaTeX; the engine supplies the results tables | PaperOrchestra itself: not available to us |
 | P-ROSTER-46 ScholarPeer | our reviewer, scoring 1–10 against the threshold 8 (App. A.2) | ScholarPeer itself: not available; the threshold is its scale's (P-CFG-9) |
+| U-TOP-5 the test split in the paper | after the one test evaluation, the test_reporter (writer) puts the test results into the text: abstract, results and limitations, as they came out | appending the table alone: run 1's final judge found the text saying "no test split" beside the test table; keeping the test out of the paper: a reader would see only validation numbers that the search selected on |
 | P-ROSTER-47 Google Search | Claude Code's WebSearch tool, two papers per idea | an API key for a search engine |
 
 ## 9. The run directory
