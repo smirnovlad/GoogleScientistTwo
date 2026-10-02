@@ -252,10 +252,10 @@ class AgentRuntime:
         while True:
             attempt += 1
             number, attempt_id = prior + attempt, uuid.uuid4().hex
+            if before_attempt is not None:          # prepared first: a failure here reserves nothing
+                before_attempt(attempt)
             self.budget.admit(spec.kind, {"key": key, "agent": agent, "kind": spec.kind,
                                           "attempt": number, "attempt_id": attempt_id})
-            if before_attempt is not None:
-                before_attempt(attempt)
             call = AgentCall(agent=agent, kind=spec.kind, system=spec.system, user=text,
                              schema=spec.schema, model=route.model, effort=route.effort,
                              tools=spec.tools, cwd=cwd, sandbox=sandbox, timeout_s=route.timeout_s,
@@ -323,8 +323,9 @@ class AgentRuntime:
         recorded = record.get("inputs_sha256")
         if recorded is None or recorded == inputs_sha:
             return
-        msg = (f"{key}: this unit's inputs changed since it ran (prompt, variables, model or "
-               f"backend). Start a new run, or resume with --allow-changed to replay its recorded output.")
+        msg = (f"{key}: this unit's inputs changed since it ran (its prompt, variables, schema, tools, "
+               f"model, effort or backend). Start a new run, or resume with --allow-changed to "
+               f"replay its recorded output.")
         if self.strict_replay:
             raise InputsChanged(msg)
         log.warning("%s", msg)

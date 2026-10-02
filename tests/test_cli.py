@@ -26,3 +26,61 @@ def test_wait_does_not_wait_for_a_pause_without_a_reset():
     rec = cli.wait_and_resume({"status": "paused", "reason": "agent-call cap reached"}, resume=None,
                               max_wait_hours=24, sleep=sleeps.append)
     assert rec["status"] == "paused" and sleeps == []
+
+
+# ---- what the guide's checks found (2026-10-02) -------------------------------------------------
+def _paused_run(tmp_path, toy_task):
+    rules = tmp_path / "rules.json"
+    rules.write_text(json.dumps({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT,
+                                           {"agent": "ablation_planner", "raise": "rate_limit"}]}))
+    run_dir = tmp_path / "run"
+    code = cli.main(["run", "--task", str(toy_task), "--run-dir", str(run_dir), "--backend", "mock",
+                     "--mock-script", str(rules), "--set", "rate_limit.max_wait_minutes=0"])
+    assert code == 3 and read_json(run_dir / "run.json")["status"] == "paused"
+    return run_dir
+
+
+def test_run_refuses_an_existing_run_and_resume_changes_only_caps_on_the_record(tmp_path, toy_task):
+    run_dir = _paused_run(tmp_path, toy_task)
+    before = (run_dir / "run.json").read_text()
+    assert cli.main(["run", "--task", str(toy_task), "--run-dir", str(run_dir), "--profile", "paper"]) == 1
+    assert (run_dir / "run.json").read_text() == before                  # not silently resumed
+    assert cli.main(["resume", str(run_dir), "--backend", "mock", "--set", "limits.K=3"]) == 1
+    from scientisttwo.orchestrator import close, prepare
+    from scientisttwo.runtime.backends.mock import MockBackend
+    held = prepare(run_dir, None, None, MockBackend())
+    try:
+        assert cli.main(["resume", str(run_dir), "--backend", "mock"]) == 1    # locked: no traceback
+    finally:
+        close(held)
+    rules = tmp_path / "ok.json"
+    rules.write_text(json.dumps({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}))
+    assert cli.main(["resume", str(run_dir), "--backend", "mock", "--mock-script", str(rules),
+                     "--set", "budget.max_agent_calls=999"]) == 0
+    rec = read_json(run_dir / "run.json")
+    changed = [h for h in rec["history"] if h.get("event") == "budget_changed"]
+    assert rec["status"] == "done" and changed[0]["after"]["max_agent_calls"] == 999
+
+
+def test_a_mistyped_cap_leaves_no_run_behind(tmp_path, toy_task):
+    import pytest
+    run_dir = tmp_path / "run"
+    with pytest.raises(ValueError):
+        cli.main(["run", "--task", str(toy_task), "--run-dir", str(run_dir), "--backend", "mock",
+                  "--set", "budget.max_agent_cals=5"])
+    assert not run_dir.exists()
+
+
+def test_a_new_status_drops_the_last_finish(tmp_path):
+    from scientisttwo.orchestrator import _set_status
+    from scientisttwo.runtime.store import atomic_write_json
+    atomic_write_json(tmp_path / "run.json", {"status": "done", "final": {"idea": "x"}, "history": []})
+    assert "final" not in _set_status(tmp_path, "error", reason="later")
+
+
+def test_a_resume_after_a_wait_takes_the_current_claude_when_the_pinned_one_is_gone(tmp_path):
+    from scientisttwo.runtime.backends.claude_cli import ClaudeCLIBackend
+    b = ClaudeCLIBackend(claude_bin=str(tmp_path / "versions" / "2.1.0"))
+    assert cli._current(b) is not b and cli._current(b).claude_bin != b.claude_bin
+    live = ClaudeCLIBackend()
+    assert cli._current(live) is live

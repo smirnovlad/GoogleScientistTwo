@@ -19,9 +19,9 @@ Then read `<run-dir>/export/report.md`.
 
 **Where it stands (2026-10-02).** Three `quick` runs on the demo task have finished `done` on the
 subscription, in `runs/digits-quick-{1,2,3}` (local, not committed). Run 2 paused on a usage window
-and was resumed; run 3 ran from scratch on the current engine. The `paper` profile has never run end
-to end. Some of what this guide documents (`--wait`, the binary fallback, the wider inputs hash) is
-uncommitted at the time of writing; the HANDOFF in
+and was resumed; run 3 ran from scratch on `f470f27`. Three changes this guide covers came after
+run 3 and have run only on the mock backend: `--wait`, the fallback to a newer `claude` binary, and
+the wider inputs hash. The `paper` profile has never run end to end. The HANDOFF in
 [DEVELOPMENT_PROCESS.md](../DEVELOPMENT_PROCESS.md) says what is merged and reviewed.
 
 ## 1. What it does
@@ -69,7 +69,7 @@ The digits data is not in git. The first run generates it with
 **Check the install for $0** before you spend a usage window:
 
 ```sh
-python3 -m pytest -q tests        # 115 passed in about 4 min (2026-10-02)
+python3 -m pytest -q tests        # all must pass: 123, in about 4 min, on 2026-10-02
 python3 -m scientisttwo run --task tasks/digits --backend mock --run-dir /tmp/st2-mock
 ```
 
@@ -161,8 +161,9 @@ tmux new -s st2 'python3 -m scientisttwo run --task tasks/digits --profile quick
 
 Detach with `Ctrl-b d`; `tmux attach -t st2` brings it back.
 
-While it sleeps, `status` shows `paused`, and the run's lock is released. Do not `resume` the same
-run by hand meanwhile: the sleeping process would then fail to take the lock when it wakes.
+While it sleeps, `status` shows `paused`, and the run's lock is released. If you `resume` the run
+by hand meanwhile, stop the sleeping process first (Ctrl-C in its tmux window): otherwise it wakes
+into a lock someone else holds, prints `not resumed after the wait: …` and stops.
 
 ### Profiles: `quick` and `paper`
 
@@ -186,8 +187,8 @@ How the guard reads these ([`budget.py`](../scientisttwo/runtime/budget.py#L171-
   paused or crashed does not count. `max_equiv_usd` is off (`null`); the dollar figure is what the
   CLI reports as API-equivalent, and the subscription bills nothing per call.
 - **Ceilings** pause the run once a call reports a window at or above its ceiling, with
-  `resume_after` set to that window's reset. This, not a refused call, is what normally stops a
-  run: in run 2 the ceiling tripped at 99%, and no call was ever refused.
+  `resume_after` set to that window's reset. In run 2 this, not a refused call, stopped the run:
+  the ceiling tripped at 99%, and no call was ever refused.
 - **The windows are shared with your own Claude use.** Run 2 started with the five-hour window at
   91%, spent by other sessions, and paused at 99% eleven minutes later. To leave yourself room,
   start the run with a lower ceiling, for example `--set budget.max_five_hour_utilization=0.8`.
@@ -248,10 +249,15 @@ protocols in one result: that is why the run pins it.
 
 ### Raising a cap on a paused run
 
-A cap pause has no reset time, and resuming hits the same cap again. The profile is pinned in
-`run.json` and no flag changes it. The only route today is to edit
-`profile.budget.<cap>` in `<run-dir>/run.json` (stop the engine first), then `resume`. Checked on
-the mock backend. The edit is not recorded in the run's history; note it yourself.
+A cap pause has no reset time, and resuming hits the same cap again. Raise the cap as you resume:
+
+```sh
+python3 -m scientisttwo resume <run-dir> --set budget.max_agent_calls=300
+```
+
+`resume --set` accepts only `budget.*` keys (a limit or a stage setting changed mid-run would mix
+two protocols in one run). The change is validated and recorded in the run's history as a
+`budget_changed` entry, with the caps before and after.
 
 ## 5. Reading a finished run
 
@@ -311,8 +317,9 @@ and the egress summary. The `pdf` field says whether the engine's own build succ
 the prose that no result holds, and whether a writer edited the engine's tables.
 
 **4. `export/paper/`**: `main.tex`, `references.bib`, `results.tex` (the engine's tables) and
-`main.pdf`. Trust `main.pdf` only when `results.json` says `"pdf": true`. Writers may compile
-their own copy, and run 2's export holds such a `main.pdf` beside `"pdf": false`.
+`main.pdf`, which is the engine's own build. The export has no `main.pdf` when that build failed
+(`"pdf": false`): a writer's own compiled copy never reaches it. Run 2, from before this rule, has
+one beside `"pdf": false`; do not trust it.
 
 **5. The code.** `export/code/` is the final codebase (C+). `changes.patch` is C+ against the
 reproduced baseline. `variants/<id>.patch` turns C+ into each ablation (`A…`) or rebuttal
@@ -430,8 +437,8 @@ window near full, lower the ceiling (section 3).
 up beyond `--max-wait-hours`. Resume after the date `date -r <resume_after>` prints.
 
 **Paused: `agent-call cap reached (150/150)`**, or `coding-session cap reached`, `running-time cap
-reached`. `--wait` will not wait for it, and resuming hits it again. Raise the cap in `run.json`
-(section 4).
+reached`. `--wait` will not wait for it, and resuming hits it again. Raise the cap with
+`resume --set budget.<cap>=<value>` (section 4).
 
 **Paused: `<key>: the machine failed, not the agent: …`.** No space left, a permission the engine
 needs, or the CLI is not logged in. Fix the machine (`df -h`; run `claude` and log in), then
@@ -446,11 +453,10 @@ pinning, so its resume pinned the `task.json` of that moment (`task_pinned` in i
 engine code changed between start and resume, and now asks that agent something else (always the
 case for runs 1–3, section 4). Either go back to the engine commit the run started on
 (`engine_commit` in `run.json`) and resume, or resume with `--allow-changed` to keep the recorded
-answer. A stale `final` may still show beside the
-error if the run had finished before; the `status` field is the truth.
+answer.
 
-**`scientisttwo.orchestrator.RunLocked: another engine process is running <run-dir>`** (a
-traceback). Another engine holds `<run-dir>/run.lock`. `lsof <run-dir>/run.lock` names it. Two
+**`not resumed: another engine process is running <run-dir>`.** Another engine holds
+`<run-dir>/run.lock`. `lsof <run-dir>/run.lock` names it. Two
 engines on one run would pay twice for the same units, so the lock is never overridden: wait for
 it, or stop it.
 
@@ -478,13 +484,13 @@ real path of the `claude` it started with. The CLI's updater deletes old version
 later may not find it. The resume falls back to the current `claude`, and that start's history
 entry records the new path and version. Nothing to do; the warning is the record.
 
-**`--profile` or `--set` had no effect** (the `run` event says `profile=quick` when you asked for
-`paper`). The `--run-dir` already held a run, so `run` resumed it with its recorded settings.
-Choose a new directory.
+**`<run-dir> is an existing run: continue it with resume <run-dir>`.** `run` refuses a directory
+that already holds a run: its task and profile are recorded, and new ones would be ignored. Resume
+it, or choose a new directory.
 
 **`ProfileError: limits: missing [], unknown ['k']`, or `ValueError: unknown budget caps ['max_hour']`.**
-A mistyped `--set`. The run never started. Delete the half-made run directory (a mistyped budget
-cap leaves one with status `created` that cannot resume) and run again.
+A mistyped `--set`. The run never started, and no run directory is left behind: fix the key and
+run again.
 
 **`status: error`, `reason: unit <key> failed: …`.** An agent failed for good (a refusal, repeated
 timeouts, invalid output twice). Read `transcripts/<key>*.jsonl`. The failed unit is cleared, so

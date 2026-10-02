@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -100,6 +101,8 @@ def export(ctx: Ctx, base: Baseline, final: dict, traces: list[Trace], limitatio
     data = read_regular_bytes(Path(pdf["pdf"])) if pdf.get("ok") else None
     if data is not None:                                # never through a link the build left
         write_regular(out / "paper" / "main.pdf", data)
+    elif os.path.lexists(out / "paper" / "main.pdf"):  # a writer's own PDF is not the paper's
+        os.unlink(out / "paper" / "main.pdf")
     ctx.ws.export(core.ws, out / "code")
     # the whole change: ctx.diff caps what a model reads, a patch must apply (Codex review 2)
     (out / "changes.patch").write_text(ctx.ws.diff(core.ws, ctx.base_commit))

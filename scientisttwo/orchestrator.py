@@ -34,7 +34,7 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-from .config import load_routing, validate_profile
+from .config import apply_overrides, load_routing, validate_profile
 from .harness.egress import DEFAULT_ALLOW, EgressProxy
 from .harness.harness import Harness, HarnessTampered, StaleResult
 from .runtime.agents import AGENTS_DIR, AgentRuntime, InputsChanged, Routing, UnitFailed, load_specs
@@ -50,7 +50,7 @@ from .stages.limitations import find_limitations, generate_seeds
 from .stages.meta import meta_stage
 from .stages.roles import check_roles
 from .task import code_overview, load_task, read_manifest
-from .workspace import Workspaces
+from .workspace import IGNORE, PAPER_IGNORE, Workspaces
 
 log = logging.getLogger("scientisttwo")
 ENGINE_ROOT = Path(__file__).resolve().parent.parent
@@ -93,15 +93,24 @@ def _lock(run_dir: Path) -> int:
 
 
 def prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], backend: Backend,
-            allow_unsandboxed: bool = False, sleep=time.sleep, allow_changed: bool = False) -> Ctx:
-    """Create a run directory, or open an existing one to resume it."""
+            allow_unsandboxed: bool = False, sleep=time.sleep, allow_changed: bool = False,
+            set_budget: tuple[str, ...] = ()) -> Ctx:
+    """Create a run directory, or open an existing one to resume it. `set_budget`: on a resume,
+    `budget.<cap>=<value>` changes to the run's caps, recorded in its history."""
     run_dir = Path(run_dir).expanduser().resolve()
+    created = not run_dir.exists()
     run_dir.mkdir(parents=True, exist_ok=True)
     lock_fd = _lock(run_dir)
     try:
+        if set_budget:
+            _set_caps(run_dir, set_budget)              # under the lock: no engine runs it now
         return _prepare(run_dir, task_path, profile, backend, allow_unsandboxed, sleep, allow_changed, lock_fd)
     except BaseException:
         os.close(lock_fd)
+        if created and not (run_dir / "units").exists():
+            # a new run refused before it started (a mistyped setting): leave no directory that
+            # looks like a run and can never resume
+            shutil.rmtree(run_dir, ignore_errors=True)
         raise
 
 
@@ -120,6 +129,7 @@ def _prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], 
         if task_path is None or profile is None:
             raise ValueError("a new run needs a task and a profile")
         validate_profile(profile)
+        Caps.from_dict(profile.get("budget", {}))       # a mistyped cap fails before run.json exists
         source = Path(os.environ.get("SCIENTISTTWO_AGENTS_DIR") or AGENTS_DIR)
         shutil.copytree(source, agents_dir, ignore=shutil.ignore_patterns("__pycache__"),
                         dirs_exist_ok=True)
@@ -168,7 +178,7 @@ def _prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], 
                       open_proxy_port=open_proxy.port)
     harness.install()
     ctx = Ctx(task=task, cfg=profile, rt=rt, harness=harness, ws=Workspaces(run_dir),  # type: ignore[arg-type]
-              run_dir=run_dir, papers=Workspaces(run_dir, "manuscripts"),
+              run_dir=run_dir, papers=Workspaces(run_dir, "manuscripts", ignore=IGNORE + PAPER_IGNORE),
               overview=code_overview(task.code_dir))
     ctx.services = [api_proxy, open_proxy]
     ctx.lock_fd = lock_fd
@@ -270,6 +280,21 @@ def _close_crash(run_dir: Path) -> None:
                 "time at its last heartbeat")
 
 
+def _set_caps(run_dir: Path, changes: tuple[str, ...]) -> None:
+    """Raise or lower a paused run's caps: only `budget.*` keys, validated, and recorded. ⛔ WHY
+    NOT any key: a limit or a stage setting changed mid-run would mix two protocols in one run."""
+    rec = read_json(run_dir / "run.json")
+    bad = [c for c in changes if not c.startswith("budget.")]
+    if bad:
+        raise ValueError(f"a resume may change only the budget caps (budget.<cap>=<value>), not {bad}")
+    old = dict(rec["profile"].get("budget", {}))
+    rec["profile"] = apply_overrides(rec["profile"], list(changes))
+    Caps.from_dict(rec["profile"].get("budget", {}))
+    rec.setdefault("history", []).append({"time": time.time(), "event": "budget_changed",
+                                          "before": old, "after": rec["profile"]["budget"]})
+    atomic_write_json(run_dir / "run.json", rec)
+
+
 def _history(run_dir: Path, what: str, **fields) -> None:
     rec = read_json(run_dir / "run.json")
     rec.setdefault("history", []).append({"time": time.time(), "event": what, **fields})
@@ -279,7 +304,7 @@ def _history(run_dir: Path, what: str, **fields) -> None:
 def _set_status(run_dir: Path, status: str, **extra) -> dict:
     rec = read_json(run_dir / "run.json")
     rec["status"] = status
-    for stale in ("reason", "resume_after", "retry_on_resume", "traceback"):
+    for stale in ("reason", "resume_after", "retry_on_resume", "traceback", "final"):
         rec.pop(stale, None)                        # the previous status's; its history keeps them
     rec.update(extra)
     rec.setdefault("history", []).append({"time": time.time(), "status": status,

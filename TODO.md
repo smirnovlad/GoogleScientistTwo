@@ -452,7 +452,33 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
   - It found R7: a writer that compiled its draft committed LaTeX's outputs into the paper, and
     the export carried them. These outputs are now ignored in every version.
     Proof: `test_the_export_is_the_commit_not_the_working_tree`.
-- [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real runs' behaviour.
+- [x] `P1` **E9 · The user guide** (`technical-writer`), from the real runs' behaviour:
+  `docs/guide.md`, and an engine section in `README.md`. The writer checked every documented
+  command with `--help` or a mock run: a pause, `--wait`, a crash, a changed task, a held lock and
+  a missed baseline. Those checks found seven problems, all now fixed:
+  - [x] G1 · `run` on an existing run directory silently resumed it and ignored the new profile.
+    It now refuses.
+  - [x] G2 · A held lock printed a traceback, and the `--wait` loop caught nothing. Both now print
+    a line and stop.
+  - [x] G3 · A run that turned to `error` kept the `final` of an earlier finish.
+  - [x] G4 · A mistyped budget cap left a run directory that could never resume. Caps are now
+    validated before `run.json` is written, and a refused new run leaves no directory.
+  - [x] G5 · The only way to raise a cap was to edit `run.json`, with no record. `resume --set
+    budget.<cap>=<value>` now accepts only `budget.*` keys, validates them, and records a
+    `budget_changed` entry.
+  - [x] G6 · The paper's ignore list missed `main.log`, `main.out` and `main.pdf`, and a writer's
+    own PDF could reach a failed export. A paper version now has its own ignore list, and the
+    export has no PDF when the engine's build failed.
+  - [x] G7 · The `InputsChanged` message now names everything the fingerprint covers.
+  Proof: `tests/test_cli.py` (G1, G2, G3, G4, G5);
+  `test_a_paper_version_keeps_latexs_outputs_out` (G6).
+  - From the third `/codex` pass, on `f470f27...36de8dc` only: 0 P1 and 3 P2, saved in
+    `docs/reviews/engine-2026-10-02/codex-3.md`. All three are fixed:
+    - [x] H1 · A retry's workspace is now prepared before the call reserves budget.
+    - [x] H2 · `--wait` now refreshes a CLI binary that vanished during the sleep.
+      Proof: `test_a_resume_after_a_wait_takes_the_current_claude_when_the_pinned_one_is_gone`.
+    - [x] H3 · The task-timeout test now goes through `Ctx.code`.
+      Proof: `test_every_coding_session_gets_the_tasks_timeout`.
 - [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
   the harness with task 6's four blocking decisions. Task 6's PR #3 adds positive lineage
   (IR-3.1–3.4 in its `docs/integrity/decisions/u-int-4-who-computes.md`): score only artifacts

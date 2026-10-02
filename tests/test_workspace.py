@@ -13,7 +13,7 @@ from scientisttwo.harness.policies import RunRules, python_read_paths
 from scientisttwo.stages import manuscript
 from scientisttwo.stages.manuscript import (compile_pdf, manuscript_text, read_regular, tables_edited,
                                             write_results)
-from scientisttwo.workspace import Workspaces, unsafe_entries
+from scientisttwo.workspace import IGNORE, PAPER_IGNORE, Workspaces, unsafe_entries
 
 
 def version(tmp_path):
@@ -58,7 +58,6 @@ def test_the_export_is_the_commit_not_the_working_tree(tmp_path):
     ws = version(tmp_path)
     tmp = ws.fresh("base", "v1")
     (tmp / "run.py").write_text("print('committed')\n")
-    (tmp / "main.aux").write_text("\\relax\n")                 # a writer compiled its draft
     ws.finalize(tmp, "v1", "v1")
     v1 = ws.path("v1")
     (v1 / "run.py").write_text("print('written after the commit')\n")   # never scored
@@ -159,3 +158,22 @@ def test_a_hung_build_dies_with_its_whole_tree(tmp_path, monkeypatch):
     size = beat.stat().st_size
     time.sleep(0.5)
     assert beat.stat().st_size == size                       # the detached TeX stand-in is dead
+
+
+
+def test_a_paper_version_keeps_latexs_outputs_out(tmp_path):
+    """Run 3 exported a writer's main.aux, main.bbl, main.log and main.out; run 2 a writer's PDF."""
+    src = tmp_path / "seed"
+    src.mkdir()
+    (src / "main.tex").write_text("x")
+    papers = Workspaces(tmp_path / "run", "manuscripts", ignore=IGNORE + PAPER_IGNORE)
+    papers.init_from(src, "p0", "p0")
+    tmp = papers.fresh("p0", "p1")
+    for name in ("main.aux", "main.bbl", "main.log", "main.out", "main.pdf"):
+        (tmp / name).write_text("built")
+    (tmp / "figures").mkdir()
+    (tmp / "figures" / "plot.pdf").write_text("a figure")
+    papers.finalize(tmp, "p1", "p1")
+    papers.export("p1", tmp_path / "out")
+    assert sorted(str(p.relative_to(tmp_path / "out")) for p in (tmp_path / "out").rglob("*") if p.is_file()) \
+        == ["figures/plot.pdf", "main.tex"]

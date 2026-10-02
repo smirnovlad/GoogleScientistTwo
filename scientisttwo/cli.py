@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 from .config import apply_overrides, load_profile, load_routing
-from .orchestrator import prepare, run
+from .orchestrator import RunLocked, prepare, run
 from .runtime.agents import InputsChanged, Routing, load_specs
 from .runtime.backends import BACKENDS, make_backend
 from .runtime.store import read_json
@@ -49,6 +49,8 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--backend", choices=BACKENDS)
     s.add_argument("--mock-script")
     s.add_argument("--allow-changed", action="store_true")
+    s.add_argument("--set", action="append", default=[], metavar="budget.CAP=VALUE",
+                   help="change a cap of the run (recorded in its history), e.g. budget.max_agent_calls=300")
     for p in (r, s):
         p.add_argument("--wait", action="store_true", help="sleep through usage-window pauses")
         p.add_argument("--max-wait-hours", type=float, default=24.0)
@@ -78,8 +80,16 @@ def main(argv: list[str] | None = None) -> int:
         if a.parallel:
             profile["parallel"] = a.parallel
         run_dir = Path(a.run_dir or f"runs/{Path(a.task).name}-{time.strftime('%Y%m%d-%H%M%S')}")
+        if (run_dir / "run.json").exists():
+            # its task and profile are recorded: a `run` would ignore the ones given here
+            print(f"{run_dir} is an existing run: continue it with `resume {run_dir}`", file=sys.stderr)
+            return 1
         backend = make_backend(a.backend, allow_unsandboxed=a.allow_unsandboxed, mock_script=a.mock_script)
-        ctx = prepare(run_dir, Path(a.task), profile, backend, a.allow_unsandboxed)
+        try:
+            ctx = prepare(run_dir, Path(a.task), profile, backend, a.allow_unsandboxed)
+        except RunLocked as e:
+            print(f"not started: {e}", file=sys.stderr)
+            return 1
     else:
         rec = read_json(Path(a.run_dir) / "run.json")
         recorded = rec.get("backend", {})
@@ -87,21 +97,31 @@ def main(argv: list[str] | None = None) -> int:
         backend = make_backend(name, allow_unsandboxed=rec.get("allow_unsandboxed", False),
                                mock_script=a.mock_script, claude_bin=recorded.get("claude_bin"))
         try:
-            ctx = prepare(Path(a.run_dir), None, None, backend, allow_changed=a.allow_changed)
-        except InputsChanged as e:
+            ctx = prepare(Path(a.run_dir), None, None, backend, allow_changed=a.allow_changed,
+                          set_budget=tuple(a.set))
+        except (InputsChanged, RunLocked, ValueError) as e:
             print(f"not resumed: {e}", file=sys.stderr)
             return 1
     print(f"run directory: {ctx.run_dir}", file=sys.stderr)
     rec = run(ctx)
     if a.wait:
         allow = bool(getattr(a, "allow_changed", False))
-        rec = wait_and_resume(rec, lambda: run(prepare(ctx.run_dir, None, None, backend, allow_changed=allow)),
-                              a.max_wait_hours)
+        rec = wait_and_resume(rec, lambda: run(prepare(ctx.run_dir, None, None, _current(backend),
+                                                       allow_changed=allow)), a.max_wait_hours)
     print(json.dumps({k: rec.get(k) for k in ("status", "reason", "resume_after", "final")}, indent=1, default=str))
     return 0 if rec["status"] in ("done", "no_success", "ablation_rejected") else (3 if rec["status"] == "paused" else 1)
 
 
 RESUME_MARGIN_S = 120.0       # after a window's reset, before the next call
+
+
+def _current(backend):
+    """The backend for a resume after a long sleep: the CLI may have updated and removed the
+    pinned binary meanwhile (make_backend's fallback, applied here too; Codex review 3)."""
+    path = getattr(backend, "claude_bin", None)
+    if path and not Path(path).exists():
+        return make_backend("claude", allow_unsandboxed=backend.allow_unsandboxed, claude_bin=path)
+    return backend
 _sleep = time.sleep
 
 
@@ -119,7 +139,11 @@ def wait_and_resume(rec: dict, resume, max_wait_hours: float, sleep=None) -> dic
         print(f"paused ({rec.get('reason')}); resuming at "
               f"{time.strftime('%H:%M', time.localtime(time.time() + wait))}", file=sys.stderr)
         (sleep or _sleep)(wait)
-        rec = resume()
+        try:
+            rec = resume()
+        except (InputsChanged, RunLocked) as e:        # another engine took the run, or it changed
+            print(f"not resumed after the wait: {e}", file=sys.stderr)
+            return rec
     return rec
 
 

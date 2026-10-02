@@ -399,3 +399,18 @@ def test_the_exported_patch_is_the_whole_change(tmp_path, toy_task):
     subprocess.run(["git", "init", "-q", str(base)], check=True)
     check = subprocess.run(["git", "-C", str(base), "apply", "--check", str(patch)], capture_output=True, text=True)
     assert check.returncode == 0, check.stderr
+
+
+def test_every_coding_session_gets_the_tasks_timeout(tmp_path, toy_task):
+    """Codex review 3: the D7 test called the runtime directly and never went through Ctx.code."""
+    seen = {}
+
+    class Spy(MockBackend):
+        def call(self, call):
+            if call.kind in ("coding", "writer"):
+                seen.setdefault(call.agent, call.timeout_s)
+            return super().call(call)
+
+    rules = [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]
+    rec, ctx, _ = go(tmp_path, toy_task, rules, backend=Spy({"rules": rules}))
+    assert rec["status"] == "done" and seen and set(seen.values()) == {60}     # the toy task's 60 s

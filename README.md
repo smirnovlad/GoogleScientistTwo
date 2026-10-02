@@ -12,8 +12,24 @@ benchmark is not the goal.
 
 ## Status
 
-Initialised on 2026-09-27. Nothing is designed or built yet. The first task is a rigorous analysis
-of the paper: see [TODO.md](TODO.md).
+Initialised on 2026-09-27. The analysis of the paper is in [docs/paper/](docs/paper/). Since
+2026-10-02 a working engine exists on the branch `claude/engine`, not yet merged: it has finished
+two small runs on the demo task, on a Claude subscription. Open work is in [TODO.md](TODO.md).
+
+## The engine
+
+`scientisttwo/` runs the pipeline end to end: every agent is a `claude -p` process on the
+logged-in subscription, never the paid API, and every evaluation runs in a macOS sandbox against
+a locked harness. To run it:
+
+```sh
+python3 -m scientisttwo run --task tasks/digits --profile quick --wait
+```
+
+- [docs/guide.md](docs/guide.md): how to run it, resume it, read what it produced, add a task, and
+  what it does and does not guarantee.
+- [docs/architecture/engine.md](docs/architecture/engine.md): the design, its contracts and the
+  reasons for each decision.
 
 ## Start here
 
@@ -34,7 +50,10 @@ DEVELOPMENT_PROCESS.md     the running narrative and the handoff
 .claude/agents/            the project's personas
 docs/inputs/               material we were given, kept verbatim and marked unverified
 docs/process/              how we work across sessions, worktrees and accounts
+docs/paper/                the analysis of the paper
+docs/architecture/         the engine's design
+docs/guide.md              how to use the engine
+scientisttwo/              the engine
+tasks/                     tasks the engine can run (tasks/digits is the demo)
+tests/                     the whole engine on a mock backend, for $0
 ```
-
-Folders for the analysis (`docs/paper/`), the requirements, the architecture and the code are
-created by the tasks that fill them.

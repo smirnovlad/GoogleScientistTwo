@@ -29,10 +29,12 @@ from typing import Optional
 
 GIT = ["git", "-c", "user.name=scientisttwo", "-c", "user.email=engine@localhost",
        "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
-# LaTeX's own outputs too: a writer that compiles its draft must not commit them into the paper
-# (run 3 exported main.aux, main.bbl and main.log beside main.tex)
-IGNORE = ("__pycache__/\n*.pyc\n.ipynb_checkpoints/\n"
-          "*.aux\n*.bbl\n*.blg\n*.fls\n*.fdb_latexmk\n*.synctex.gz\n*.toc\n")
+IGNORE = "__pycache__/\n*.pyc\n.ipynb_checkpoints/\n"
+# A manuscript version ignores LaTeX's outputs too: a writer that compiles its draft must not
+# commit them into the paper (run 3 exported main.aux, main.bbl, main.log and main.out; run 2, a
+# writer's own main.pdf beside a failed engine build). Rooted, so a figure in PDF is kept.
+PAPER_IGNORE = ("*.aux\n*.bbl\n*.blg\n*.fls\n*.fdb_latexmk\n*.synctex.gz\n*.toc\n"
+                "/main.log\n/main.out\n/main.pdf\n/latexmk.out\n")
 
 
 def archive_commit(repo: Path, commit: str, dest: Path) -> None:
@@ -90,8 +92,9 @@ class WorkspaceError(RuntimeError):
 
 
 class Workspaces:
-    def __init__(self, run_dir: Path, sub: str = "workspaces"):
+    def __init__(self, run_dir: Path, sub: str = "workspaces", ignore: str = IGNORE):
         self.root = Path(run_dir) / sub
+        self.ignore = ignore
         self.root.mkdir(parents=True, exist_ok=True)
 
     def path(self, name: str) -> Path:
@@ -113,7 +116,7 @@ class Workspaces:
         tmp = self.root / f"{name}.tmp"
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.copytree(source, tmp, ignore=shutil.ignore_patterns(".git", "__pycache__"))
-        (tmp / ".gitignore").write_text(IGNORE)
+        (tmp / ".gitignore").write_text(self.ignore)
         self._git(tmp, "init", "-q")
         self._git(tmp, "add", "-A")
         self._git(tmp, "commit", "-q", "-m", message)
@@ -184,5 +187,5 @@ class Workspaces:
         ⛔ WHY NOT copy the working tree: it can differ from the commit, and copying follows links."""
         archive_commit(self.path(name), self.commit(name), dest)
         ignore = dest / ".gitignore"
-        if ignore.is_file() and ignore.read_text() == IGNORE:       # the engine's own, not the task's
+        if ignore.is_file() and ignore.read_text() == self.ignore:  # the engine's own, not the task's
             ignore.unlink()

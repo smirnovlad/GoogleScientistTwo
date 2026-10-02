@@ -635,27 +635,37 @@ trains.
   units recorded before this change replay only with `--allow-changed`.
 - **Task 6 opened PR #3.** Its positive-lineage rules (IR-3) are new work under E10.
 
-## HANDOFF, 2026-10-02 (run 2 done; every Codex finding fixed; gates 1 and 2 fixed; a third check of the delta next)
+## 2026-10-02: the guide, and what checking it found
+
+- **The `technical-writer` wrote `docs/guide.md`**: running, pausing, `--wait`, reading a run,
+  guarantees and limits, adding a task, and troubleshooting. It also added an engine section to
+  `README.md`.
+- **Its command checks found seven problems** (TODO G1–G7), all now fixed with tests. The worst:
+  `run` on an existing run directory silently resumed it with the old profile.
+- **A third `/codex` pass on the follow-up commit** found 0 P1 and 3 P2, all fixed (H1–H3).
+
+## HANDOFF, 2026-10-02 (the engine is delivered: three runs, three Codex passes, the guide)
 
 - **The goal** (Vlad, verbatim above): a working ScientistTwo engine on `claude -p`, on the
   subscription, delivered without questions.
 - **Where it is:** branch `claude/engine` in `.claude/worktrees/engine`, stacked on
-  `claude/paper-analysis` (PR #1, still open). `c1850a5` holds the first Codex fixes and task 6's
-  B1; the next commit holds the rest (C3, C7, C9–C16) and run 2's R5 and R6.
+  `claude/paper-analysis` (PR #1, still open). Pushed; the engine's PR is open against
+  `claude/paper-analysis`.
 - **State:**
   - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see above).
   - **Run 2** (`runs/digits-quick-2`) finished `done` on the subscription: test +0.0532 on 10
     disjoint seeds, judge 4/10. E11 is ticked; the section above has its numbers and findings.
-  - **All 26 findings of two Codex gates are fixed with tests.** 123 tests pass on the mock backend, and
+  - **All 29 findings of three Codex passes are fixed with tests.** 129 tests pass on the mock backend, and
     `playground/engine/check_agents.py` reports 0 problems on 28 agents.
-  - The `technical-writer` stopped at the session limit before it wrote the guide (E9).
+  - **Run 3** (`runs/digits-quick-3`) finished `done` on the final engine (E12); the guide is written (E9).
 - **Next steps:**
-  1. Run `/codex` on the delta since `f470f27`, and fix or record what it finds.
-  2. The guide (E9): relaunch, then review it against the code.
-  3. Push. Open the engine's PR against `claude/paper-analysis`, with the Codex verdict in its body.
-  4. A run 3 on the final engine, from scratch, for a clean end-to-end record.
-- **To run the engine:** `python3 -m scientisttwo run --task tasks/digits --profile quick`, then
-  `python3 -m scientisttwo status <run-dir>`, and `resume <run-dir>` after a pause. Outputs are in
+  1. Vlad reviews the engine's PR (against `claude/paper-analysis`); the Codex verdicts are in
+     its body.
+  2. E10: trace task 2's requirements to the engine, and build task 6's positive lineage (IR-3).
+  3. Plan with Vlad the merge with his Codex session's fork (`codex/engine-integration`).
+  4. A `paper`-profile run, when the weekly window allows (it was at 75% on 2026-10-02).
+- **To run the engine:** `python3 -m scientisttwo run --task tasks/digits --profile quick --wait`
+  (in tmux), then `python3 -m scientisttwo status <run-dir>`; `resume <run-dir>` after a stop. Outputs are in
   `<run-dir>/export/`. The guide (`docs/guide.md`) covers the rest.
 - **Still true from the previous handoff:**
   - PR #1 awaits Vlad's review.
