@@ -658,23 +658,37 @@ meet.
 sub-IDs that are referenced are all defined; and nothing private appears. The owner contested
 seven points of the fix list, with reasons, and all seven are accepted (`fix-list.md`, section 5).
 
-## HANDOFF, 2026-10-02 (task 6's `P0` part: the closure review of the second version)
+**The closure checks, and the third version.** Each wave-1 reviewer checked its own findings
+against the second version, and each report is kept verbatim as `closure-*.md`:
+- **`system-architect`:** all 30 of its findings and tensions are fixed, and it found 5 new
+  MINOR defects.
+- **`paper-analyst`:** all 16 of its findings are fixed. It read the three external sources from
+  their own text and found every paraphrase faithful, and it found 3 new MINOR defects.
+- **`research-engineer`:** 16 of its 19 findings are fixed, and its blocker on seed luck holds. It
+  found two MAJOR points:
+  - weights chunked into many small text files still passed the per-file bound;
+  - the near-duplicate check would refuse large tasks on false flags.
+
+The owner applied all of them as C-1 to C-14, in a third version (`fix-list.md`, section 6).
+
+**The register and the TODO.** The four rows of `docs/paper/unspecified.md` now point to their
+decision files, and nothing else in that file changed. `register_coverage.py` and the default run of
+`check_citations.py` still pass. `TODO.md` marks task 6's `P0` part done, and lists what it found
+for tasks 4, 5 and 7, for the coordinating session, and for the owner of `docs/paper/`.
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: decided; the Codex gate, then the PR)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
   which sits on top of `claude/paper-analysis`. PR #1 is still open.
 - **Done and pushed:**
-  - the brief, `docs/integrity/README.md`;
-  - the decisions: `docs/integrity/blocking-decisions.md` and `docs/integrity/decisions/`, in their
-    second version;
-  - wave 1's three reviews and `fix-list.md`, in `docs/reviews/integrity-blockers-2026-10-02/`.
-- **In progress:** each wave-1 reviewer checks its own findings against the second version.
+  - the decisions, in their third version: `docs/integrity/blocking-decisions.md` (the index) and
+    `docs/integrity/decisions/`;
+  - the pointers in the four register rows;
+  - the `TODO.md` entry for task 6's `P0` part;
+  - the reviews, closure checks and fix list, in `docs/reviews/integrity-blockers-2026-10-02/`.
 - **Next steps:**
-  1. Save the closure reports verbatim, and fix what they find.
-  2. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
-     A-INT-3), and nothing else in `docs/paper/unspecified.md`.
-  3. Record the outcome in `TODO.md`, under task 6's `P0` part.
-  4. Run the Codex gate on `git diff claude/paper-analysis...HEAD`.
-  5. Open a PR into `claude/paper-analysis`, and send its link to the coordinating session, which
-     folds the rules into `claude/engine`.
-- **If this session is lost:** run `bash playground/paper/fetch_sources.sh` (the cache is per
-  worktree), then read `docs/integrity/README.md` and the index.
+  1. Run the Codex gate on `git diff claude/paper-analysis...HEAD`, using the model override and
+     the range named in the instructions (the memory note on Codex's quirks).
+  2. Open a PR into `claude/paper-analysis`, and send its link to the coordinating session.
+- **If this session is lost:** run `bash playground/paper/fetch_sources.sh`, then read
+  `docs/integrity/README.md` and the index.

@@ -159,3 +159,10 @@ paper-analyst):
 | C-12 | PA N1 | IR-19.4: OpenOOD pairs (3a) for its OOD validation with (3b) for its ID validation, so IR-19.6's disclosure applies to the ID part. |
 | C-13 | PA N2 | Cite ScientistOne's value mismatches as evidence that seed variance biases headline numbers in general. The training-seed claim rests on the null-control simulation. |
 | C-14 | PA N3 | The cost is split per stage in Figure 10(b); what the paper lacks is the split between tokens and machines. |
+
+**Outcome of the last fixes.** The owner applied C-1 to C-14 in a third version, and the citation
+checker finds 0 problems. It extended three fixes, and the coordinator accepts all three:
+- C-2 also covers exact copies across a boundary the protocol defines;
+- a fresh start that halts again gets no second one (C-11), so fresh starts cannot chain;
+- a re-admission after a change of runner counts against k (C-8), so changing runner versions
+  cannot read the test split without bound.

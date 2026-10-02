@@ -2,7 +2,7 @@
 
 **For** the task 3 sessions that write the contracts of the scoring runner and of the integrity audit, and the task 2 sessions that cite these rules by their IR- IDs [ours].
 
-**Status:** second version, 2026-10-02, after the wave-1 review, applying fix-list.md F-0 to F-46. The first version is commit `a2e7eb0`; the three reviews and the [fix list](../reviews/integrity-blockers-2026-10-02/fix-list.md) are kept beside it [ours].
+**Status:** third version, 2026-10-02, after the closure checks, applying C-1 to C-14; this file applies C-1 (in section 11), C-2 (in section 10), C-7, C-8 and C-9 (in the rule map and the terms), C-10 and C-11. The second version, after the wave-1 review, applied fix-list.md F-0 to F-46. The first version is commit `a2e7eb0`; the three reviews and the [fix list](../reviews/integrity-blockers-2026-10-02/fix-list.md) are kept beside it [ours].
 
 **This file applies:** F-0 (the split), F-3 (identities, attempts, resume, halts), F-5 (the tail stage, the gates on the primitive), F-9 (controls on the production setup, the fixtures), F-22 (sub-IDs, hook names), F-29 (the reporter, the reported table, the run registry), F-36 (App. B's five tasks), F-37 (guard-off builds) and F-46 (the reads of the test split besides its one use). It also applies the coordinator's amendments, which came after the fix list: A1 and A6 (section 7 decided in place), A2 (LLM work runs on a subscription, never an API), A3 (IR-33.3's exhaustion branch), A4 (job arguments in IR-32.1) and A5 (C_base's hash check, in the U-INT-4 file). Each decision file lists the fixes and amendments it applies [ours].
 
@@ -27,7 +27,7 @@
 
 | Term | Meaning |
 |---|---|
-| agent code | every file an engine agent writes or changes during a run: method code, scripts and configuration; it may hold no array, binary or over-size file that no recorded job produced (IR-3.3) [ours] |
+| agent code | every file an engine agent writes or changes during a run: method code, scripts and configuration; it may hold no array, binary or over-size file that no recorded job produced, and the total size of its unpinned content is bounded (IR-3.3) [ours] |
 | engine code | this repository's code at the run's pinned commit, the scoring runner included; no agent writes it during a run [ours] |
 | scoring runner | engine code, the same for every task, that runs every harness job: it checks the hashes (IR-6.3), runs agent code's entry points in the sandbox, runs a task's scoring items, validates outputs (IR-9.2), enforces the read table (IR-11) and writes result records (IR-5) [ours] |
 | scoring items | a task's hashed evaluation parts, which the runner runs: data loaders, output schema, metric and its direction, aggregation, environment image, a judge's configuration, a rollout environment (IR-6.1) [ours] |
@@ -38,7 +38,7 @@
 | row | one scored configuration, a code hash with the job arguments that engine code passes to its entry points (IR-32.1): E_base, C_base, a candidate idea, an engineering round, an ablation plan, an A_FullEng refinement, a rebuttal task, a control or a diagnostic [ours] |
 | identity, attempt, released result | a job's identity names what it computes (IR-32); an attempt is one execution of it; a released result is the record the runner writes, at most one per identity (IR-33) [ours] |
 | result record | the runner's record of one released result (IR-5.2) [ours] |
-| stores and ledgers | result records and an append-only ledger, in three scopes: task (admission jobs), run (the run's jobs and verdicts; its ledger closes at export) and audit (the audit's jobs and verdicts); a job writes to the scope of the identity that asked for it (IR-5.3) [ours] |
+| stores and ledgers | result records and an append-only ledger, in three scopes: task (admission jobs), run (the run's jobs and verdicts; its ledger closes when the run ends, whatever its end state, IR-5.6) and audit (the audit's jobs and verdicts); a job writes to the scope of the identity that asked for it (IR-5.3) [ours] |
 | fit, search, report | the three data roles (IR-10); search is our validation split, report our test split; the search seeds and the report seeds are their disjoint seed lists (IR-10.2) [ours] |
 | admission | the jobs that run when a task is packaged, before any run of it can be registered: the role checks (IR-10.3), the baseline's fits and search scoring (IR-4.2), and the sealed baseline check (IR-15) [ours] |
 | freeze | the record, written once per run, that fixes the rows to be test-scored and binds the role *ours* to one of them (IR-14.1 to IR-14.3) [ours] |
@@ -46,10 +46,11 @@
 | final fill | engine code fills a manuscript's result numbers from the verified table, search and report columns both, after the test event (IR-17.2) [ours] |
 | tail | the stage from the freeze to export (IR-39) [ours] |
 | verified table | the results table that engine code renders from released records and from the manifest's published numbers; its form is task 6's `P1` part [ours] |
-| reporter | engine code that computes every reported table and aggregate from released records, the audit store and the run registry; it alone writes the reported table, and refuses an input that IR-18, IR-25 or IR-38 excludes; it reads no agent output [ours] |
+| reporter | engine code that computes every reported table and aggregate from released records, the audit store and the run registry. It runs under an identity of its own, outside every run, so it is no engine job, and its output never reaches a run; it alone writes the reported table, refuses an input that IR-18, IR-25 or IR-38 excludes, and reads no agent output [ours] |
+| engine job | a job of a run: a harness job of run scope, or a session or step of the run's engine; admission jobs, the audit and the reporter are not engine jobs [ours] |
 | reported table | the per-task and aggregate numbers we publish; written by the reporter only, read by people, never read by an engine job [ours] |
 | run registry | the append-only record of every registered run: run ID, campaign, task, manifest hash, configuration hash, engine commit, guard configuration and seed; engine code writes it at registration, and the reporter and the audit read it (IR-18.2, IR-38) [ours] |
-| campaign record | the record written before the first reported run: the final-test tasks with their manifest hashes, the runs per task, the configuration hash, the reporting auditor's configuration hash, the aggregate registered in advance, and the list of causes that allow a fresh start (IR-18.1) [ours] |
+| campaign record | the record written before the first reported run: the final-test tasks with their manifest hashes, the runs per task, the configuration hash, the reporting auditor's configuration hash, the aggregate registered in advance, and the list of causes that require a fresh start (IR-18.1) [ours] |
 | configuration hash | the hash of every versioned file a run reads: engine code, prompts, schemas, routing, limits and budgets [ours] |
 | development and final-test tasks | task 5 marks each task as one or the other; a development task's report numbers are validation for the engine, never evidence (IR-18.5) [ours] |
 | guard-off build | a build with a guard removed, made for a control; never reportable (IR-38) [ours] |
@@ -65,11 +66,11 @@
 | IR-3 | lineage of a scored artifact; external weights; a reused checkpoint; the seed flag | 3.1–3.6 | U-INT-4 [ours] |
 | IR-4 | E_base from the pinned code, at admission; C_base scored as a row unless its code hash equals E_base's | 4.1–4.3 | U-INT-4 [ours] |
 | IR-5 | only the runner writes a result; the record; stores by scope; what a session reads | 5.1–5.6 | U-INT-4 [ours] |
-| IR-6 | the runner and the scoring items; what is hashed; the check; a mismatch | 6.1–6.5 | U-INT-4 [ours] |
+| IR-6 | the runner and the scoring items; what is hashed; the check; a mismatch; a change to the runner | 6.1–6.6 | U-INT-4 [ours] |
 | IR-7 | a numeric precondition, as data, under every performance gate; an LLM only stricter | 7.1–7.4 | U-INT-4 [ours] |
 | IR-8 | time, judge and rollout metrics | 8.1–8.4 | U-INT-4 [ours] |
 | IR-9 | every setting, every seed, valid outputs only | 9.1–9.4 | U-INT-4 [ours] |
-| IR-10 | three roles, two seed lists, the overlap checks | 10.1–10.4 | U-TOP-5 [ours] |
+| IR-10 | three roles, two seed lists, the overlap checks and the near-duplicate detector | 10.1–10.5 | U-TOP-5 [ours] |
 | IR-11 | the read table of every job | 11.1–11.4 | U-TOP-5 [ours] |
 | IR-12 | every decision of the loop reads search, or no data role | none | U-TOP-5 [ours] |
 | IR-13 | search scorings belong to the engine, one counter per candidate | 13.1–13.4 | U-TOP-5 [ours] |
@@ -100,7 +101,7 @@
 | IR-38 | a guard-off build is never reportable | none | this file [ours] |
 | IR-39 | the tail stage: freeze, test event, final fill, gates, export | 39.1–39.4 | this file [ours] |
 | IR-40 | each gate is a parameter value of the one stage primitive | 40.1–40.2 | this file [ours] |
-| IR-41 | the correction event | 41.1–41.4 | U-TOP-5 [ours] |
+| IR-41 | the correction event; E_base corrected once per task | 41.1–41.5 | U-TOP-5 [ours] |
 
 - **The gate names.** G2 to G5 are the gates of IR-21. G1, G6 and G7 are no longer rules of their own but names of hooks: G1 is IR-6.3's check at the start of every harness job, G6 is IR-14.1's freeze before the test event, and G7 is IR-17.1's refusal after it [ours].
 - **Changed, new, withdrawn.** No ID is withdrawn, and IR-32 to IR-41 are new. The three blockers changed the core of IR-3, IR-14, IR-15, IR-18, IR-20, IR-22, IR-23 and IR-24, and with them IR-4, IR-5, IR-13 and IR-25; IR-1 is narrowed to numbers about a row's performance, and IR-17 lets the tail's integrity checks run after the test event; IR-12, IR-16 and IR-28 keep their meaning; every other rule keeps its subject and gains sub-IDs or clauses. Each file's status line lists the fixes it applies [ours].
@@ -120,7 +121,7 @@ The first version counted jobs, and had no way to resume: a crash in the test ev
   - IR-33.5 Every count in these rules (IR-13.3, IR-14.5, IR-15.5, IR-24) counts released results per identity, and reports the attempts beside them [ours].
 - **IR-34 · A run resumes from its last finished stage.** [ours]
   - IR-34.1 After an infrastructure halt (IR-35.2), a run resumes from its last finished stage, before or after the freeze, with the same run ID, run state, seeds and freeze. A stage is finished when its output is on disk and its hash recorded [ours].
-  - IR-34.2 No registered run restarts with fresh state. A fresh start is a new registered run, allowed only for a cause on the campaign's list and within its bound (IR-18.4); the old run stays in every denominator as a failure, with its cause [ours].
+  - IR-34.2 No registered run restarts with fresh state. A fresh start is a new registered run, which a cause on the campaign's list requires, exactly once per halted run, so that nobody chooses which runs get one (IR-18.4); the old run stays in every denominator as a failure, with its cause [ours].
   - IR-34.3 The freeze is computed from run state alone, so a crash while writing it rewrites the same hash; a crash in the test event resumes at its first unreleased identity (IR-39) [ours].
 - **IR-35 · A halt records its class.** [ours]
   - IR-35.1 Integrity: a write to a guarded store or a hashed item by an agent identity; a request for a report job outside IR-14.6's four kinds, which the runner refuses (section 7); or a hash mismatch that the write log does not explain. The halt is terminal, and the run stays in every denominator as an integrity failure [ours].
@@ -168,7 +169,7 @@ runner.time_baseline_with(F)                   # only for a metric under IR-8.1 
 P = final_fill(P_kept, F)                      # engine code, from the verified table (IR-17.2) [ours]
 P = stage(P, filters=[G3], nested=[G4, G5], refine=writer_text_only, limit=task2_bound)   # IR-40 [ours]
 if P is None: end_run(GATE_UNRESOLVED_AFTER_TEST_EVENT)   # counts as a failure (IR-39.3) [ours]
-export(P, F)                                   # bundle hash; the run ledger closes (IR-5.6) [ours]
+export(P, F)                                   # bundle hash; the run ends, its ledger closes (IR-5.6) [ours]
 ```
 
 | Step | Failure | Branch |
@@ -268,14 +269,14 @@ A short screen for task 5, from Tables 13 and 16; whether each task's protocol p
 
 ## 10. What stays open
 
-- **Settings each owner sets.** Task 2: the gates' numeric preconditions (IR-7.1), G2's retry and every exhaustion value before the freeze (IR-21.1), and what a three-verdict critic does when its precondition fails (U-SUB-1). U-TOP-2's owner, task 3 in the register: what an identity's exhausted attempts do (IR-33.3), where the coordinating session reports that task 2 has chosen to suspend the run. Task 5: the seed floor (IR-9.3), the size bound of a code tree (IR-3.3), the bound on attempts per identity (IR-33.3), k for the sealed check (IR-15.5), the near-duplicate thresholds (IR-10.3), machine configurations and noise floors (IR-8.1), the power threshold (IR-19.5), and which tasks are final-test (IR-18.5). Task 6's `P1` part: the audit's votes, judges and budget multiple (U-NOTE-4), α and the success test (A-EVAL-1, U-EVAL-1), the verified table's form, the reporting judge of papers, and a canary of perturbed items. Every rule names who sets its number [ours].
+- **Settings each owner sets.** Task 2: the gates' numeric preconditions (IR-7.1), G2's retry and every exhaustion value before the freeze (IR-21.1), and what a three-verdict critic does when its precondition fails (U-SUB-1). U-TOP-2's owner, task 3 in the register: what an identity's exhausted attempts do (IR-33.3), where the coordinating session reports that task 2 has chosen to suspend the run. Task 5: the seed floor (IR-9.3), the bound on attempts per identity (IR-33.3), k for the sealed check (IR-15.5), the size bounds of a code tree (IR-3.3), the near-duplicate detector and its second check (IR-10.5), machine configurations and noise floors (IR-8.1), the power threshold (IR-19.5), and which tasks are final-test (IR-18.5). Task 6's `P1` part: the audit's votes, judges and budget multiple (U-NOTE-4), α and the success test (A-EVAL-1, U-EVAL-1), the verified table's form, the reporting judge of papers, and a canary of perturbed items. Every rule names who sets its number [ours].
 - **CLAUDE.md's wording** of the one use of the test set, narrower than section 7's decision; its rewording is flagged to the coordinating session, and this task does not edit CLAUDE.md [ours].
 - **Task 4's verification** that a non-Claude family runs every check of the audit on a subscription, the Codex CLI being the candidate (IR-29.4); until then the reported table carries IR-29.3's flag [ours].
 - **The paper.** Which side wrote pp. 47–50 (A-ART-2) cannot be settled from it, and no longer affects our design [pp. 47–50] [ours].
 
 ## 11. Attacks these rules do not stop
 
-- **Public labels.** A public benchmark's test labels, fetched over an agent session's network or memorised by a model, and carried into the code tree as constants below IR-3.3's size bound: IR-11 hides our label files, not the world's. Detection only, by G2, I2 and a canary of perturbed items that task 6's `P1` part may add; U-ART-15's network policy narrows the exposure [ours].
+- **Public labels.** A public benchmark's test labels, fetched over an agent session's network or memorised by a model, and carried into the code tree as constants below IR-3.3's per-file and tree bounds: IR-11 hides our label files, not the world's. Detection only, by G2, I2 and a canary of perturbed items that task 6's `P1` part may add; U-ART-15's network policy narrows the exposure [ours].
 - **External weights chosen on the benchmark.** A public checkpoint whose own selection used the task's report data passes IR-3.4 unless the person who screens it at packaging finds the overlap; TALENT, for one, found that the validation set of TabPFN v2, a model of a kind it says is often early-stopped on such sets, overlaps 27 of its 300 benchmark datasets ([TALENT, arXiv:2407.00956v4](https://arxiv.org/abs/2407.00956v4), its JMLR appendix, fetched with curl on 2026-10-02) [ours].
 - **Selection on search.** The maximum over the loop's candidates still overfits search. IR-14.4's re-fit keeps the reported number unbiased, without removing the selection; the null-idea control records the optimism on search (the U-TOP-5 file) [ours].
 - **Exploits inside valid outputs, and transductive use of inputs.** An output that passes the schema yet games an edge case of the metric, or a predict step that adapts on search or report inputs where the protocol forbids it: detection only, by G2 and I2 [ours].

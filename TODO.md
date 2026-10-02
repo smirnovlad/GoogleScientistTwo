@@ -158,6 +158,32 @@ after it; `P1` is needed before building; `P2` comes later.
 
   The integrity rules in `CLAUDE.md` already settle the first two in principle.
 
+  - [x] **The `P0` part is done, 2026-10-02,** on the branch `claude/integrity-blockers`.
+    - **The decisions:** `docs/integrity/blocking-decisions.md` (the index and the rules that
+      cross the four decisions) and `docs/integrity/decisions/`, one file per row. They hold rules
+      IR-1 to IR-41, written against `docs/integrity/README.md`'s requirements R1 to R10.
+    - **The four register rows point to them.**
+    - **The proof:**
+      - `check_citations.py` passes on the five files, and `register_coverage.py` still passes;
+      - three persona reviews, a fix list (F-0 to F-46, A1 to A6, C-1 to C-14), and each
+        reviewer's closure check are kept verbatim in
+        `docs/reviews/integrity-blockers-2026-10-02/`;
+      - the statistics are reproducible from `playground/integrity/`.
+  - **Found by the `P0` part:**
+    - **Task 5:** build the data roles and seed lists of each task (IR-10, IR-19); set the bounds
+      that the rules leave to it (the index, section 10); and confirm the screen of App. B's five
+      tasks (the index, section 8).
+    - **Task 4:** verify that the Codex CLI on the ChatGPT subscription can serve as the reporting
+      auditor's non-Claude model family (IR-29.4).
+    - **Task 7:** the fixtures that the controls need (the index, section 4).
+    - **The coordinating session:**
+      - reword `CLAUDE.md`'s "The test set is used once, at the end" to match the reading decided
+        in the index's section 7;
+      - fold the rules into `claude/engine`, whose task manifest gives the validation and test
+        splits the same seeds (IR-10.2).
+    - **The owner of `docs/paper/`:** note-check.md's A-NOTE-10 and stages/07's A-INT-1 still
+      describe the register's earlier proposal for that row, which the decision replaces.
+
 - [ ] `P1` **7 · Test strategy and mock mode.** A mock LLM and a mock coding agent, so the whole
   state machine can be tested for $0. `infrastructure-engineer` owns it. **Found by task 1:** the
   paper gives no success criterion for any agent, and tests them only end to end (U-TOP-6). A test
