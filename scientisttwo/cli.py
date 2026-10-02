@@ -23,7 +23,7 @@ from pathlib import Path
 
 from .config import apply_overrides, load_profile, load_routing
 from .orchestrator import prepare, run
-from .runtime.agents import Routing, load_specs
+from .runtime.agents import InputsChanged, Routing, load_specs
 from .runtime.backends import BACKENDS, make_backend
 from .runtime.store import read_json
 
@@ -80,7 +80,11 @@ def main(argv: list[str] | None = None) -> int:
         name = a.backend or recorded.get("backend", "claude")
         backend = make_backend(name, allow_unsandboxed=rec.get("allow_unsandboxed", False),
                                mock_script=a.mock_script, claude_bin=recorded.get("claude_bin"))
-        ctx = prepare(Path(a.run_dir), None, None, backend, allow_changed=a.allow_changed)
+        try:
+            ctx = prepare(Path(a.run_dir), None, None, backend, allow_changed=a.allow_changed)
+        except InputsChanged as e:
+            print(f"not resumed: {e}", file=sys.stderr)
+            return 1
     print(f"run directory: {ctx.run_dir}", file=sys.stderr)
     rec = run(ctx)
     print(json.dumps({k: rec.get(k) for k in ("status", "reason", "resume_after", "final")}, indent=1, default=str))

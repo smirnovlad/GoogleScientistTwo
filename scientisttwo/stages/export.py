@@ -93,11 +93,8 @@ def export(ctx: Ctx, base: Baseline, final: dict, traces: list[Trace], limitatio
     out = ctx.run_dir / "export"
     if out.exists():
         shutil.rmtree(out)
-    (out / "paper").mkdir(parents=True)
-    paper_dir = ctx.papers.path(name)
-    for f in paper_dir.iterdir():
-        if f.is_file() and f.name != ".gitignore":
-            shutil.copy2(f, out / "paper" / f.name)
+    out.mkdir(parents=True)
+    ctx.papers.export(name, out / "paper")              # the committed version, no link followed
     if pdf.get("ok"):
         shutil.copy2(pdf["pdf"], out / "paper" / "main.pdf")
     ctx.ws.export(core.ws, out / "code")

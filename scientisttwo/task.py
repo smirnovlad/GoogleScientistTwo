@@ -81,12 +81,18 @@ def ensure_prepared(root: Path, d: dict) -> None:
         raise TaskError(f"the task's prepare command failed: {(r.stdout + r.stderr)[-1500:]}")
 
 
-def load_task(path: Path | str) -> Task:
-    root = Path(path).expanduser().resolve()
-    manifest = root / "task.json"
+def read_manifest(path: Path | str) -> dict:
+    manifest = Path(path).expanduser().resolve() / "task.json"
     if not manifest.exists():
-        raise TaskError(f"no task.json in {root}")
-    d = json.loads(manifest.read_text())
+        raise TaskError(f"no task.json in {manifest.parent}")
+    return json.loads(manifest.read_text())
+
+
+def load_task(path: Path | str, manifest: Optional[dict] = None) -> Task:
+    """The task in folder `path`. `manifest`: the settings to use instead of its task.json (a
+    run pins the manifest it started with, so a resume never mixes protocols)."""
+    root = Path(path).expanduser().resolve()
+    d = manifest if manifest is not None else read_manifest(root)
     ensure_prepared(root, d)
     missing = [k for k in REQUIRED if k not in d]
     if missing:
@@ -113,6 +119,17 @@ def load_task(path: Path | str) -> Task:
         if not seeds:
             raise TaskError(f"split {name}: no seeds")
         splits[name] = Split(name, s["inputs"], s["labels"], seeds)
+    # A test seed is never a search seed (task 6, blocker B1). With shared seeds a deterministic
+    # entrypoint trains the same model for validation and test, so the test number inherits the
+    # training-seed luck that selection exploited: at equal training and evaluation noise, the
+    # winner of 20 null candidates keeps +1.32 of its +2.65 validation gain on test
+    # (playground/integrity/reviews/research-engineer/null_control.py, branch
+    # claude/integrity-blockers, rerun 2026-10-02). ⛔ WHY NOT allow it with a warning: the
+    # inflation is silent in every number the export reports.
+    shared = sorted({x for n, sp in splits.items() if n != "test" for x in sp.seeds}
+                    & set(splits["test"].seeds))
+    if shared:
+        raise TaskError(f"the test split's seeds must differ from the subset and full seeds; shared: {shared}")
     module = metric.get("module", "harness/metric.py")
     if harness_dir not in (root / module).resolve().parents:
         raise TaskError("metric.module must be inside harness/")

@@ -10,6 +10,11 @@ reviewer reads the manuscript with the tables regenerated from the result files 
 with `tables`), the PDF is built against a regenerated copy, and an edited copy is an audit finding
 (integrity review 2026-10-02, finding 5). Numbers in the prose are checked against the results by
 `unverified_numbers` (finding 4).
+
+The engine reads and writes a writer's files outside the sandbox, so it reads only regular files,
+never through a link, and replaces its own files instead of writing into what is there (Codex
+review 2026-10-02, P1: a writer's `results.tex` linked to a file outside, and the engine's refresh
+overwrote that file). `Workspaces.finalize` removes escaping links too; this is the second line.
 """
 from __future__ import annotations
 
@@ -17,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -129,15 +135,40 @@ def results_tex(p: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def read_regular(path: Path) -> Optional[str]:
+    """A writer's file, if it is a regular file: never through a link, never a FIFO."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError:                                    # missing, or a link (ELOOP)
+        return None
+    with os.fdopen(fd, encoding="utf-8", errors="replace") as f:
+        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+            return None
+        return f.read()
+
+
+def write_regular(path: Path, text: str) -> None:
+    """Replace whatever is at `path` (a link, a file, a directory) with a new regular file."""
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path)
+    elif os.path.lexists(path):
+        os.unlink(path)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
 def write_results(folder: Path, p: dict) -> None:
-    (folder / "results.json").write_text(json.dumps(p, indent=1, default=str))
-    (folder / "results.tex").write_text(results_tex(p))
+    write_regular(folder / "results.json", json.dumps(p, indent=1, default=str))
+    write_regular(folder / "results.tex", results_tex(p))
 
 
 def tables_edited(folder: Path, p: dict) -> bool:
-    """Does the version's copy of the engine's tables differ from the result files?"""
-    f = folder / "results.tex"
-    return f.exists() and f.read_text() != results_tex(p)
+    """Does the version's copy of the engine's tables differ from the result files? A link or
+    any other non-file in its place counts as an edit."""
+    if not os.path.lexists(folder / "results.tex"):
+        return False
+    return read_regular(folder / "results.tex") != results_tex(p)
 
 
 _INPUT = re.compile(r"\\input\{results(\.tex)?\}")
@@ -148,20 +179,18 @@ def strip_comments(tex: str) -> str:
     return _COMMENT.sub("", tex)
 
 
-def manuscript_text(folder: Path, tables: Optional[str] = None) -> str:
-    """The manuscript as a reviewer reads it: main.tex without TeX comments, with the results
-    tables inlined. `tables`: the engine's own tables, regenerated from the result files; without
-    it the version's copy is used (only for versions no writer has touched since)."""
-    main = folder / "main.tex"
-    if not main.exists():
-        return "(no manuscript: main.tex is missing)"
-    text = strip_comments(main.read_text(errors="replace"))
-    if tables is None:
-        tables = (folder / "results.tex").read_text() if (folder / "results.tex").exists() else ""
-    text = _INPUT.sub(lambda _: tables, text)
-    bib = folder / "references.bib"
-    if bib.exists():
-        text += "\n\n===== references.bib =====\n" + bib.read_text(errors="replace")
+def manuscript_text(folder: Path, tables: str) -> str:
+    """The manuscript as a reviewer reads it: main.tex without TeX comments, with `tables`, the
+    engine's own tables regenerated from the result files, inlined. ⛔ WHY NOT default to the
+    version's results.tex: every version a writer touched may hold edited tables, and a default
+    let the meta-reviewer read a forged number (Codex review 2026-10-02, P1)."""
+    main = read_regular(folder / "main.tex")
+    if main is None:
+        return "(no manuscript: main.tex is missing or not a regular file)"
+    text = _INPUT.sub(lambda _: tables, strip_comments(main))
+    bib = read_regular(folder / "references.bib")
+    if bib is not None:
+        text += "\n\n===== references.bib =====\n" + bib
     return text
 
 
@@ -187,10 +216,10 @@ def unverified_numbers(folder: Path, p: dict, context: str = "") -> list[str]:
     as a fraction or a percentage, with or without sign) and do not occur in `context` (the task's
     paper and the method's description, where hyperparameters come from). A number of the paper
     should come from the engine's results; one computed by the writer is flagged."""
-    main = folder / "main.tex"
-    if not main.exists():
+    main = read_regular(folder / "main.tex")
+    if main is None:
         return []
-    prose = _INPUT.sub("", strip_comments(main.read_text(errors="replace")))
+    prose = _INPUT.sub("", strip_comments(main))
     values = list(_values(p))
     known_text = set(m.group(1) for m in _NUMBER.finditer(context))
     flagged = []
@@ -221,7 +250,7 @@ def compile_pdf(folder: Path, build: Path, policy: sbx.SandboxPolicy, allow_unsa
     if tables is not None:
         engine_tables = build / "engine-tables"
         engine_tables.mkdir(exist_ok=True)
-        (engine_tables / "results.tex").write_text(tables)
+        write_regular(engine_tables / "results.tex", tables)
         texinputs = f"{engine_tables}{os.pathsep}"          # searched before the version's own copy
     env = {"PATH": os.pathsep.join([str(Path(exe).parent), "/usr/bin", "/bin"]), "HOME": str(build),
            "TEXMFVAR": str(build / "texmf-var"), "TMPDIR": str(build), "LANG": "en_US.UTF-8"}

@@ -129,6 +129,18 @@ def test_task_validation(toy_task):
         load_task(toy_task)
 
 
+def test_a_test_seed_is_never_a_search_seed(toy_task):
+    """Task 6, blocker B1: shared seeds carry the selection's training luck into the test number."""
+    d = json.loads((toy_task / "task.json").read_text())
+    d["splits"]["test"]["seeds"] = [1, 7]                            # 1 is a `full` seed
+    (toy_task / "task.json").write_text(json.dumps(d))
+    with pytest.raises(TaskError, match=r"shared: \[1\]"):
+        load_task(toy_task)
+    d["splits"]["test"]["seeds"] = [7, 8]
+    (toy_task / "task.json").write_text(json.dumps(d))
+    assert load_task(toy_task).splits["test"].seeds == (7, 8)
+
+
 # ---- the holes the digits task's builder found (2026-10-02), each closed by mechanism ----------
 CHEAT = ("import argparse, numpy as np\n"
          "ap = argparse.ArgumentParser(); [ap.add_argument(a) for a in ('--train-dir','--inputs','--out','--seed')]\n"

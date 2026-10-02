@@ -9,10 +9,20 @@ A version IS its commit. A copy is reset to its parent's commit, and the harness
 export of the commit, so nothing left in a working tree after its commit (a stray process still
 writing, an uncommitted file) reaches a later version or a result (infrastructure review, I5).
 Agents cannot write a version's `.git` (policies.py), so a git failure here is the machine's.
+
+The engine reads, commits and copies versions OUTSIDE the sandbox, so a version holds nothing the
+engine could be made to follow: `finalize` removes, before git reads a byte, every symlink that
+leaves the version, every hard-linked file and every special file (Codex review 2026-10-02, P1).
+A sandboxed writer can make a symlink to a file it cannot read (probe of 2026-10-02); the engine,
+reading it unsandboxed, would hand that file to a reviewer or commit it. ⛔ WHY NOT fail the unit
+instead: the version must still exist for the harness to judge, and the removal is recorded.
 """
 from __future__ import annotations
 
+import json
+import os
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -33,6 +43,43 @@ def archive_commit(repo: Path, commit: str, dest: Path) -> None:
         raise WorkspaceError(f"git archive {commit} in {repo}: {r.stderr.decode(errors='replace')}")
     with tarfile.open(fileobj=io.BytesIO(r.stdout)) as tar:
         tar.extractall(dest, filter="data")
+
+
+def unsafe_entries(root: Path) -> list[dict]:
+    """What in an agent-written tree the engine must never follow or read: a symlink that is
+    absolute or resolves outside `root`, a regular file with another hard link (its contents live
+    elsewhere too), and anything that is neither a file, a directory nor a link (reading a FIFO
+    blocks). `.git` is the engine's, never an agent's (policies.py), and is not walked."""
+    root = Path(root)
+    real_root = Path(os.path.realpath(root))
+    out: list[dict] = []
+    for dirpath, dirnames, filenames in os.walk(root):            # never follows links
+        here = Path(dirpath)
+        if here == root and ".git" in dirnames:
+            dirnames.remove(".git")
+        for name in [*dirnames, *filenames]:
+            path = here / name
+            st = os.lstat(path)
+            rel = str(path.relative_to(root))
+            if stat.S_ISLNK(st.st_mode):
+                target = os.readlink(path)
+                resolved = Path(os.path.realpath(path))
+                if os.path.isabs(target) or (resolved != real_root and real_root not in resolved.parents):
+                    out.append({"path": rel, "kind": "symlink", "target": target})
+            elif stat.S_ISREG(st.st_mode):
+                if st.st_nlink > 1:
+                    out.append({"path": rel, "kind": "hardlink", "links": st.st_nlink})
+            elif not stat.S_ISDIR(st.st_mode):
+                out.append({"path": rel, "kind": "special", "mode": oct(st.st_mode)})
+    return out
+
+
+def remove_unsafe(root: Path) -> list[dict]:
+    """Remove every `unsafe_entries` entry (the link itself, never what it points to)."""
+    found = unsafe_entries(root)
+    for e in found:
+        os.unlink(Path(root) / e["path"])
+    return found
 
 
 class WorkspaceError(RuntimeError):
@@ -82,7 +129,11 @@ class Workspaces:
         return tmp
 
     def finalize(self, tmp: Path, name: str, message: str) -> str:
-        """Commit everything in `tmp` and make it version `name`. Returns the commit."""
+        """Commit everything in `tmp` and make it version `name`. Returns the commit. What the
+        engine must not follow is removed first (`remove_unsafe`); call it before to log it."""
+        removed = remove_unsafe(tmp)
+        if removed:
+            message += "\n\nRemoved by the engine before the commit: " + json.dumps(removed)
         self._git(tmp, "add", "-A")
         self._git(tmp, "commit", "-q", "--allow-empty", "-m", message)
         sha = self._git(tmp, "rev-parse", "HEAD").strip()
@@ -90,6 +141,11 @@ class Workspaces:
         shutil.rmtree(final, ignore_errors=True)
         tmp.rename(final)
         return sha
+
+    def pending(self, name: str) -> Optional[Path]:
+        """The working copy a unit left for version `name` and the engine never finalised."""
+        tmp = self.root / f"{name}.tmp"
+        return tmp if (tmp / ".git").is_dir() and not self.exists(name) else None
 
     def commit(self, name: str) -> str:
         return self._git(self.path(name), "rev-parse", "HEAD").strip()
@@ -120,5 +176,10 @@ class Workspaces:
         archive_commit(self.path(name), commit, dest)
 
     def export(self, name: str, dest: Path) -> None:
-        shutil.rmtree(dest, ignore_errors=True)
-        shutil.copytree(self.path(name), dest, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+        """Version `name` as its commit holds it, the code the harness scored: nothing untracked,
+        ignored or written after the commit, and no link followed (Codex review 2026-10-02, P1).
+        ⛔ WHY NOT copy the working tree: it can differ from the commit, and copying follows links."""
+        archive_commit(self.path(name), self.commit(name), dest)
+        ignore = dest / ".gitignore"
+        if ignore.is_file() and ignore.read_text() == IGNORE:       # the engine's own, not the task's
+            ignore.unlink()

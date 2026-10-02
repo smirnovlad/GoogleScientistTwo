@@ -21,13 +21,15 @@ from ..primitive import ACCEPT, REFINE, StageParams, run_stage
 from ..runtime.agents import UnitFailed
 from ..state import Baseline, Core
 from .common import Ctx
-from .manuscript import (compile_pdf, manuscript_text, payload, results_tex, tables_edited,
-                         unverified_numbers, write_results)
+from .manuscript import (compile_pdf, manuscript_text, payload, read_regular, results_tex,
+                         tables_edited, unverified_numbers, write_results)
 from .shared import run_variants
 
 
-def _results(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], reb: list[dict]) -> dict:
+def results_of(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], reb: list[dict]) -> dict:
+    """The verified results payload of a pass: what every reader of its manuscript gets."""
     return payload(ctx.task, base, core, abl, reb)
+
 
 
 def _seed_version(ctx: Ctx, name: str, p: dict) -> str:
@@ -71,7 +73,7 @@ def read(ctx: Ctx, name: str, p: dict) -> str:
 def draft(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitations: list[dict],
           references: list[dict], tag: str) -> str:
     assert ctx.papers is not None
-    p = _results(ctx, base, core, abl, [])
+    p = results_of(ctx, base, core, abl, [])
     seed = _seed_version(ctx, f"{tag}.results", p)
     name = f"{tag}.draft"
     ctx.code(f"{tag}/draft", "initial_drafter", {
@@ -111,7 +113,7 @@ def writing_stage(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitat
     assert ctx.papers is not None
     tag = f"write/p{pass_i}"
     v0 = draft(ctx, base, core, abl, limitations, references, tag)
-    p0 = _results(ctx, base, core, abl, [])
+    p0 = results_of(ctx, base, core, abl, [])
     start = {"version": v0, "review": review(ctx, f"{tag}/review/0", v0, p0), "rebuttals": []}
     threshold = ctx.L("review_threshold")
 
@@ -119,9 +121,9 @@ def writing_stage(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], limitat
         return ("met" if int(c["review"]["score"]) >= threshold else "below"), c["review"]
 
     def refine(c: dict, rev: dict, i: int) -> dict:
-        known = _results(ctx, base, core, abl, c["rebuttals"])
+        known = results_of(ctx, base, core, abl, c["rebuttals"])
         reb = c["rebuttals"] + rebuttal_round(ctx, core, rev, f"{tag}/rebut{i}", known)
-        p = _results(ctx, base, core, abl, reb)
+        p = results_of(ctx, base, core, abl, reb)
         staged = _refresh_results(ctx, c["version"], f"{tag}.r{i + 1}.results", p)
         name = f"{tag}.r{i + 1}"
         ctx.code(f"{tag}/enhance/{i}", "paper_enhancer", {
@@ -150,7 +152,7 @@ def audit(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], written: dict, 
     tag = f"audit/p{pass_i}"
     integ = ctx.cfg.get("integrity", {})
     folder = ctx.papers.path(written["version"])
-    p = _results(ctx, base, core, abl, written["rebuttals"])
+    p = results_of(ctx, base, core, abl, written["rebuttals"])
     report: dict = {"references": None, "method_code": None, "repaired": False}
     problems: list = []
     if tables_edited(folder, p):
@@ -169,7 +171,7 @@ def audit(ctx: Ctx, base: Baseline, core: Core, abl: list[dict], written: dict, 
                                          "as results.json gives them, or remove the number."})
     try:
         if integ.get("reference_check", True):
-            bib = (folder / "references.bib").read_text() if (folder / "references.bib").exists() else ""
+            bib = read_regular(folder / "references.bib") or ""
             if bib.strip():
                 report["references"] = ctx.think(f"{tag}/references", "reference_checker", {"bibliography": bib})
                 entries = report["references"].get("entries", [])

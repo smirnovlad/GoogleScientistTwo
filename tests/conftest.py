@@ -68,7 +68,7 @@ def build_toy_task(root: Path) -> Path:
         "metric": {"name": "accuracy", "direction": "max", "module": "harness/metric.py"},
         "splits": {"subset": {"inputs": "harness/inputs/subset.npz", "labels": "harness/labels/subset.npz", "seeds": [0]},
                    "full": {"inputs": "harness/inputs/full.npz", "labels": "harness/labels/full.npz", "seeds": [0, 1]},
-                   "test": {"inputs": "harness/inputs/test.npz", "labels": "harness/labels/test.npz", "seeds": [0, 1]}},
+                   "test": {"inputs": "harness/inputs/test.npz", "labels": "harness/labels/test.npz", "seeds": [10, 11]}},
         "timeouts": {"evaluation_seconds": 60, "coding_session_seconds": 60},
         "reported": "Accuracy 0.80 with threshold 0.5."}))
     return root

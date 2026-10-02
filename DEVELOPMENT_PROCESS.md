@@ -463,44 +463,165 @@ another version and write to the home directory, and each fails. A cross-check o
 against the stage code (variables passed, output fields read, verdict enums, schemas) found no
 mismatch.
 
-## HANDOFF, 2026-10-02 (PR #1 awaits review; tasks 2 and 6 run in tmux)
+## 2026-10-02: the first real run, three reviews, and the fixes
 
-- **Done and pushed** on `claude/paper-analysis`:
-  - TODO task 1, ticked in `TODO.md` with its proof;
-  - the Codex review's fixes;
-  - the rule that task sessions start from a terminal;
-  - `ops/sessions.sh`, and the tmux section of `docs/process/worktrees-and-sessions.md`.
-- **All checks passed on 2026-09-28.** The commits since then touch none of the files they check:
-  - `check_citations.py`: 18 files, 0 problems, and its self-test's 46 cases;
-  - `register_coverage.py` and `trace_coverage.py`: 0 problems each, with their self-tests;
-  - `claims_arithmetic.py`: exits 0;
-  - `fetch_sources.sh`: the sources match their sha256, and the redaction is exact.
-- **Open:** PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1), `claude/paper-analysis`
-  into `main`, with no review or comment as of 2026-10-02. Its description carries the Codex
-  verdict. The repository has no CI yet, so no checks run on it.
-- **Running, in the tmux session `gs2`.** `ops/sessions.sh list` shows the windows, and `gs2 <n>`
-  opens one in a terminal tab.
-  - `T2`: task 2, in `.claude/worktrees/requirements`, on `claude/requirements`. Session
-    `be5dd052-f8df-4809-9900-03547c214b13`.
-  - `T6`: task 6's `P0` part, in `.claude/worktrees/integrity-blockers`, on
-    `claude/integrity-blockers`. Session `5c73bd1a-2ecb-42b9-bf9c-0e03b8630828`.
+**Run 1 finished end to end on the subscription** (`runs/digits-quick-1`, profile `quick`, not
+committed: `runs/` is ignored). In 0.16 h it made 36 agent calls, 15 of them sessions with tools,
+for $2.91 API-equivalent, with nothing billed; every call's `apiKeySource` was "none".
 
-  To continue one that has stopped:
-  `ops/sessions.sh restart T<n> claude --permission-mode auto --effort max --resume <its session>`.
-- **Also running, not ours:** a Codex session, in `.claude/worktrees/codex-reuse-survey`, on
-  `codex/reuse-survey`. The main checkout is on `main`, where that session left it.
+| | baseline | proposed (PCS-Init MLP) | gain |
+|---|---|---|---|
+| validation, `full` | 0.9118 ± 0.0170 | 0.9879 ± 0.0032 | +0.0761 |
+| test, once at export | 0.9090 ± 0.0196 | 0.9638 | +0.0548 |
+
+The peer reviewer scored it 3/10, the meta-reviewer asked for a refinement the guard then
+refused (the refined code was unchanged), and the final judge, on opus, scored it 3/10, reject.
+The chain worked as designed and found the flaw itself. Ablation A1 (standardisation with Glorot
+initialisation) already scored 0.9759, so input standardisation carried 84% of the gain. The
+ablation critic had accepted the idea, because it was never shown the baseline. Run 1 found four
+engine defects, R1–R4 in `TODO.md`:
+- the ablation critic lacked the baseline;
+- the abstract said "no test split" beside the engine's test table;
+- the rebuttal planner re-ran ablation A1;
+- the critics' gain text did not state the margin.
+
+**Three persona reviews ran in parallel,** and each is saved verbatim (machine paths redacted) in
+`docs/reviews/engine-2026-10-02/`. The `agent-engineer`'s report came back as a hand-back. Every
+finding is a checkbox in `TODO.md`:
+- **Architecture:** a second backend needed four edits and could run unsandboxed; profile
+  settings were ignored; one failed call stopped a run that resume could never recover; prompts
+  were not pinned to their run.
+- **Infrastructure:** seven P1s, each reproduced:
+  - a stale result read for new code after a resume;
+  - unrecorded spending;
+  - a torn ledger line that blocked every resume;
+  - pauses that turned permanent;
+  - orphaned processes and no run lock;
+  - an evaluation that could hang the engine;
+  - agents able to break their own `.git`.
+
+  Among its four P2s: agents could write the user's Claude settings, hooks and memory.
+- **Integrity:** three P1s and two P2s.
+  - It read one of 9 un-denied copies of the digits labels from inside the evaluation sandbox,
+    and scored 1.0 on the test split.
+  - Coding agents had the open internet.
+  - The baseline had no numeric check, so a weaker baseline would inflate every gain.
+  - Prose numbers were unchecked.
+  - Reviewers read a results table a writer could edit.
+
+**Probes behind the new sandbox** (`playground/engine/sandbox-probe/probe_agent.py`, one haiku
+call each, 2026-10-02):
+
+| Mode | Result |
+|---|---|
+| outbound network only to a local CONNECT proxy | works; the CLI reached only `api.anthropic.com` (and a telemetry host, now off) |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` | the `init` event's `memory_paths` is gone (it named Vlad's own memory folder) |
+| a fresh `CLAUDE_CONFIG_DIR` | "Not logged in": the login is bound to the default config |
+| no writes to `~/.claude`, `~/.claude.json`, `~/Library/Caches` | works |
+| reads under `$HOME` limited to the CLI's binary and config, git's config, Python, the workdir | "Not logged in"; adding `~/Library/Keychains` makes it work, and `~/.claude` is not needed |
+
+One more probe found a trap in the profile language. A deny written for `file-read*` does not
+override an earlier allow of `file-read-data`. A deny pattern inside the allowed Python prefix
+therefore still read the file, until the deny named `file-read-data` itself. A test caught it,
+and with the fix the engine's own copy of the digits data is unreadable, while sklearn imports and
+trains.
+
+**The fixes,** in `cba39df`. The design contract (`docs/architecture/engine.md`, sections 1–5,
+8 and 9) now describes them:
+- reads under `$HOME` are an allowlist, plus task deny patterns;
+- agents reach only the Anthropic API, through a logged egress proxy;
+- evaluation runs an export of the version's commit, one directory per seed;
+- the baseline must match the task's reported number;
+- tables are regenerated for every reader, and prose numbers are checked;
+- a `test_reporter` writes the test results into the text, and the final variants are scored on
+  test once;
+- the ablation critic reads the baseline and a `reject_share`;
+- a run lock; process trees are watched, killed and reaped after a crash;
+- one ledger line per attempt; replay checks the inputs hash; each run keeps a copy of its agents;
+- the structural changes the architecture review asked for.
+
+**Proof that the new checks catch what they claim:**
+- Three tests failed on their first run, each because its check was not yet doing its job:
+  - the tree-kill test, before the environment marker found a detached child;
+  - the deny-pattern test, before the deny named `file-read-data`;
+  - a stale orphan from the first attempt, still writing.
+- 95 tests now pass on the mock backend, and the agent checker reports 0 problems on 28 agents.
+- The `agent-engineer` ran a golden case live on run 1's real ablation inputs. The new critic
+  returned `Reject`, which is what App. B's rule expects. A synthetic control shaped like LC-FTT
+  returned `Refine`.
+
+## 2026-10-02: the Codex gate fails, and the first fixes
+
+- **The `/codex` gate** (gpt-6-astra, high effort, 15:32–16:05) returned **FAIL: 7 P1, 9 P2**,
+  saved verbatim in `docs/reviews/engine-2026-10-02/codex.md`. TODO E8 lists them as C1–C16.
+- **The worst one is real, and a sandbox probe confirmed it.** A sandboxed writer can make a
+  symlink to a file it cannot read, though not a hard link. The engine reads, commits and copies
+  versions outside the sandbox. So a linked `main.tex` would have sent a private file to a
+  reviewer, and a linked `results.tex` let the engine overwrite a file outside the run. The fix
+  sits at the one choke point every version passes, `finalize`, which removes such entries before
+  git reads them; the manuscript code reads only regular files as a second line.
+- **Fixed with tests** (each test fails on `cba39df`):
+  - C1, links;
+  - C2, export by commit;
+  - C4, a unit is stored before its version is made, and a resume finishes the version;
+  - C5, the task manifest pinned in `run.json`;
+  - C6, the meta-reviewer's tables;
+  - C8, a coding unit's replay check.
+- **Task 6's blocker B1 is adopted:** a test seed is never a search seed. Their null control,
+  rerun here, gives +1.32 of +2.65 kept on test with shared seeds. The digits test seeds are now
+  100–109. Run 2 had read no test split yet, so its resume adopts them; `run.json` records the
+  pin.
+- **Decisions sent to the other sessions:**
+  - To task 2 (requirements), on engine versus primitive-as-data: (b). Task 3 starts from
+    `engine.md`, and the requirements record each departure.
+  - To task 2 and task 6, on F-46: no question to Vlad. The extra reads of the test split are
+    allowed, because none feeds a decision. Task 6 adopted this and records any read that could
+    feed one as a violation.
+
+## HANDOFF, 2026-10-02 (the engine runs on the subscription; Codex fixes and run 2 in progress)
+
+- **The goal** (Vlad, verbatim above): a working ScientistTwo engine on `claude -p`, on the
+  subscription, delivered without questions.
+- **Where it is:** branch `claude/engine` in `.claude/worktrees/engine`, stacked on
+  `claude/paper-analysis` (PR #1, still open). `cba39df` holds the hardened engine; the next
+  commit holds the first Codex fixes (C1, C2, C4, C5, C6, C8) and task 6's B1.
+- **State:**
+  - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see the section above).
+  - **Run 2** (`runs/digits-quick-2`, profile `quick`, engine `cba39df`) started at 15:11 to check
+    the new sandbox on the subscription. So far:
+    - agents reach only `api.anthropic.com`;
+    - coding agents work, with no sandbox denials;
+    - the baseline check passed (0.9118);
+    - idea s3 is Good on `full` at +0.0594.
+  - **Tests:** 102 pass on the mock backend, and `playground/engine/check_agents.py` reports 0
+    problems on 28 agents.
+- **Running:** run 2, resumed after the 16:00 reset on the fixed engine. The `technical-writer`
+  stopped at the session limit before it wrote the guide (E9), and is to be relaunched.
 - **Next steps:**
-  1. Vlad reviews PR #1. Merge to `main` only with his approval. The commits made after the Codex
-     passes change only process documents and `ops/sessions.sh`. They get a Codex pass of their
-     own before the merge.
-  2. Tasks 2 and 6's `P0` part continue in their sessions. Once PR #1 is merged, each brings its
-     branch up to date with `main`.
-  3. Remove the two stopped app chats' worktrees, `nervous-rosalind-80b87b` and
-     `nervous-wozniak-48c870`. The app no longer lists those chats, so archiving them cannot remove
-     the worktrees. `nervous-wozniak-48c870` holds an uncommitted section not worth keeping, so
-     removing it takes `git worktree remove --force`: Vlad's call.
-  4. Remove `.claude/worktrees/paper-analysis` once no session needs it.
-- **If this session is lost:**
-  - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
-  - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
-    whose last section records the outcome of every fix, and from `codex-review.md`.
+  1. Fix the open Codex findings: C3 and C7 (P1), then C9–C16 (P2). Record any dismissed one
+     with its reason. Then rerun the gate.
+  2. Read run 2's export. Tick E11 with its numbers, and fix what it shows.
+  3. The guide (E9): relaunch, then review it against the code.
+  4. Push. Open the engine's PR against `claude/paper-analysis`, with the Codex verdict in its body.
+- **To run the engine:** `python3 -m scientisttwo run --task tasks/digits --profile quick`, then
+  `python3 -m scientisttwo status <run-dir>`, and `resume <run-dir>` after a pause. Outputs are in
+  `<run-dir>/export/`. The guide (`docs/guide.md`) covers the rest.
+- **Still true from the previous handoff:**
+  - PR #1 awaits Vlad's review.
+  - Tasks 2 and 6 run in tmux session `gs2` (`ops/sessions.sh list`; `gs2 <n>` opens one).
+  - The `nervous-*` worktrees and `.claude/worktrees/paper-analysis` wait to be removed (Vlad's
+    call for the one needing `--force`).
+  - **Vlad's Codex session forked this engine.** At 14:08 it copied the `scientisttwo/` package,
+    the agents, `engine.md` and the agent checker into `codex/engine-integration` (`462c4d0`).
+    That was before this branch's hardening (`cba39df`, 14:55). It then built on the copy:
+    - `codex/run-journal`, `codex/budget-admission`, `codex/verified-tables`, its own
+      `scientist_two/` package;
+    - a capped subscription run, a research-direction option for idea search;
+    - `codex/rsi-uncertainty`.
+
+    None of those branches holds `cba39df`: the allowlisted sandbox, the egress proxy, commit
+    evaluation, the run lock and process reaping, and the per-attempt ledger exist only on
+    `claude/engine`. Bringing the two lines together is a merge to plan with Vlad. This session
+    leaves Codex's worktrees and branches alone.
+- **If this session is lost:** read `TODO.md` ("Goal of 2026-10-02"), then this file's last two
+  sections, then `docs/architecture/engine.md`.

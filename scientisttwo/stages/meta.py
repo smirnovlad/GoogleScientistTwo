@@ -21,10 +21,9 @@ from ..primitive import StageParams, run_stage
 from ..state import Baseline, Core
 from .ablation import ablation_stage
 from .common import Ctx, RunEnded
-from .manuscript import manuscript_text
 from .roles import verdict_map, verdict_of
 from .shared import admits, full_set_refine
-from .writing import audit, writing_stage
+from .writing import audit, read, results_of, writing_stage
 
 
 class RestartRejected(Exception):
@@ -45,7 +44,8 @@ def downstream(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
               score=int(written["review"]["score"]))
     return {"pass": pass_i, "core": core, "ablations": abl, "ablation_status": abl_status,
             "version": written["version"], "review": written["review"],
-            "rebuttals": written["rebuttals"], "review_status": written["status"], "audit": report}
+            "rebuttals": written["rebuttals"], "review_status": written["status"], "audit": report,
+            "results": results_of(ctx, base, core, abl, written["rebuttals"])}
 
 
 def meta_stage(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
@@ -54,8 +54,10 @@ def meta_stage(ctx: Ctx, base: Baseline, core: Core, limitations: list[dict],
     passes = [downstream(ctx, base, core, limitations, references, 0)]
 
     def critic(c: dict, i: int) -> tuple[str, str]:
+        # the tables regenerated from the pass's result files, as the peer reviewer reads them:
+        # an audit repair is a writer session too, and can leave edited tables (Codex review, P1)
         o = ctx.think(f"meta/review/{i}", "meta_reviewer", {
-            "manuscript": manuscript_text(ctx.papers.path(c["version"])), "review": c["review"]})
+            "manuscript": read(ctx, c["version"], c["results"]), "review": c["review"]})
         c["meta"] = o
         return verdict_of("meta_reviewer", o), o["feedback"]
 

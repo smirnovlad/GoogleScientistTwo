@@ -245,6 +245,10 @@ def test_one_engine_per_run(tmp_path, toy_task):
 
 def test_a_run_keeps_its_own_prompts_and_refuses_a_changed_one(tmp_path, toy_task):
     rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT])
+    coder = ctx.run_dir / "agents" / "subset_coder" / "prompt.md"       # a coding unit replays too
+    coder.write_text(coder.read_text() + "\nAnother instruction.\n")
+    rec1 = run(prepare(ctx.run_dir, None, None, MockBackend(), sleep=lambda s: None))
+    assert rec1["status"] == "error" and "InputsChanged" in rec1["reason"] and "subset/code" in rec1["reason"]
     snapshot = ctx.run_dir / "agents" / "limitation_extractor" / "prompt.md"
     assert snapshot.exists() and read_json(ctx.run_dir / "run.json")["agents_sha256"]
     snapshot.write_text(snapshot.read_text() + "\nA new instruction.\n")
@@ -253,3 +257,66 @@ def test_a_run_keeps_its_own_prompts_and_refuses_a_changed_one(tmp_path, toy_tas
     rec3 = run(prepare(ctx.run_dir, None, None, MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}),
                        sleep=lambda s: None, allow_changed=True))
     assert rec3["status"] == "done", rec3.get("reason")
+
+
+# ---- the Codex review of 2026-10-02 ------------------------------------------------------------
+def test_the_meta_reviewer_reads_the_verified_tables(tmp_path, toy_task):
+    """P1: the audit's repair is a writer session too, and its edited tables reached the meta-review."""
+    forged = {"agent": "initial_drafter", "edits": {
+        "main.tex": MAIN.replace("{prose}", "We report our results."),
+        "references.bib": BIB, "results.tex": "Proposed & 0.9999 \\\\\n"}}
+    forged_repair = {"agent": "paper_enhancer", "key": "^audit/p0/repair$", "edits": {
+        "main.tex": MAIN.replace("{prose}", "We report our results."),
+        "results.tex": "Proposed & 0.9999 \\\\\n"}}
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, forged, forged_repair])
+    assert rec["status"] == "done", rec.get("reason")
+    assert "0.9999" in (ctx.papers.path("audit/p0.repaired") / "results.tex").read_text()
+    meta = prompt(ctx, "meta/review/0")
+    assert "0.9999" not in meta and "1.0000" in meta
+
+
+def test_a_crash_between_storing_a_unit_and_making_its_version_does_not_pay_twice(tmp_path, toy_task, monkeypatch):
+    """P1: the version used to be made before the unit was stored, so a crash between the two
+    lost a finished, paid call; now the resume makes the version from what the agent left."""
+    from scientisttwo.workspace import Workspaces
+    real, crashed = Workspaces.finalize, []
+
+    def crash_once(self, tmp, name, message):
+        if name == "write/p0.draft" and not crashed:
+            crashed.append(name)
+            raise RuntimeError("the machine died here")
+        return real(self, tmp, name, message)
+
+    monkeypatch.setattr(Workspaces, "finalize", crash_once)
+    with pytest.raises(RuntimeError, match="the machine died"):
+        go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT])
+    run_dir = tmp_path / "run"
+    assert (run_dir / "units" / "write" / "p0" / "draft.json").exists()        # stored first
+    assert (run_dir / "manuscripts" / "write" / "p0.draft.tmp").is_dir()       # the agent's work
+    backend2 = MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]})
+    rec = run(prepare(run_dir, None, None, backend2, sleep=lambda s: None))
+    assert rec["status"] == "done", rec.get("reason")
+    assert ("initial_drafter", "write/p0/draft") not in backend2.calls       # not paid twice
+    assert (run_dir / "manuscripts" / "write" / "p0.draft" / "main.tex").exists()
+
+
+def test_a_resume_keeps_the_task_settings_the_run_started_with(tmp_path, toy_task):
+    """P1: a resume used to reload task.json, mixing seeds of two protocols in one run."""
+    pause = {"agent": "ablation_planner", "raise": "rate_limit"}
+    prof = profile()
+    prof["rate_limit"]["max_wait_minutes"] = 0
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, pause], prof)
+    assert rec["status"] == "paused"
+    assert read_json(ctx.run_dir / "run.json")["task_manifest"]["splits"]["full"]["seeds"] == [0, 1]
+    d = json.loads((toy_task / "task.json").read_text())
+    d["splits"]["full"]["seeds"] = [7, 8]
+    (toy_task / "task.json").write_text(json.dumps(d))
+    from scientisttwo.runtime.agents import InputsChanged
+    with pytest.raises(InputsChanged, match="splits"):
+        prepare(ctx.run_dir, None, None, MockBackend(), sleep=lambda s: None)
+    rules = {"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}
+    ctx2 = prepare(ctx.run_dir, None, None, MockBackend(rules), sleep=lambda s: None, allow_changed=True)
+    assert ctx2.task.splits["full"].seeds == (7, 8)
+    close(ctx2)
+    history = read_json(ctx.run_dir / "run.json")["history"]
+    assert any(h.get("event") == "task_changed" and h["keys"] == ["splits"] for h in history)

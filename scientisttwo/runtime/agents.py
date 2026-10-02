@@ -15,7 +15,10 @@
      - a timeout is retried `retries_timeout` times from a clean start, then fails the unit;
      - a final refusal fails the unit;
   4. the output is validated against the agent's schema;
-  5. `on_done` runs (a coding unit finalises its workspace here), then the unit is stored.
+  5. the unit is stored, THEN `on_done` runs (a coding unit finalises its workspace here). A crash
+     between the two leaves a stored unit and the agent's working copy, which the caller turns
+     into the version on resume, so a finished, paid call is never made again (Codex review
+     2026-10-02, P1). ⛔ WHY NOT `on_done` first: a crash after it lost the paid result.
 A unit that fails for good is stored as failed and raises `UnitFailed`, now and on resume, unless
 the run stopped on it (the orchestrator then clears it, so the resume tries it again).
 """
@@ -184,6 +187,17 @@ class AgentRuntime:
         return hashlib.sha256(json.dumps([spec.system, user, route.model, route.effort, route.backend],
                                          default=str).encode()).hexdigest()
 
+    def recorded(self, key: str, agent: str, variables: dict[str, Any]) -> Optional[dict]:
+        """The finished unit at `key`, checked against the inputs it would be sent now; None if
+        the unit has not run. For callers that must look before `run` (a coding unit checks its
+        version exists first), so no replay skips the check."""
+        record = self.store.get(key)
+        if record is not None:
+            spec = self.spec(agent)
+            route = self.routing.route(spec)
+            self._check_replay(key, record, self.inputs_sha(spec, route, spec.render(variables)))
+        return record
+
     def run(self, key: str, agent: str, variables: dict[str, Any], *, cwd: Optional[Path] = None,
             sandbox: Optional[SandboxPolicy] = None, tmpdir: Optional[Path] = None,
             on_done: Optional[Callable[[Optional[dict], Optional[str]], None]] = None,
@@ -258,13 +272,13 @@ class AgentRuntime:
             break
 
         assert result is not None
-        if on_done is not None:
-            on_done(result.output, None)
         self.store.put(key, {"status": "ok", "agent": agent, "kind": spec.kind, "model": route.model,
                              "effort": route.effort, "backend": route.backend, "inputs_sha256": inputs_sha,
                              "attempts": attempt, "output": result.output, "text": result.text[-4000:],
                              "equiv_usd": result.cost_usd, "seconds": round(time.time() - started, 2),
                              "session_id": result.session_id, "finished_at": time.time()})
+        if on_done is not None:
+            on_done(result.output, None)
         return result.output  # type: ignore[return-value]
 
     # ---- records --------------------------------------------------------------------------------
@@ -319,10 +333,10 @@ class AgentRuntime:
 
     def _fail(self, key: str, agent: str, spec: AgentSpec, route: Route, error: str, started: float,
               inputs_sha: str, on_done: Optional[Callable[[Optional[dict], Optional[str]], None]]) -> None:
-        if on_done is not None:
-            on_done(None, error)
         self.store.put(key, {"status": "failed", "agent": agent, "kind": spec.kind,
                              "model": route.model, "backend": route.backend, "inputs_sha256": inputs_sha,
                              "error": error[:4000], "seconds": round(time.time() - started, 2),
                              "finished_at": time.time()})
+        if on_done is not None:
+            on_done(None, error)
         raise UnitFailed(key, error)

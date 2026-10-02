@@ -47,7 +47,7 @@ from .stages.export import export
 from .stages.limitations import find_limitations, generate_seeds
 from .stages.meta import meta_stage
 from .stages.roles import check_roles
-from .task import code_overview, load_task
+from .task import code_overview, load_task, read_manifest
 from .workspace import Workspaces
 
 log = logging.getLogger("scientisttwo")
@@ -134,7 +134,8 @@ def _prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], 
         log.warning("this run has no copy of its agents; using the engine's current ones")
         specs = load_specs()
     check_roles(specs)
-    task = load_task(task_path)                                       # type: ignore[arg-type]
+    task = load_task(task_path, manifest=_pinned_manifest(run_dir, rec, task_path, allow_changed))
+
 
     procs = ProcRegistry(run_dir)
     reaped = procs.reap_orphans(log=log.warning)
@@ -177,6 +178,30 @@ def _prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], 
              cli_version=described.get("claude_version"), claude_bin=described.get("claude_bin"),
              allow_changed=allow_changed, orphans_killed=len(reaped))
     return ctx
+
+
+def _pinned_manifest(run_dir: Path, rec: dict, task_path, allow_changed: bool) -> dict:
+    """The task settings this run started with (seeds, timeouts, checks, deny lists). A resume
+    uses them, never the task folder's current task.json, so a run never mixes evaluation
+    protocols: results already on disk are replayed by key and commit, and their seeds are not
+    part of either (Codex review 2026-10-02, P1). A changed manifest stops the resume unless
+    `--allow-changed`, which records what changed. A run made before pinning pins at this resume."""
+    current = read_manifest(task_path)
+    pinned = rec.get("task_manifest")
+    if pinned is not None and pinned != current:
+        changed = sorted(k for k in {*pinned, *current} if pinned.get(k) != current.get(k))
+        if not allow_changed:
+            raise InputsChanged(f"the task's settings changed since this run started ({', '.join(changed)}). "
+                                "Start a new run, or resume with --allow-changed to use the new ones.")
+        log.warning("the task's settings changed (%s); --allow-changed uses the new ones", changed)
+        _history(run_dir, "task_changed", keys=changed)
+    if pinned != current:
+        if pinned is None and rec.get("history"):
+            _history(run_dir, "task_pinned", note="the run predates pinning; pinned at this resume")
+        fresh = read_json(run_dir / "run.json")
+        fresh["task_manifest"] = current
+        atomic_write_json(run_dir / "run.json", fresh)
+    return current
 
 
 def _history(run_dir: Path, what: str, **fields) -> None:

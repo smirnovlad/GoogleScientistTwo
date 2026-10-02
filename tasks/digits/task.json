@@ -35,9 +35,16 @@
       "inputs": "harness/inputs/test.npz",
       "labels": "harness/labels/test.npz",
       "seeds": [
-        0,
-        1,
-        2
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109
       ]
     }
   },
@@ -73,5 +80,5 @@
     "https://"
   ],
   "allow_data_files": false,
-  "integrity_notes": "min_delta 0.02 is about two standard errors of a 3-vs-3-seed difference on full (20-seed SD 0.0133, measured 2026-10-02). baseline_check: the released code scores 0.9118 on full over seeds 0-2, and is deterministic per seed, so a faithful reproduction lands within 0.02 of it; a weaker baseline would inflate every gain (U-BASE-2). deny_patterns hides every copy of scikit-learn's bundled data, which holds every evaluation image with its label (the integrity review found 9 copies in conda environments); deny_read names the engine's own copy; forbidden_in_diff stops a change from loading or downloading them."
+  "integrity_notes": "min_delta 0.02 is about two standard errors of a 3-vs-3-seed difference on full (20-seed SD 0.0133, measured 2026-10-02). baseline_check: the released code scores 0.9118 on full over seeds 0-2, and is deterministic per seed, so a faithful reproduction lands within 0.02 of it; a weaker baseline would inflate every gain (U-BASE-2). deny_patterns hides every copy of scikit-learn's bundled data, which holds every evaluation image with its label (the integrity review found 9 copies in conda environments); deny_read names the engine's own copy; forbidden_in_diff stops a change from loading or downloading them. The test seeds, 100-109, are disjoint from the search seeds 0-2, so the test number does not inherit the training-seed luck that selection exploited on validation (task 6, blocker B1); ten, since one seed costs about 1 s and the test split is read once."
 }

@@ -16,7 +16,7 @@ from ..harness.harness import Harness, gain
 from ..harness.sandbox import SandboxPolicy
 from ..runtime.agents import AgentRuntime, UnitFailed
 from ..task import Task
-from ..workspace import Workspaces
+from ..workspace import Workspaces, remove_unsafe
 
 log = logging.getLogger("scientisttwo")
 DIFF_CAP = 200_000
@@ -116,13 +116,20 @@ class Ctx:
         if kind not in ("coding", "writer"):
             raise TypeError(f"{agent} is a {kind} agent: run it with think()")
         ws = on or self.ws
-        record = self.rt.store.get(key)
-        if record is not None and ws.exists(name):
-            return (record.get("output"), None) if record.get("status") == "ok" else (None, record.get("error"))
+        record = self.rt.recorded(key, agent, variables)
+        if record is not None and not ws.exists(name):
+            left = ws.pending(name)
+            if left is not None:
+                # the unit finished and was stored, and the engine stopped before making its
+                # version: make it now from what the agent left, never by calling it again
+                self._seal(ws, left, key, agent, name, failed=record.get("status") != "ok")
+            else:
+                # the version this unit made is gone (removed by hand): its record alone cannot replay it
+                log.warning("%s: version %s is missing; the unit runs again", key, name)
+                self.rt.store.delete(key)
+                record = None
         if record is not None:
-            # the version this unit made is gone (removed by hand): its record alone cannot replay it
-            log.warning("%s: version %s is missing; the unit runs again", key, name)
-            self.rt.store.delete(key)
+            return (record.get("output"), None) if record.get("status") == "ok" else (None, record.get("error"))
         tmp = ws.fresh(parent, name)
         unit_tmp = self.tmpdir(key)
 
@@ -133,7 +140,7 @@ class Ctx:
                 self.tmpdir(key)
 
         def done(output: Optional[dict], error: Optional[str]) -> None:
-            ws.finalize(tmp, name, f"{key}: {agent}" + (" (failed)" if error else ""))
+            self._seal(ws, tmp, key, agent, name, failed=error is not None)
 
         try:
             return self.rt.run(key, agent, variables, cwd=tmp, tmpdir=unit_tmp,
@@ -141,8 +148,15 @@ class Ctx:
                                before_attempt=attempt), None
         except UnitFailed as e:
             if not ws.exists(name):
-                ws.finalize(tmp, name, f"{key}: {agent} (failed)")
+                self._seal(ws, tmp, key, agent, name, failed=True)
             return None, e.error
+
+    def _seal(self, ws: Workspaces, tmp: Path, key: str, agent: str, name: str, failed: bool) -> None:
+        """Make the agent's working copy version `name`, logging what the engine must not follow."""
+        removed = remove_unsafe(tmp)
+        if removed:
+            self.event("unsafe_entries", key=key, version=name, removed=removed)
+        ws.finalize(tmp, name, f"{key}: {agent}" + (" (failed)" if failed else ""))
 
     def evaluate(self, key: str, name: str, split: str) -> dict:
         """The harness's result for version `name` on `split`, after the deterministic checks."""
