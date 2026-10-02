@@ -663,17 +663,20 @@ bound α, whose default, 0.05, is ours.
 - the engine section is re-read at c1850a5, with seven departures in place of one;
 - the checker compares every row with its header's width and reads any task number; 54 cases.
 
-## HANDOFF, 2026-10-02 (task 2: fourth revision committed; the last Codex pass and the PR are next)
+**The last Codex pass** on the fourth revision found 2 P1 and 2 P2, all local: a changed
+published number must still be compared with the sealed values; the baseline's retry test must
+expect the task not admitted; audit-scope keys need the check and the row; R-RUN-6 still named a
+fresh fit. All four are fixed (this commit). **Task 6 confirmed** both requests: the amendment that
+renews IR-33.3's attempts, and the switch-scope check in IR-31.1. It also announced two coming
+changes near ours: IR-13's cap will count complete evaluation batches, and IR-23.4's tolerance
+becomes a finite-sample procedure.
 
-- **Done:** the requirements, through four revisions and three rounds of review, each saved
-  verbatim with its dispositions in `docs/reviews/requirements-2026-10-02/fix-list.md`.
-- **Next:**
-  1. A last `/codex` pass on the fourth revision's delta, with `-c model="gpt-6-astra"`, no
-     `--base`, the range named in the instructions; fix any P1, record the rest.
-  2. Open the PR against `claude/paper-analysis` while PR #1 is open, then update from `main` once
-     PR #1 merges.
-- **Asked of task 6, outside its rows:** confirm that an amendment recording a repaired fault may
-  renew IR-33.3's attempts; extend IR-31's measurement to the switch-scope check.
-- **When the review of task 6's second version closes:** check every requirement that cites an IR-
-  rule, and the eleven rows marked provisional.
+## HANDOFF, 2026-10-02 (task 2: done; its PR is open, stacked on PR #1)
+
+- **Done:** the requirements, four revisions, three rounds of review and three Codex passes, each
+  saved verbatim, with dispositions in `docs/reviews/requirements-2026-10-02/fix-list.md`; task 2
+  ticked in `TODO.md` with its proof; the PR opened against `claude/paper-analysis`.
+- **Next:** retarget the PR to `main` once PR #1 merges, and update from `main`.
+- **When task 6 commits its next pass:** check R-RUN-6's use of IR-13.4 against IR-13's batch
+  count, R-INT-7 against IR-23.4's new tolerance, and the eleven rows marked provisional.
 - **This file is over 600 lines;** TODO task 10 splits it once the parallel branches merge.

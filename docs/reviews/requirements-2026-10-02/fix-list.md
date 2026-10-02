@@ -284,3 +284,13 @@ otherwise.
 | "about half" assumes equal noises | integrity NEW-1 | stated (R-RUN-7) |
 | the end-to-end null rate has no test of its own | integrity NEW-7 | declined for now: R-STG-9's and R-RUN-7's nulls cover two gates, and task 6's null control (its U-TOP-5 file) covers the loop |
 | clauses are not counted against twins by the checker | integrity NEW-10 | declined: a clause count would read wording, not guards; the narrow reviews read them |
+
+### The last Codex pass, on the fourth revision (`codex-review-3.md`)
+
+| Finding | Disposition, and where |
+|---|---|
+| P1 · a changed published number skips the sealed comparison | compared with the released sealed values without reading report again, as an admission attempt, with a test case (R-STG-3; IR-15.2) |
+| P1 · the baseline retry test still expects *error after retries* | the task is not admitted, and no run starts (R-OPS-7) |
+| P2 · audit-scope keys lack a per-unit part | the audit's identity with the check, the row and the input it reads (R-STATE-7; IR-36.1) |
+| P2 · R-RUN-6 still names a fresh fit for the ablation's reference | C_best's released search records, a filter only (R-RUN-6) |
+| task 6's reply, 2026-10-02 | it confirms the amendment that renews IR-33.3's attempts, and adds the switch-scope check to IR-31.1; both recorded (R-RUN-8, R-STG-4) |
