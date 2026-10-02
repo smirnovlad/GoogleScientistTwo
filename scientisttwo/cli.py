@@ -80,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         if a.parallel:
             profile["parallel"] = a.parallel
         run_dir = Path(a.run_dir or f"runs/{Path(a.task).name}-{time.strftime('%Y%m%d-%H%M%S')}")
+        run_dir = run_dir.expanduser().resolve()          # the path `prepare` will use
         if (run_dir / "run.json").exists():
             # its task and profile are recorded: a `run` would ignore the ones given here
             print(f"{run_dir} is an existing run: continue it with `resume {run_dir}`", file=sys.stderr)
@@ -143,7 +144,7 @@ def wait_and_resume(rec: dict, resume, max_wait_hours: float, sleep=None) -> dic
             rec = resume()
         except (InputsChanged, RunLocked) as e:        # another engine took the run, or it changed
             print(f"not resumed after the wait: {e}", file=sys.stderr)
-            return rec
+            return {"status": "refused", "reason": f"not resumed after the wait: {e}"}
     return rec
 
 

@@ -110,7 +110,7 @@ Flags of `run`:
 |---|---|---|
 | `--task <dir>` | required | a task folder (section 7) |
 | `--profile <name or file.json>` | `quick` | a name in [`scientisttwo/config/`](../scientisttwo/config/), or a path to your own JSON (it may `"extends": "paper"`) |
-| `--run-dir <dir>` | `runs/<task>-<YYYYmmdd-HHMMSS>` | where the run lives; `runs/` is git-ignored. **A directory that already holds a run is resumed, silently, with its recorded task and profile: your `--task`, `--profile` and `--set` are ignored** (checked on the mock backend) |
+| `--run-dir <dir>` | `runs/<task>-<YYYYmmdd-HHMMSS>` | where the run lives; `runs/` is git-ignored. A directory that already holds a run is refused: continue it with `resume` |
 | `--set key.path=value` | | override one profile value, repeatable; the value is parsed as JSON. An unknown top-level key, limit, stage setting or budget cap is refused |
 | `--parallel N` | profile's (2) | workers for a round's ideas |
 | `--wait`, `--max-wait-hours H` | off, 24 | sleep through usage-window pauses (below) |
@@ -118,8 +118,9 @@ Flags of `run`:
 | `--allow-unsandboxed` | off | run without `sandbox-exec`. **Removes every integrity guarantee in section 6.** For tests on a machine without it, never for a result |
 
 `resume` takes `--allow-changed` (section 4), `--wait`, `--max-wait-hours`, `--backend` and
-`--mock-script`. It reads everything else (task, profile, routing, sandbox setting) from the run's
-own `run.json`; there is no way to change the profile on resume from the command line.
+`--mock-script`, and `--set budget.<cap>=<value>` to change a cap (section 4; only `budget.*`
+keys, recorded in the history). It reads everything else (task, profile, routing, sandbox setting)
+from the run's own `run.json`.
 
 ### What it prints
 

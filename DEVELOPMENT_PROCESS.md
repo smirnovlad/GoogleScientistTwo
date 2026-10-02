@@ -643,8 +643,10 @@ trains.
 - **Its command checks found seven problems** (TODO G1–G7), all now fixed with tests. The worst:
   `run` on an existing run directory silently resumed it with the old profile.
 - **A third `/codex` pass on the follow-up commit** found 0 P1 and 3 P2, all fixed (H1–H3).
+- **A fourth pass on the last commit** found 0 P1 and 7 P2, all edge cases of the new CLI and
+  cleanup code, and all are fixed (J1–J7). Every Codex pass is saved in `docs/reviews/engine-2026-10-02/`.
 
-## HANDOFF, 2026-10-02 (the engine is delivered: three runs, three Codex passes, the guide)
+## HANDOFF, 2026-10-02 (the engine is delivered: three runs, four Codex passes, the guide)
 
 - **The goal** (Vlad, verbatim above): a working ScientistTwo engine on `claude -p`, on the
   subscription, delivered without questions.
@@ -655,7 +657,7 @@ trains.
   - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see above).
   - **Run 2** (`runs/digits-quick-2`) finished `done` on the subscription: test +0.0532 on 10
     disjoint seeds, judge 4/10. E11 is ticked; the section above has its numbers and findings.
-  - **All 29 findings of three Codex passes are fixed with tests.** 129 tests pass on the mock backend, and
+  - **All 36 findings of four Codex passes are fixed with tests.** 132 tests pass on the mock backend, and
     `playground/engine/check_agents.py` reports 0 problems on 28 agents.
   - **Run 3** (`runs/digits-quick-3`) finished `done` on the final engine (E12); the guide is written (E9).
 - **Next steps:**

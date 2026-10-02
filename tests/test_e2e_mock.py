@@ -366,8 +366,10 @@ def test_downtime_after_a_crash_is_not_running_time(tmp_path, toy_task):
     atomic_write_json(ctx.run_dir / "heartbeat", {"time": t + 60})
     assert running_hours(ctx.run_dir, now=t + 36000) - before > 9.9           # what it used to count
     ctx2 = prepare(ctx.run_dir, None, None, MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}),
-                   sleep=lambda s: None)
-    assert read_json(run_json)["history"][-2]["status"] == "crashed"
+                   sleep=lambda s: None, set_budget=("budget.max_agent_calls=500",))
+    # the crash is closed at the heartbeat, before the cap change is recorded (Codex pass 4)
+    statuses = [h for h in read_json(run_json)["history"] if h.get("status") or h.get("event") == "budget_changed"]
+    assert statuses[-2]["status"] == "crashed" and statuses[-1]["event"] == "budget_changed"
     assert running_hours(ctx.run_dir, now=t + 36000) - before == pytest.approx(60 / 3600, abs=1e-3)
     rec2 = run(ctx2)
     assert rec2["status"] == "done" and "resume_after" not in rec2 and "reason" not in rec2

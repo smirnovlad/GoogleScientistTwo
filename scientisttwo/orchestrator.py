@@ -103,14 +103,16 @@ def prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], b
     lock_fd = _lock(run_dir)
     try:
         if set_budget:
+            if (run_dir / "run.json").exists():
+                _close_crash(run_dir)                   # first: a cap change is not the dead engine's activity
             _set_caps(run_dir, set_budget)              # under the lock: no engine runs it now
         return _prepare(run_dir, task_path, profile, backend, allow_unsandboxed, sleep, allow_changed, lock_fd)
     except BaseException:
-        os.close(lock_fd)
         if created and not (run_dir / "units").exists():
             # a new run refused before it started (a mistyped setting): leave no directory that
-            # looks like a run and can never resume
+            # looks like a run and can never resume. Removed while the lock is still ours.
             shutil.rmtree(run_dir, ignore_errors=True)
+        os.close(lock_fd)
         raise
 
 

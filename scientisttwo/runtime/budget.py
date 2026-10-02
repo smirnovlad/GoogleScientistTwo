@@ -55,6 +55,15 @@ class Caps:
         unknown = set(d) - set(Caps.__dataclass_fields__)
         if unknown:
             raise ValueError(f"unknown budget caps {sorted(unknown)}")
+        for k, v in d.items():                          # null: no cap; else a number of its kind
+            if v is None:
+                continue
+            counts = k in ("max_agent_calls", "max_coding_sessions")
+            ok = (isinstance(v, int) if counts else isinstance(v, (int, float))) and not isinstance(v, bool)
+            if not ok or v < 0 or (k.endswith("_utilization") and v > 1):
+                raise ValueError(f"budget cap {k} must be null or "
+                                 + ("a whole number >= 0" if counts else "a fraction in [0, 1]"
+                                    if k.endswith("_utilization") else "a number >= 0") + f", not {v!r}")
         return Caps(**{k: d.get(k) for k in Caps.__dataclass_fields__})
 
 

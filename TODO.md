@@ -479,6 +479,18 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
       Proof: `test_a_resume_after_a_wait_takes_the_current_claude_when_the_pinned_one_is_gone`.
     - [x] H3 · The task-timeout test now goes through `Ctx.code`.
       Proof: `test_every_coding_session_gets_the_tasks_timeout`.
+  - From the fourth `/codex` pass, on `36de8dc...d99dc01` only: 0 P1 and 7 P2, saved in
+    `docs/reviews/engine-2026-10-02/codex-4.md`. All seven are fixed:
+    - [x] J1 · A resume with `--set` now closes a crashed interval before it records the cap
+      change.
+    - [x] J2 · A cap's value is validated: a whole number, a number, or a fraction in [0, 1].
+    - [x] J3 · A refused new run is removed while its lock is still held.
+    - [x] J4 · `run` normalises `~` before its existing-run check.
+    - [x] J5 · A directory named `main.pdf` is removed from a failed export.
+    - [x] J6 · A resume refused after `--wait` exits 1 as `refused`.
+    - [x] J7 · Two lines of the guide's command reference are corrected.
+    Proof: `tests/test_cli.py` (J2, J4, J6); `test_downtime_after_a_crash_is_not_running_time`
+    (J1).
 - [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
   the harness with task 6's four blocking decisions. Task 6's PR #3 adds positive lineage
   (IR-3.1–3.4 in its `docs/integrity/decisions/u-int-4-who-computes.md`): score only artifacts

@@ -84,3 +84,29 @@ def test_a_resume_after_a_wait_takes_the_current_claude_when_the_pinned_one_is_g
     assert cli._current(b) is not b and cli._current(b).claude_bin != b.claude_bin
     live = ClaudeCLIBackend()
     assert cli._current(live) is live
+
+
+# ---- the fourth Codex pass (2026-10-02) ---------------------------------------------------------
+def test_a_cap_must_be_a_number_and_a_bad_one_changes_nothing(tmp_path, toy_task):
+    run_dir = _paused_run(tmp_path, toy_task)
+    before = read_json(run_dir / "run.json")["profile"]
+    assert cli.main(["resume", str(run_dir), "--backend", "mock", "--set", "budget.max_agent_calls=\"typo\""]) == 1
+    assert cli.main(["resume", str(run_dir), "--backend", "mock", "--set", "budget.max_five_hour_utilization=3"]) == 1
+    assert read_json(run_dir / "run.json")["profile"] == before
+
+
+def test_run_refuses_an_existing_run_named_with_a_tilde(tmp_path, toy_task, monkeypatch):
+    run_dir = _paused_run(tmp_path, toy_task)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert cli.main(["run", "--task", str(toy_task), "--run-dir", f"~/{run_dir.name}"]) == 1
+
+
+def test_a_resume_refused_after_the_wait_is_not_reported_as_a_pause():
+    from scientisttwo.orchestrator import RunLocked
+
+    def taken():
+        raise RunLocked("another engine process is running it")
+
+    rec = cli.wait_and_resume({"status": "paused", "resume_after": 1.0, "reason": "window"}, taken, 24,
+                              sleep=lambda s: None)
+    assert rec["status"] == "refused"
