@@ -614,6 +614,32 @@ end", yet three reads of the test split go beyond that wording:
 None of the three can reach a decision that changes the method or the frozen rows. The document
 states them as proposed exceptions awaiting Vlad's confirmation, and `CLAUDE.md` stays unchanged.
 
+**A usage limit, then two facts from task 2.** The owner stopped midway at a usage limit, and
+resumed from the files on disk once it reset. Then the task 2 session wrote to say what it adopts
+from the fix list, and pointed to an instruction of Vlad's that this session had not seen. Before
+acting on it, I checked the instruction on `origin/claude/engine`.
+
+**Vlad, verbatim,** as `claude/engine`'s `DEVELOPMENT_PROCESS.md` records it (2026-10-02):
+
+> "As a result I expect to see working engine for auto research which replicates engine from paper ScientistTwo. I am going to use it based on my claude subscription – "claude -p" backend in future, take it into account. I don't wanna pay for API.
+> Don't ask me anything, deliver replicated engine."
+
+**What it changes here:**
+- **F-46 is decided in place, not put to Vlad.** The three reads of the test split are recorded as
+  our reading of `CLAUDE.md`'s "used once, at the end", with their reasons. Rewording that line is
+  flagged to the coordinating session.
+- **The engine is already being built** on `claude/engine`. It runs every agent through
+  `claude -p` on the subscription, and folds in the outputs of tasks 2 and 6 when they land.
+- **The owner received five amendments, A1 to A5,** recorded at the end of `fix-list.md`:
+  - A1: F-46 decided;
+  - A2: the subscription, so the reporting auditor's non-Claude family must also run on a
+    subscription;
+  - A3: whether an exhausted identity fails or the run is suspended is left to U-TOP-2's owner;
+  - A4: job arguments, such as task 2's mechanism switches, are part of a job's identity;
+  - A5: C_base's code hash.
+- **The reply to task 2:** nothing it adopted contradicts our decisions. It got the conditions
+  under which its mechanism switches and its suspension rule keep the integrity rules.
+
 ## HANDOFF, 2026-10-02 (task 6's `P0` part: the owner applies the fix list)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,

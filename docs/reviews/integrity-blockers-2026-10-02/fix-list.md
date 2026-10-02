@@ -81,3 +81,24 @@ ones. The paper-fidelity review (PA) found none.
 | F-44 | PA m10 | Add the two items next to the gap in section 2.6: p. 49's leakage check, and p. 69's subset test split. | Apply. |
 | F-45 | CO | IR-4's "by a person": say what it guards. The packaging diff is fixed outside any engine run, and a person signs it off; whether an assistant helps write it is not the rule's concern. | Apply. |
 | F-46 | CO, RE M5, PA (outside its lens) | **`CLAUDE.md` says "The test set is used once, at the end."** Three reads of report go beyond that wording: IR-15's sealed baseline check, the audit's re-fits after export (IR-23), and F-30's correction event. None of the three can reach a decision that changes the method or the frozen rows. The document states the three as proposed exceptions awaiting Vlad's confirmation. It never edits `CLAUDE.md`. | Apply. The coordinator puts the question to Vlad. |
+
+## 4. Amendments after wave 1 (2026-10-02)
+
+Two facts arrived after this list was written, through a message from the task 2 session. The
+coordinator verified each before acting on it, and sent the owner five amendments, A1 to A5.
+
+- **Vlad's goal, recorded verbatim on `origin/claude/engine`'s `DEVELOPMENT_PROCESS.md`:** "As a
+  result I expect to see working engine for auto research which replicates engine from paper
+  ScientistTwo. I am going to use it based on my claude subscription – "claude -p" backend in
+  future, take it into account. I don't wanna pay for API. Don't ask me anything, deliver
+  replicated engine."
+- **The engine is already being built** on `claude/engine`. It folds in the outputs of tasks 2 and
+  6 when they land.
+
+| ID | Changes | Amendment |
+|---|---|---|
+| A1 | F-46 | Decided in place, not put to Vlad. IR-14's test event is the one use that `CLAUDE.md`'s "used once, at the end" names. The other three reads are not uses in that rule's sense: none can reach a decision that changes the method or the frozen rows, and none releases a number in place of the test event's. `CLAUDE.md`'s narrower wording is flagged to the coordinating session, and this branch does not edit it. |
+| A2 | F-17, IR-29, IR-31 | Every agent runs through `claude -p` on the subscription, and nothing may bill the API. The reporting auditor's non-Claude family must therefore run on a subscription too. The candidate is the Codex CLI on the ChatGPT subscription, which task 4 verifies; until then the flag applies. Costs count LLM work as calls and tokens against the usage windows, and any dollar figure is an API-equivalent. |
+| A3 | F-3 | When an identity's attempts are exhausted, it is released as failed, or the run is suspended, as the owner of U-TOP-2 decides (task 2 chose to suspend). Either way every attempt is logged and reported, and IR-33.2 and IR-33.4 hold. |
+| A4 | F-3, F-32 | A job's identity includes the job arguments that engine code passes to the entry points, such as task 2's mechanism switches. Those arguments reach only the agent's own entry points, never a scoring item. |
+| A5 | F-15 | C_base is scored as a row, unless its code hash equals E_base's, in which case E_base's records stand for it. Task 2 keeps C_base as the pinned code, so the equality is the setup check. |
