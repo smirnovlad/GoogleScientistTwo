@@ -359,3 +359,46 @@ and hold nothing to keep.
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
     whose last section records the outcome of every fix, and from `codex-review.md`.
+
+## 2026-10-02: verify dependencies for the engine
+
+**Vlad, verbatim:**
+
+> "Analyze current folder. Find description of task – implementation of engine from google as described in their paper. You can create your own separate branch and folder for that since claude code is already working on that in another folder. Do your best"
+
+He then clarified the goal:
+
+> "Btw do you understand that goal is to implement engine from that paper?
+>
+> [https://arxiv.org/abs/2609.19644](https://arxiv.org/abs/2609.19644)
+>
+> # ScientistTwo: Pioneering the Human Knowledge Frontier with Autonomous AI"
+
+**Worktree and scope.** `main` still has only the initial scaffold. Task 1 is
+complete on `claude/paper-analysis`; Claude has separate worktrees for task 2
+(requirements) and task 6's integrity blockers. This session created
+`codex/reuse-survey` from the paper-analysis branch for independent TODO task 4.
+The target remains a working engine. The survey settles which external pieces
+can enter its implementation without pre-empting Claude's open contracts.
+
+**Findings.** `docs/findings/2026-10-02-reuse-survey.md` checks all seven candidates
+against primary repositories, papers, vendor documentation and service pages.
+PaperOrchestra offers a drafting CLI; AutoSOTA is a task lead, not a packaged
+locked benchmark; ScientistOne gives an audit protocol; the checked MLE-STAR
+author repository contains examples rather than runnable code; no official
+ScholarPeer code was found; the Claude Agent SDK can back one coding adapter;
+paperreview.ai is a manual held-out check, not a reproducible engine API. Four
+repository commits were pinned in the report. Two independent persona reviews
+found and closed the ICLR task-source omission, the independent reporting-judge
+gap, the reviewer score calibration gap and incomplete resume state.
+
+## HANDOFF, 2026-10-02 (task 4 complete in its own worktree)
+
+- **Done:** TODO task 4 is checked, with its source-linked report and two reviews.
+- **Next engine work:** requirements and integrity decisions need to land before
+  a production harness or stage contract. A separate implementation task can
+  meanwhile specify and exercise a narrow, mockable run-state slice on its own
+  branch, then reconcile it against tasks 2, 3 and 6 before integration.
+- **Task 4's follow-on:** task 6 must choose an independent reporting judge
+  (`U-EVAL-3`); task 5 must price models, tasks and compute. Neither is silently
+  supplied by the reuse candidates.

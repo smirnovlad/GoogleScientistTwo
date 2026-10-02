@@ -36,3 +36,6 @@ wandb/
 
 # Downloaded paper sources and other re-fetchable inputs (playground/paper/fetch_sources.sh)
 .cache/
+
+# Local gstack browser state
+.gstack/

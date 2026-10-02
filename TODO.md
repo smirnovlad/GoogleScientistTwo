@@ -106,7 +106,9 @@ after it; `P1` is needed before building; `P2` comes later.
     - a new loop limit;
     - a new model for one stage.
 
-- [ ] `P1` **4 · Survey of what we can reuse.** Verify each candidate before we depend on it: that
+- [x] `P1` **4 · Survey of what we can reuse.** Done on `codex/reuse-survey`;
+  proof: `docs/findings/2026-10-02-reuse-survey.md`, with a paper-analyst and
+  system-architect/research-engineer review. Verify each candidate before we depend on it: that
   it exists, its licence, its maintenance, and whether it fits. The note names these candidates:
   - PaperOrchestra, for drafting;
   - AutoSOTA, for task packaging, and as the benchmark's source per Appendix A.1;
