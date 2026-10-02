@@ -1,0 +1,15 @@
+\begin{table}[t!]
+\centering
+\caption{\textbf{Coding Agent Generalizability.} We report success rate (SR; \%) on 5 tasks sourced from ICLR 2026 accepted papers, along with average performance gain (\%), review ratings (1--10 scale), and acceptance rates (\%) evaluated by ScholarPeer and Stanford Agentic Reviewer across successful cases. Claude Code and Antigravity are powered by Opus~4.8 and Gemini~3.8 Flash, respectively.}\label{tab:antigravity}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+& & & & \multicolumn{2}{c}{\textbf{ScholarPeer}} & \multicolumn{2}{c}{\textbf{Stanford Agentic Reviewer}}\\
+\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+\textbf{Framework} & \textbf{Coding Agent} & \textbf{SR} & \textbf{Avg. Gain} & \textbf{Avg. Rating} & \textbf{Accept Rate} & \textbf{Avg. Rating} & \textbf{Accept Rate} \\
+\midrule
+\sname~(Ours) & Claude Code & 80.0 & \phantom{0}3.8 & 7.0\stdv{1.2} & 100.0 & 5.4\stdv{0.2} & 75.0 \\
+\sname~(Ours) & Antigravity & 60.0 & 16.7 & 6.3\stdv{1.5} & \phantom{0}66.7 & 4.8\stdv{1.0}& 66.7 \\
+\bottomrule
+\end{tabular}}
+\end{table}

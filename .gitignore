@@ -19,8 +19,10 @@ node_modules/
 .secrets/
 .claude/settings.local.json
 
-# One worktree per task (docs/process/worktrees-and-sessions.md)
+# One worktree per task, and the brief a coordinating session leaves in one for the task's
+# session (docs/process/worktrees-and-sessions.md)
 .claude/worktrees/
+.claude/brief.md
 
 # Run outputs, datasets and model artefacts: large, reproducible from their records, or licensed
 runs/
@@ -33,3 +35,6 @@ wandb/
 
 # OS
 .DS_Store
+
+# Downloaded paper sources and other re-fetchable inputs (playground/paper/fetch_sources.sh)
+.cache/

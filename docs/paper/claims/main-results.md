@@ -1,0 +1,83 @@
+# Claims of §4.1: main results, Tables 2–4 and Figure 8 (C-MAIN)
+
+Part of [claims.md](../claims.md), which holds the definitions and gaps cited here [ours]. The setup behind every §4.1 number: 107 problems, "Gemini 3.6 Flash and Claude Opus 4.8" unless stated otherwise, SP as "an in-distribution evaluation" and SAR as "a held-out evaluator" [§4 "Common Setup"] (tex:sections/4_experiment.tex:5).
+
+Revised 2026-09-27 after the persona review: fixes F-CL-1, F-CL-2 and F-CL-3 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`; closure corrections on 2026-09-28, from `closure-evaluation-integrity-engineer.md` and `closure-research-engineer.md` in the same folder; and Codex review corrections on 2026-09-28, from `codex-review.md` in the same folder [ours].
+
+### C-MAIN-1 · SP: 91.9% acceptance, rating 7.5 against ScientistOne's 3.8
+
+- Claim: S2 "achieves a 91.9% acceptance rate under ScholarPeer (nearly doubling the review score from ScientistOne's 3.8 to 7.5)" [§4.1 "Quantitative Comparison"] (tex:sections/4_experiment.tex:9).
+- Values: seven baselines at 1.0–3.8 with 0.0–14.3% acceptance, S2 at 7.5 ± 1.3 with 91.9% [Tab. 2] (tex:tables/ai_scientist_comparison.tex:10-17).
+- Sample: S2's 86 papers on its own successful tasks; for each baseline "the number of publicly released AI-generated papers" (7, 6, 3, 4, 2, 3, 21), released by each agent's authors rather than run by this paper on the 107 tasks [Tab. 2] (tex:tables/ai_scientist_comparison.tex:3) [inferred].
+- Produced by: SP scoring each paper; the acceptance rule is undefined (A-EVAL-3) [Tab. 2].
+- Checks: 91.9% of 86 is 79 papers and 14.3% of 21 is 3 ✓; 7.5 / 3.8 = 1.97, "nearly doubling" ✓ [Tab. 2] [ours].
+- Checks on the acceptance rule (F-CL-1): if a paper is accepted when the rating the table averages is 8 or more, S2's ICLR row (4 of 4 accepted at a mean of 7.0) is impossible outright [Tab. 3], and 9 of the other 10 SP rows with acceptances fail the minimum-SD test, this row among them (79 of 86 at a mean of 7.5 forces an SD of at least 1.51 against a printed 1.3); one of the nine, S2 NeurIPS, counts only by a hair under the population SD (1.7502 against below 1.75) and by 0.027 under the sample SD that P-EVAL-4 favours (1.78) [Tab. 2] [ours].
+- What fits instead [inferred]: with one integer rating per paper and the sample SD, only a threshold of 6 fits all 11 rows (`claims_arithmetic.py`, re-running `sp_integer.py`); if SP averages several reviews and accepts by majority, neither result holds (A-EVAL-3) [Tab. 3].
+- Falsified by: re-scoring the same papers with SP and getting materially different numbers [ours].
+- Assessment [ours]: in-distribution by the paper's own account, since S2's drafts are revised until SP scores 8 [App. A.2] and the baselines' are not; strong but expected.
+
+### C-MAIN-2 · SAR: 72.1% acceptance, every baseline 0%
+
+- Claim: "while all baselines fail to achieve acceptance from the Stanford Agentic Reviewer, ScientistTwo is the only agent that produces research where 72.1% of generated papers meet high acceptance standards" [§4.1] (tex:sections/4_experiment.tex:9).
+- Sample: as C-MAIN-1, under SAR [Tab. 2].
+- Checks: 72.1% of 86 is 62 papers ✓; baselines 0/7, 0/6, 0/3, 0/4, 0/2, 0/3, 0/21 ✓; ScientistOne 4.1 ± 0.7 against S2's 5.7 ± 0.6 [Tab. 2].
+- Falsified by: SAR accepting baseline papers on a re-query, or S2's rate moving on re-query [ours].
+- Assessment [ours]: the paper's best evidence, because SAR is held out; the baselines are small public samples on other problems; "high acceptance standards" is never defined (U-EVAL-3).
+
+### C-MAIN-3 · Figure 8: 4 figures and 2 tables against 9 and 12
+
+- Claim: "ScientistOne generates only 4 figures and 2 tables", while S2 "produces 9 figures and 12 tables (including the Appendix)" [§4.1 "Qualitative Comparison"] (tex:sections/4_experiment.tex:13).
+- Sample: one paper each, "the highest-reviewed paper from ScientistOne" [Fig. 8] (tex:figures/qual_compare_main.tex:23) and one S2 paper, OFP-Shadow (image) [p. 11]; how the S2 paper was chosen is not stated [ours].
+- Provenance: a commented-out TeX passage ties OFP-Shadow to the task of [Bib: zhao2025fully] (tex:sections/5_discussion.tex:25), an ICML 2026 Spotlight [Tab. 14].
+- Checks: Fig. 8 shows only pages 7–9 of each paper [p. 11]; ScientistOne's pages show Tables 1–2 and Figures 3–4, S2's show Figures 3–6 and Tables 2–6 [p. 11]; the totals of 9 and 12 cannot be verified from the paper [ours].
+- Assessment [ours]: one paper against one, with float counts as a proxy for rigor; illustrative only.
+
+### C-MAIN-4 · Success per venue
+
+- Claim: S2 "successfully executes research on 86 out of 107 problems, achieving an 80.4% success rate" [§4.1] (tex:sections/4_experiment.tex:16), with 4/5, 33/38 and 49/64 per venue [Tab. 3] (tex:tables/conference_accepted_comparison.tex:19-21).
+- Checks: 80.0%, 86.8% and 76.6% per venue [Tab. 3] [ours]; the rest as C-HEAD-1.
+- Assessment [ours]: ICML has the lowest success rate but by far the largest implied gain, 34.4–34.7% (C-HEAD-2).
+
+### C-MAIN-5 · Above accepted ICLR 2026 and NeurIPS 2025 papers, under both reviewers
+
+- Claim: "papers generated by ScientistTwo surpass the average scores of accepted papers at ICLR 2026 and NeurIPS 2025 under both ScholarPeer and Stanford Agentic Reviewer" [§4.1] (tex:sections/4_experiment.tex:16).
+- Sample: S2's ICLR 4 and NeurIPS 33 (successes) against human ICLR 5 and NeurIPS 38 (all inputs) [Tab. 3] (tex:tables/conference_accepted_comparison.tex:3); one score per paper [inferred].
+- Checks: SP 7.0 ± 1.2 vs 6.8 ± 1.6 and 7.3 ± 1.7 vs 6.2 ± 1.9; SAR 5.4 ± 0.2 vs 5.2 ± 0.7 and 5.6 ± 0.7 vs 5.5 ± 0.7; all as stated ✓ [Tab. 3].
+- Checks: SAR acceptance on NeurIPS is lower for S2, 75.8% (25/33) against 76.3% (29/38) [Tab. 3]; from the printed SDs the SAR differences are 0.2/0.33 and 0.1/0.17, about 0.6 standard errors each (Welch) [ours].
+- Falsified by: a paired comparison on the same tasks, or a repeated SAR query, reversing the sign [ours].
+- Assessment [ours]: holds as stated, but under the held-out reviewer the margins are within noise; the sets differ (successes against all inputs), the formats differ (S2 drafts use "the ICLR 2025 format" [App. A.2]), and no test is reported.
+
+### C-MAIN-6 · Below spotlight level under SAR, above it under SP
+
+- Claim: "While ScientistTwo does not yet achieve spotlight-level quality" [§4.1] (tex:sections/4_experiment.tex:16); it "does not yet consistently achieve the caliber of spotlight or oral presentations" [§5 "Limitations"] (tex:sections/6_conclusion.tex:5).
+- Sample: S2's 49 ICML papers against the 64 spotlights [Tab. 3].
+- Checks under SAR: 5.7 ± 0.6 vs 6.1 ± 0.5, and 69.4% (34/49) vs 96.9% (62/64), below ✓ [Tab. 3].
+- Checks under SP: 7.6 ± 1.0 vs 6.9 ± 1.5, and 93.9% (46/49) vs 79.7% (51/64), above [Tab. 3].
+- Checks on the reviewers: they accept 79 (SP) and 94 (SAR) of the 107 accepted human papers, 73.8% and 87.9% [Tab. 3] [ours].
+- Assessment [ours]: the reviewers disagree in sign on the largest subset; the paper takes its limitation from SAR and its abstract claim from SP; neither reviewer reproduces real venue decisions (they reject 26.2% and 12.1% of accepted papers), and no rejected human paper is scored, so their ability to reject is not measured here.
+
+### C-MAIN-7 · Agent4Science's AI papers: 0 of 4 accepted
+
+- Claim: the paper includes "AI-generated papers accepted at Agent4Science 2025" in order "to demonstrate that prior systems were incapable of meeting top conference standards" [§4.1] (tex:sections/4_experiment.tex:16).
+- Values: 4 papers, SP 3.0 ± 0.0 with 0.0%, SAR 3.8 ± 0.4 with 0.0% [Tab. 3] (tex:tables/conference_accepted_comparison.tex:12).
+- Note: the caption says the top section's papers "serve as inputs for ScientistTwo", which the Agent4Science row does not [Tab. 3] (tex:tables/conference_accepted_comparison.tex:3) [ours].
+- Assessment [ours]: n = 4, papers unnamed (U-EVAL-9); "incapable" generalizes from four papers.
+
+### C-MAIN-8 · Larger gains than AutoSOTA
+
+- Claim: S2 "shows superior performance to AutoSOTA in terms of average and median improvement across average of all tasks and NeurIPS 2025 tasks, but performance drops slightly in the ICLR 2026 tasks" [§4.1] (tex:sections/4_experiment.tex:19).
+- Values: AutoSOTA 105 papers, median 2.7 and mean 7.5, NeurIPS 3.7 and 8.5, ICLR 5.0 and 7.2; S2 86 papers, 7.7 and 25.2, NeurIPS 7.0 and 13.9, ICLR 2.2 and 3.8 [Tab. 4] (tex:tables/autosota_comparison.tex:12-13).
+- Sample: Overall compares different pools, AutoSOTA's 105 papers and S2's 86 successes, 49 of them ICML tasks the authors selected with AutoSOTA's filter [App. A.1]; NeurIPS and ICLR use "the same set of 33 and 4 input papers" [Tab. 4] (tex:tables/autosota_comparison.tex:3), which are S2's successes [Tab. 3].
+- Produced by: S2's gains are parsed from its own papers by Gemini (U-EVAL-1); AutoSOTA's are its own reports against its own baselines [App. B] (tex:sections/appendix.tex:202).
+- Check: Tab. 16's AutoSOTA deltas on the four papers other than TeCh (Pinet's −16.7% latency taken as a gain, 7.3, 2.25, 2.68) give a mean of 7.23 and a median of 4.99, printed 7.2 and 5.0 ✓ [Tab. 16] [ours].
+- Check: that mean includes T-SAE's +2.25%, which App. B says "does not survive its own re-run" (its re-evaluation is −0.38%) [Tab. 16] (tex:sections/appendix.tex:312) [ours].
+- Check: on ICLR, S2's mean is 47% below AutoSOTA's (3.8 vs 7.2) and its median 56% below (2.2 vs 5.0), which is not a slight drop [Tab. 4] [ours].
+- Check, S2's own ICLR cells (F-CL-3): Tab. 16 prints two of S2's four gains as relative numbers, DMSQD +0.61% and T-SAE +3.4%; for a median of 2.2 and a mean of 3.8 the two unprinted gains must be 0.90–1.09% and 9.90–10.48%, and Pinet's printed results (RS up to −69%, CV 4e−4 → 2e−14, training 3.0× faster) hold nothing near 10%, so S2's ICLR cells cannot be rebuilt from the paper (`claims_arithmetic.py` prints the two ranges; the reviewer's `s2_iclr.py` finds the same solutions, printed as one range per unknown, 0.90–10.48%) [Tab. 16] [ours].
+- Falsified by: both systems run on the same tasks and hardware under one gain rule [ours].
+- Assessment [ours]: both venue pools are shared, the 33 NeurIPS and the 4 ICLR papers S2 completed (TeCh excluded), and only the overall pools differ (86 against 105); the shared pools keep only S2's successes, dropping S2's 5 NeurIPS failures and TeCh for both systems [Tab. 4]. What limits the venue comparisons is the measurement, not the pool: each delta is self-reported against its own system's reproduced baseline, the metrics differ for Pinet and T-SAE among the four shared ICLR papers, and App. B itself says such deltas are "not a head-to-head" (A-EVAL-7) [Tab. 16]. S2's gains are also measured on the data its search selected on, a winner's-curse inflation no reported variance can size (P-EVAL-2 in claims.md), while AutoSOTA's are self-reported under its own rules.
+
+### C-MAIN-9 · AutoSOTA's five ICLR changes are small configuration edits
+
+- Claim: "none of AutoSOTA's five changes introduces a new algorithmic component, and each is a configuration-level edit of at most a few lines" [§4.1] (tex:sections/4_experiment.tex:21).
+- Checks: App. B says "the median change is under ten lines" [App. B] (tex:sections/appendix.tex:210-211); Tab. 16 counts lines for 3 of the 5 (Pinet 3, DMSQD 1, T-SAE 1) and gives none for TeCh or RALI [Tab. 16].
+- Assessment [ours]: "each ... at most a few lines" is stronger than App. B's statement about the median; whether a change is "algorithmic" is the authors' own judgment; n = 5.

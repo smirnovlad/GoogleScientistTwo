@@ -1,0 +1,151 @@
+\input{tables/pseudo_code}
+\input{tables/overview}
+\section{\sname: An Expert-Level Autonomous Research Agent}\label{sec:method}
+
+\sname~is an expert-level autonomous research agent that effectively orchestrates specialized AI agents throughout the scientific discovery pipeline. First, \sname~identifies the limitations of the human state-of-the-art method regarding a given scientific problem and generates ideas to address them, filtering for those with high novelty ($\S$~\ref{subsec:seed_idea}). Next, \sname~implements the selected ideas; to optimize computational efficiency, it validates the ideas on a benchmark subset before scaling to the full dataset ($\S$~\ref{subsec:eval_idea}). The agent then refines the ideas based on previous experimental results ($\S$~\ref{subsec:refine_idea}) and conducts ablation studies to analyze the sources of performance gain ($\S$~\ref{subsec:ablating_idea}). During manuscript drafting ($\S$~\ref{subsec:drafting_paper}), \sname~dynamically enhances paper quality through an iterative review process, using a Review Agent to provide critical feedback and a Rebuttal Agent to conduct supplementary experiments. Finally, in the meta-review phase ($\S$~\ref{subsec:meta-reviewing}), a Meta-Review Agent evaluates the manuscript's overall quality and determines whether it meets the submission standards. If further improvements are required, \sname~incorporates feedback, updates idea and ablation analyses, and iterates through the pipeline until the manuscript is approved for submission. For clarity, we abstract all stages (see overview in Table~\ref{tab:overview}) using the Python-style pseudocode in Listing~\ref{lst:stage_pseudocode}.
+
+\noindent\textbf{Problem Setup: Problem-Driven Autonomous Discovery.} Scientific advancement in AI is inherently cumulative: modern progress relies on identifying the limitations of state-of-the-art work and developing methodologies to surpass them. To mirror this realistic research workflow, our goal is to build an autonomous research agent $\mathcal{A}$ capable of executing continuous research iterations. Given a scientific problem $\mathcal{G}$, the framework generates a paper $\mathcal{P}^+$ paired with a reproducible codebase $\mathcal{C}^+$, which represents new frontier knowledge on the given problem. Formally, we define this transformation as:
+\begin{equation}
+    (\mathcal{P}^+, \mathcal{C}^+) = \mathcal{A}(\mathcal{G}), \quad \text{where} \quad \mathcal{A} = \{\mathcal{A}_1, \mathcal{A}_2, \dots, \mathcal{A}_{N_\mathrm{a}}\}
+\end{equation}
+where $\mathcal{A}$ comprises $N_\mathrm{a}$ specialized AI agents, each assigned to distinct phases of the research life cycle (e.g., limitation extraction, idea generation, code modification, empirical validation, etc.). 
+In addition, $\mathcal{P}^+$ should identify and resolve key methodological or empirical bottlenecks present in $\mathcal{G}$ and $\mathcal{C}^+$ should correctly implement the proposed idea while maintaining execution reproducibility and demonstrating measurable performance gains.
+% By establishing state-of-the-art artifacts, e.g., competitive peer-reviewed human research from top-tier AI venues, this setup provides a grounded and practical paradigm for benchmarking fully autonomous AI research agents.
+
+\subsection{Generating Novel Seed Ideas: Targeting Limitation Resolution}\label{subsec:seed_idea}
+\input{figures/method_3_2}
+
+\noindent\textbf{Finding Limitations.}
+\sname~initiates the research pipeline by identifying the core limitations of the human state-of-the-art method with respect to a given scientific problem $\mathcal{G}$.
+Specifically, initially, the Limitation Extractor extracts a set of limitations from $\mathcal{G}$.
+Then, the Limitation Verifier verifies whether this set is sufficient to guide novel improvements to $\mathcal{G}$.
+If the Limitation Verifier considers the set insufficient, the Limitation Extractor again identifies missing limitations or weaknesses and expands the collection.
+This verification loop repeats until the Limitation Verifier confirms that all actionable limitations have been thoroughly extracted or maximum number of iterations is reached.
+
+\noindent\textbf{Generating Novel Seed Ideas.} \sname~first generates an initial idea $h_0$ specifically designed to address the identified limitations, and computes its novelty score using the Novelty Checker. Then, starting with the initial set of candidates $\mathcal{H}_0 = \{h_0\}$, \sname~leverages the Idea Generator Agent to iteratively expand the candidate pool $\mathcal{H}_0$ with distinct, higher-novelty ideas.
+This process continues until a collection of $N_{\mathrm{seed}}$ candidate ideas is gathered. 
+Finally, the seed ideas in $\mathcal{H}_0= \{h_i\}_{i=0}^{N_\mathrm{seed}-1}$ are sorted in descending order according to their novelty scores $\{s_i\}_{i=0}^{N_{\mathrm{seed}}-1}$, ensuring that $s_i \ge s_j$ whenever $i < j$.
+This allows \sname~to prioritize implementing the ideas with the highest originality.
+
+\subsection{Evaluating Ideas: Experimenting from Subset to Full-Set}\label{subsec:eval_idea}
+
+% To evaluate candidate ideas efficiently without incurring prohibitive computational costs, \sname~adopts a progressive, multi-stage evaluation pipeline.
+% Here, \sname~selects only the top-$N_0$ highest-ranked ideas based on their novelty scores $\{s_0^i\}_{i=0}^{N_0-1}$.
+%Furthermore, to facilitate multi-round idea evolution in subsequent stages, we abstract this entire multi-stage coding, execution, critic, and engineering pipeline into a unified meta-agent, denoted as $\mathcal{A}_{\mathrm{Coder}}$.
+
+\noindent\textbf{Generating Baseline Results on Subset.}
+To establish a reliable reference, \sname~first employs a Baseline Coding Agent to reproduce the primary experiments of $\mathcal{G}$ on the benchmark subset, producing baseline experimental results $\mathcal{E}_{\mathrm{base}}$ alongside a reproducible subset codebase $\mathcal{C}_{\mathrm{base}}$.
+
+\noindent\textbf{Evaluating an Idea on the Subset.}
+For a candidate idea $h$ (here, we select only the top-$N_0$ highest-ranked ideas based on $\{s_i\}_{i=0}^{N_0-1}$ from $\mathcal{H}_0$), \sname~leverages a Subset Coding Agent to implement $h$ by modifying $\mathcal{C}_{\mathrm{base}}$, producing the resulting logs $\mathcal{E}_{\mathrm{sub}}^h$ alongside a reproducible codebase $\mathcal{C}_\mathrm{sub}^h$.
+Then, to evaluate performance, a Subset Critic Agent compares $\mathcal{E}_{\mathrm{sub}}^h$ against $\mathcal{E}_{\mathrm{base}}$ and emits a categorical decision $d^h$ with feedback $r^h$:
+\begin{enumerate}[leftmargin=*, noitemsep, topsep=2pt]
+    \item $\mathrm{Bad}$: If performance is substantially inferior to the baseline, $h$ is discarded ($d^h = \mathrm{Bad}$).
+    \item $\mathrm{Good}$: If $h$ consistently outperforms the baseline, it is approved for scale-up ($d^h = \mathrm{Good}$).
+    \item $\mathrm{Engineer}$: If $h$ shows potential but requires hyperparameter tuning or code adjustments, a Subset Engineering Agent refines $h$ and $\mathcal{C}_{\mathrm{sub}}^h$ guided by strategy $r^h$, generating corresponding results $\mathcal{E}_{\mathrm{sub}}^h$.
+\end{enumerate}
+This refinement loop repeats until $d^h \in \{\mathrm{Good}, \mathrm{Bad}\}$ or a budget of $N_{\mathrm{eng}}$ iterations is exhausted. If $N_{\mathrm{eng}}$ is reached without achieving $d = \mathrm{Good}$, $h$ is designated as $\mathrm{Bad}$ and pruned—mirroring practical research settings where unpromising avenues are abandoned after bounded optimization.
+
+\input{figures/method_3_3}
+\noindent\textbf{Scaling Up to the Full-Set.}
+For ideas validated as $\mathrm{Good}$, \sname~scales the evaluation to the full benchmark. A Full-Set Coding Agent adapts $\mathcal{C}_{\mathrm{sub}}^h$ to run across the entire benchmark suite.
+A Full-Set Critic Agent and Full-Set Engineer perform final validation and engineering against the full benchmark, producing final execution outputs $\mathcal{E}_{\mathrm{full}}^h$, updated codebase $\mathcal{C}_{\mathrm{full}}^h$, and terminal decision $d^h$.
+
+\noindent\textbf{Unified Coder Interface.}
+To streamline subsequent rounds of idea improvement, we abstract this entire idea experiment pipeline into a single high-level Idea Implementer Agent $\mathcal{A}_{\mathrm{Coder}}$. Formally,
+\begin{equation}
+    h,\mathcal{E}^h, \mathcal{C}^h, d^h, r^h = \mathcal{A}_{\mathrm{Coder}}(\mathcal{G}, h).
+\end{equation}
+% where $\mathcal{E}^h$ and $\mathcal{C}^h$ represent the final experimental results and codebase (at either subset or full-set level), $d^h \in \{\mathrm{Good}, \mathrm{Bad}\}$ is the final verdict, and $r^h$ contains the associated critique and logs.
+
+\subsection{Refining Ideas: Improving Ideas Using Experimental Results}\label{subsec:refine_idea}
+
+In the initial evaluation round ($k=0$), \sname~executes the top-$N_0$ seed ideas from $\mathcal{H}_0$ using $\mathcal{A}_{\mathrm{Coder}}$, yielding a set of execution traces $\mathcal{R}_0 = \{(h, \mathcal{E}^h, \mathcal{C}^h, d^h, r^h) \mid h \in \mathcal{H}_0\}$.
+To continuously enhance idea quality, we propose an evolution strategy that uses these execution traces as feedback.
+
+\noindent\textbf{Idea Evolution.}
+In refinement round $k \ge 1$, \sname~aggregates all historic execution traces $\mathbf{R}_{<k} = \bigcup_{i=0}^{k-1} \mathcal{R}_i$ to generate a set $\mathcal{I}_k$ of $N_k$ evolved ideas.
+An Idea Evolver Agent $\mathcal{A}_{\mathrm{Evolve}}$ analyzes both successful results ($d^h = \mathrm{Good}$) and diagnostic failure logs ($d^h = \mathrm{Bad}$) to propose refined hypotheses.
+% \begin{equation}
+%     \mathcal{I}_k = \mathcal{A}_{\mathrm{Evolve}}(\mathcal{G}, \mathbf{R}_{<k}).
+% \end{equation}
+
+\noindent\textbf{Exploration and Exploitation.}
+Relying exclusively on $\mathcal{A}_{\mathrm{Evolve}}$ risks trapping the optimization process in local optima centered around early seed ideas.
+To ensure broad coverage of the solution space, \sname~complements the evolved set $\mathcal{I}_k$ with $N_e$ previously unevaluated seed ideas drawn from $\mathcal{H}_0$ in descending order of novelty score.
+Formally, the total candidate pool $\mathcal{H}_k$ for round $k$ is $\mathcal{I}_k \cup \mathcal{H}_{0}^{(k)}$,where $\mathcal{H}_{0}^{(k)} \subset \mathcal{H}_0$ contains the next $N_e$ highest-ranked unevaluated seed ideas.
+
+\input{figures/method_3_4}
+\noindent\textbf{Experimenting Ideas.}
+For each candidate $h \in \mathcal{H}_k$, \sname~invokes $\mathcal{A}_{\mathrm{Coder}}$ to evaluate the idea:
+\begin{equation}
+    \mathcal{R}_k = \left\{ \left(h, \mathcal{E}^h, \mathcal{C}^h, d^h, r^h\right) \;\middle|\; h, \mathcal{E}^h, \mathcal{C}^h, d^h, r^h = \mathcal{A}_{\mathrm{Coder}}(\mathcal{G}, h), \; h \in \mathcal{H}_k \right\}.
+\end{equation}
+This evolutionary loop iterates until $S$ successful ideas ($d^h = \mathrm{Good}$) are collected, or the maximum refinement limit $K$ is reached.
+Formally, idea refinement terminates successfully when $\sum_{i=0}^k \sum_{h \in \mathcal{H}_i} \mathbb{I}(d^h = \mathrm{Good}) \ge S$, where $\mathbb{I}(\cdot)$ is the indicator function.
+If round $K$ is reached with zero successful ideas ($\sum_{i=0}^K \sum_{h \in \mathcal{H}_i} \mathbb{I}(d^h = \mathrm{Good}) = 0$), \sname~terminates the entire process.
+
+\noindent\textbf{Selecting the Best Idea.}
+Upon discovering at least one successful idea, \sname~selects the optimal candidate $h_{\mathrm{best}}$ for downstream ablation analysis.
+A Selector Agent $\mathcal{A}_{\mathrm{Selector}}$ compares performance metrics and execution logs across all validated ideas $\{ h \mid d^h = \mathrm{Good} \}$ evaluated on the full benchmark:
+\begin{equation}
+    h_{\mathrm{best}}, \mathcal{E}_{\mathrm{best}}, \mathcal{C}_{\mathrm{best}} = \mathcal{A}_{\mathrm{Selector}}\left(\mathcal{G}, \left\{ (h, \mathcal{E}^h, \mathcal{C}^h) \;\middle|\; d^h = \mathrm{Good} \right\}\right).
+\end{equation}
+
+\subsection{Ablation Studies: Analyzing Source of Gain and Refining Ideas}\label{subsec:ablating_idea}
+Once the optimal candidate idea $h_{\mathrm{best}}$ is selected, \sname~conducts systematic component-level ablation studies.
+This phase isolates the explicit sources of empirical gain for scientific interpretation, and leverages fine-grained ablation feedback to perform an additional round of idea refinement.
+
+\noindent\textbf{Ablation Planning and Execution.}
+To evaluate individual components, an Ablation Planner Agent automatically formulates a set of $N_p$ executable ablation plans $\{p_1, \dots, p_{N_p}\}$ tailored to $h_{\mathrm{best}}$.
+For each ablation plan $p_i$, an Ablation Coding Agent modifies the validated codebase $\mathcal{C}_{\mathrm{best}}$ to execute, yielding an ablation outcome $c_i$.
+The aggregated ablation results are collected as $\mathcal{E}_{\mathrm{abl}} = \{c_1, \dots, c_{N_p}\}$.
+
+\noindent\textbf{Refining the Idea via Ablation Insights.}
+Emulating expert human research practices, where removing redundant or counterproductive components often yields a better method, \sname~uses $\mathcal{E}_{\mathrm{abl}}$ to further refine $h_{\mathrm{best}}$.
+An Ablation Critic Agent $\mathcal{A}_{\mathrm{AblCritic}}$ inspects the component breakdown to determine whether $h_{\mathrm{best}}$ is optimal or requires additional modification, generating $d_{\mathrm{abl}}, r_{\mathrm{abl}}$ where $d_{\mathrm{abl}} \in \{\mathrm{Good}, \mathrm{Refine}\}$.
+If $d_{\mathrm{abl}} = \mathrm{Good}$, $h_{\mathrm{best}}$ is finalized and passed to the paper drafting stage.
+If $d_{\mathrm{abl}} = \mathrm{Refine}$, \sname~re-engages the Full-Set Engineering Agent $\mathcal{A}_{\mathrm{FullEng}}$ to produce a refined hypothesis $h_{\mathrm{new}}$, updated results $\mathcal{E}_{\mathrm{new}}$, and revised codebase $\mathcal{C}_{\mathrm{new}}$ guided by critique $r_{\mathrm{abl}}$.
+
+\noindent\textbf{Robust Verification and Loop.}
+Because structural refinements do not guarantee improved performance, \sname~verifies whether $\mathcal{E}_{\mathrm{new}}$ strictly outperforms $\mathcal{E}_{\mathrm{best}}$.
+The baseline variables are updated—$(h_{\mathrm{best}}, \mathcal{E}_{\mathrm{best}}, \mathcal{C}_{\mathrm{best}}) \leftarrow (h_{\mathrm{new}}, \mathcal{E}_{\mathrm{new}}, \mathcal{C}_{\mathrm{new}})$—if and only if $\mathcal{E}_{\mathrm{new}}$ is preferred than $\mathcal{E}_{\mathrm{best}}$ by the Result Comparison Agent.
+When an update occurs, \sname~re-executes the ablation planning phase on the updated candidate.
+This refinement loop repeats for a maximum of $N_{\mathrm{abl}}$ iterations or until $\mathcal{A}_{\mathrm{AblCrit}}$ emits $d_{\mathrm{abl}} = \mathrm{Good}$, ensuring a fully optimized hypothesis prior to manuscript generation.
+
+\input{figures/method_3_567}
+\subsection{Manuscript Drafting: Simulating the Peer-Review Process}\label{subsec:drafting_paper}
+\noindent\textbf{Initial Drafting.}
+First, an Initial Drafter Agent $\mathcal{A}_{\mathrm{Draft}}$ (incorporating PaperOrchestra; \citealp{song2026paperorchestra}) synthesizes the selected idea $h_{\mathrm{best}}$, main benchmark results $\mathcal{E}_{\mathrm{best}}$, and component ablation studies $\mathcal{E}_{\mathrm{abl}}$ into a full, conference-formatted manuscript $\mathcal{P}_{\mathrm{new}}$.
+
+\noindent\textbf{Enhancing the Draft via Simulated Review-Rebuttal.}
+To rigorously elevate manuscript quality, \sname~simulates an interactive peer-review and rebuttal process.
+A Peer-Reviewer Agent $\mathcal{A}_{\mathrm{Reviewer}}$ (i.e., ScholarPeer; \citealp{goyal2026scholarpeer}) critically evaluates $\mathcal{P}_{\mathrm{new}}$, generating a detailed evaluation $\mathcal{R}_{\mathrm{new}}$ containing identified strengths, weaknesses, targeted questions, and an overall numerical score $s_\mathrm{review} \in [1, 10]$ based on the standard ICLR grading scale.
+If the $s_\mathrm{review}$ is below the acceptance threshold (e.g., 8), \sname~initiates an automated rebuttal stage to address reviewer concerns.
+A Rebuttal Planner Agent $\mathcal{A}_{\mathrm{RebPlan}}$ analyzes $\mathcal{R}_{\mathrm{new}}$ to formulate a set of $N_t$ supplementary experimental tasks $\{t_1, \dots, t_{N_t}\}$ designed to resolve reviewer queries.
+Next, a Rebuttal Coding Agent $\mathcal{A}_{\mathrm{RebCoder}}$ implements and executes each planned task $t_i$ using codebase $\mathcal{C}_{\mathrm{best}}$, generating supplementary results $e_i$,
+yielding the aggregated supplementary experiment results $\mathcal{E}_{\mathrm{reb}} = \{e_1, \dots, e_{N_t}\}$.
+
+\noindent\textbf{Iterative Enhancement.}
+A Paper Enhancer Agent $\mathcal{A}_{\mathrm{Enhancer}}$ integrates the $\mathcal{R}_{\mathrm{new}}$ and supplementary findings $\mathcal{E}_{\mathrm{reb}}$ into $\mathcal{P}_{\mathrm{new}}$, revising narrative claims and updating empirical tables and figures.
+The updated manuscript is re-evaluated by $\mathcal{A}_{\mathrm{Reviewer}}$, updating $\mathcal{R}_{\mathrm{new}}$ and score $s_\mathrm{review}$.
+This review-rebuttal cycle repeats until $s_\mathrm{new} \ge 8$ or the maximum budget of $N_{\mathrm{peer}}$ review iterations is reached, producing a polished, thoroughly validated final manuscript $\mathcal{P}_{\mathrm{new}}$.
+
+\subsection{Meta-Reviewing: Final Assessment and Review-Driven Refinement}\label{subsec:meta-reviewing}
+To mirror the complete lifecycle of academic publishing, \sname~integrates a Meta-Review Agent $\mathcal{A}_{\mathrm{Meta}}$. Specifically, $\mathcal{A}_{\mathrm{Meta}}$ evaluates the revised manuscript $\mathcal{P}_{\mathrm{new}}$ alongside the generated peer review $\mathcal{R}_{\mathrm{new}}$ to make a final publication assessment and generate actionable strategic feedback.
+
+\noindent\textbf{Meta-Review Decision.}
+Formally, $\mathcal{A}_{\mathrm{Meta}}$ takes the paper draft and reviewer feedback as inputs to produce a decision $d_{\mathrm{meta}}$ and meta-critique $r_{\mathrm{meta}}$, where $d_{\mathrm{meta}}\in \{\mathrm{Accept}, \mathrm{Refine}\}$.
+If $d_{\mathrm{meta}} = \mathrm{Accept}$, $\mathcal{P}_{\mathrm{new}}$ is judged to meet top-tier conference standards.
+\sname~finalizes the process and exports the final improved paper and its codebase as $\mathcal{P}^+ \leftarrow \mathcal{P}_{\mathrm{new}}$ and $\mathcal{C}^+ \leftarrow \mathcal{C}_{\mathrm{best}}$.
+
+\noindent\textbf{Review-Driven Idea Refinement.}
+When $d_{\mathrm{meta}} = \mathrm{Refine}$, indicating that the meta-reviewer identified a critical algorithmic or empirical weakness, \sname~initiates a deep idea refinement phase.
+Using meta-critique $r_{\mathrm{meta}}$ as guidance, the Full-Set Engineering Agent $\mathcal{A}_{\mathrm{FullEng}}$ updates $h_{\mathrm{best}}$ to construct a revised hypothesis $h_{\mathrm{new}}$, updated results $\mathcal{E}_{\mathrm{new}}$, and modified codebase $\mathcal{C}_{\mathrm{new}}$.
+
+\noindent\textbf{Verification and Re-Drafting.}
+To ensure that the meta-review modification yields true scientific progression, \sname~re-evaluates $\mathcal{E}_{\mathrm{new}}$ against $\mathcal{E}_{\mathrm{best}}$ using the Result Comparison Agent.
+If $\mathcal{E}_{\mathrm{new}}$ is verified as strictly superior , \sname~updates the core state $(h_{\mathrm{best}}, \mathcal{E}_{\mathrm{best}}, \mathcal{C}_{\mathrm{best}}) \leftarrow (h_{\mathrm{new}}, \mathcal{E}_{\mathrm{new}}, \mathcal{C}_{\mathrm{new}})$.
+Because the fundamental idea has changed, \sname~re-executes downstream ablation planning, ablation execution, manuscript re-drafting, and simulated peer-review cycles.
+Conversely, if $\mathcal{E}_{\mathrm{new}}$ fails to outperform the baseline, the refinement is discarded, and \sname~terminates the process using the previous best outputs ($\mathcal{P}^+ \leftarrow \mathcal{P}_{\mathrm{new}}, \mathcal{C}^+ \leftarrow \mathcal{C}_{\mathrm{best}}$).
+This meta-refinement loop repeats for a maximum of $N_{\mathrm{meta}}$ iterations or until $d_{\mathrm{meta}} = \mathrm{Accept}$, yielding a rigorously validated final contribution.

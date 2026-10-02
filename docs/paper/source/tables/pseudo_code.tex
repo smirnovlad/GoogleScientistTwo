@@ -1,0 +1,38 @@
+% \usemintedstyle{pastie}
+% \begin{listing}
+% \caption{\textbf{Python-style pseudocode for each pipeline stage.} At each stage, \sname~evaluates candidate artifacts using a critic agent. If accepted, the artifact is returned; if rejected, it is discarded; otherwise, it is iteratively refined based on the critic's feedback up to a maximum number of rounds.}\label{lst:stage_pseudocode}
+% \begin{minted}[
+%     bgcolor=gray!8,
+%     fontsize=\footnotesize,
+% ]{python}
+
+% def stage(candidate, critic, refine, max_rounds):
+%     for _ in range(max_rounds):
+%         verdict, feedback = critic(candidate)
+%         if verdict == "accept":
+%             return candidate
+%         elif verdict == "refine":
+%             candidate = refine(candidate, feedback)
+%         else:
+%             return None
+%     return None
+% \end{minted}
+% \vspace{-0.25in}
+% \end{listing}
+\begin{listing}
+\caption{\textbf{Python-style pseudocode for each pipeline stage.} At each stage, \sname~evaluates candidate artifacts using a critic agent. If accepted, the artifact is
+returned; if rejected, it is discarded; otherwise, it is iteratively refined based on the critic's feedback up to a maximum number of rounds.}\label{lst:stage_pseudocode}
+\begin{lstlisting}[style=pseudopython]
+def stage(candidate, critic, refine, max_rounds):
+    for _ in range(max_rounds):
+        verdict, feedback = critic(candidate)
+        if verdict == "accept":
+            return candidate
+        elif verdict == "refine":
+            candidate = refine(candidate, feedback)
+        else:
+            return None
+    return None
+\end{lstlisting}
+% \vspace{-0.25in}
+\end{listing}
