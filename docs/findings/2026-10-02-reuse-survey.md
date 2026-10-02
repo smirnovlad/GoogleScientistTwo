@@ -22,7 +22,7 @@ and Claude Agent SDK for Python
 | ScientistOne CoE audit | Implement the four checks as our own audit; use its protocol as a reference. | High for protocol, low for reusable code |
 | MLE-STAR | Borrow the idea of targeted ablations, not code. | High |
 | ScholarPeer | Define a reviewer contract and mock; implement or license a reviewer after a reproducibility decision. | Medium |
-| Claude Agent SDK | Trial as one coding-backend adapter inside an external sandbox. | High for SDK capability, medium for fit |
+| Claude Agent SDK / `claude -p` | Trial as one coding-backend adapter inside an external sandbox, including a local subscription mode. | High for capability, medium for fit |
 | paperreview.ai | Manual held-out feedback only; do not put the website in an automated run. | High |
 
 ## 1. PaperOrchestra
@@ -157,11 +157,22 @@ and Claude Agent SDK for Python
   model, turn and budget limits. Capture the session ID and transcript, plus the
   workspace revision, generated artifacts, evaluator inputs, call outcome and
   cost record; all are needed to resume a research stage without repeating paid
-  work. Keep the evaluator and test data outside the agent's writable environment.
+  work. A local subscription adapter may use an authenticated Claude Code CLI
+  with `claude -p`; keep the evaluator and test data outside the agent's writable
+  environment. Routing all research roles to Claude would be our model-routing
+  decision, since ScientistTwo Appendix A.2 also uses Gemini.
 - **Cost and terms.** The SDK repository is MIT, but the official overview says
-  usage is governed by Anthropic Commercial Terms; production integrations use
-  API-key authentication unless separately approved. Model calls and long
-  coding sessions cost money; task 5 must price a representative run.
+  usage is governed by Anthropic Commercial Terms. The
+  [Claude plan guidance](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+  says a proposed June 2026 billing change was paused: Agent SDK and `claude -p`
+  still count against a user's subscription limits. The
+  [Claude Code billing guide](https://support.claude.com/en/articles/11145838-using-claude-code-with-your-pro-or-max-plan)
+  says an `ANTHROPIC_API_KEY` overrides plan authentication and incurs API
+  charges. The [SDK quickstart](https://platform.claude.com/docs/en/agent-sdk/quickstart)
+  instructs third-party product developers to use API-key authentication unless
+  Anthropic approves otherwise. A personal local engine can trial the plan
+  route; a shared product needs separate terms. Task 5 must model plan limits,
+  monetary charges and any non-Claude services separately.
 - **Trust limit.** The repository says `allowed_tools` auto-approves tools; it is
   **not** a deny list. `disallowed_tools` and hooks can restrict requests, but
   neither replaces OS/container isolation for protected files. `⛔ WHY NOT`
@@ -205,3 +216,6 @@ and Claude Agent SDK for Python
 5. Task 6 must source or build and calibrate an independent reporting judge
    (`U-EVAL-3`). Manual paperreview.ai feedback can supplement that judge, but
    cannot fill a versioned, reproducible reporting contract by itself.
+6. Expose API and local Claude subscription backends separately. The latter
+   must detect API-key override, stop at plan limits and resume through the run
+   journal; a subscription is not an unlimited compute budget.
