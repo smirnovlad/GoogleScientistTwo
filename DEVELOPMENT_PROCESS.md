@@ -329,32 +329,115 @@ the new rule:
 The two app chats stay stopped, not archived. Their worktrees are detached from the task branches
 and hold nothing to keep.
 
-## HANDOFF, 2026-09-28 (task 1 done; PR #1 awaits review; tasks 2 and 6 run in the terminal)
+## 2026-10-02: the task sessions relaunch in tmux
+
+**Vlad, verbatim:**
+
+> "Status of previous session in that worktree?"
+
+**The 2026-09-28 terminal start never began.** Both sessions stopped at Claude Code's
+folder-trust prompt, whose highlighted choice is "No, exit", and their tabs were later closed.
+Checked on 2026-10-02:
+- neither worktree had a transcript folder under `~/.claude/projects/`;
+- the main checkout's entry in `~/.claude.json` still recorded no accepted trust. A worktree has no
+  entry of its own: accepting the prompt in one flips the main checkout's entry;
+- the Terminal panel held only Vlad's own tab;
+- neither task branch had a commit past the restart.
+
+So the last HANDOFF's "Running" was wrong: neither session ever ran.
+
+**Vlad, verbatim** (the one edit: the path of an attached file replaced, marked […]. The file is a
+guide to running Claude sessions in tmux, from another of his projects):
+
+> "[…] Yes, relaunch both sessions in terminal, also use tmux for that so you can manage these sessions easily."
+
+**What was set up, after that guide:**
+- **`ops/sessions.sh`** keeps one tmux session, `gs2`, with one window per task session, `T<n>`.
+  It can `start`, `restart` and `list` them. Each window's shell starts from an empty environment
+  plus a short allowlist. So a task session never inherits the launching session's variables (its
+  session id, its account, its messaging socket), whoever started the tmux server.
+- **`gs2 <n>`**, a shell function added to Vlad's `~/.zshrc` after a backup, opens window `T<n>` in
+  a terminal tab.
+- **The brief is a file,** `.claude/brief.md` in the task's worktree, and the first prompt only
+  names it. The guide records a long brief, passed on the command line, arriving cut. `.gitignore`
+  now keeps the file out of commits. Until the task branches have that line, a local
+  `.git/info/exclude` does.
+- **Each brief is the 2026-09-28 one, unchanged,** under a relaunch note that this session wrote.
+  The note names its author, quotes Vlad's words above, and says where the session runs.
+- `docs/process/worktrees-and-sessions.md` gains a section on running task sessions in tmux.
+
+**The relaunch:**
+- window `T2`: task 2, in `.claude/worktrees/requirements`;
+- window `T6`: task 6's `P0` part, in `.claude/worktrees/integrity-blockers`;
+- each runs `claude --permission-mode auto --effort max`.
+
+Both stopped at the trust prompt again. Vlad approved answering it for him. This session selected
+"Yes, I trust this folder" in each window, and each session then read its brief and began.
+
+**A Codex session works in parallel.** At 12:45 the main checkout moved from
+`claude/paper-analysis` to `main`, and a worktree `.claude/worktrees/codex-reuse-survey` appeared,
+on `codex/reuse-survey`. Vlad, verbatim:
+
+> "its codex, I've also launched gpt astra"
+
+This session leaves both alone. It commits to `claude/paper-analysis` through a worktree of its
+own, `.claude/worktrees/paper-analysis`.
+
+**Review.** The `/codex` gate, run with `gpt-6-astra`, failed the first version on one [P1] and one
+[P2]. Both were fixed, then tested:
+- **[P1] `env -i` on the tmux client does not clean a window.** A window inherits the tmux server's
+  environment, and the server is shared. Now each window's shell starts under `env -i` itself. In
+  the test, a fake `CLAUDE_CODE_SESSION_ID` was planted in the session's environment:
+  - a window started the old way inherited it;
+  - a window started by the script did not, and otherwise had the same 24 variables.
+
+  The two running sessions were checked as well. Neither has a `CLAUDE_*` or `ANTHROPIC_*`
+  variable, because this server had been started clean.
+- **[P2] From inside another tmux session, `gs2 <n>` moved the tab into the shared session,** so two
+  such tabs would switch windows together. Now it gives the tab a grouped session of its own. Each
+  branch of the function was tested with a real tmux client on a pseudo-terminal.
+
+A second pass passed: both fixes "appear correct", with no new finding and no sensitive
+disclosure. `codex review` refuses custom instructions with `--uncommitted` as it does with
+`--base`, so both passes named the diff in their instructions instead.
+
+## HANDOFF, 2026-10-02 (PR #1 awaits review; tasks 2 and 6 run in tmux)
 
 - **Done and pushed** on `claude/paper-analysis`:
   - TODO task 1, ticked in `TODO.md` with its proof;
   - the Codex review's fixes;
-  - the rule that task sessions start from a terminal.
-- **All checks pass:**
+  - the rule that task sessions start from a terminal;
+  - `ops/sessions.sh`, and the tmux section of `docs/process/worktrees-and-sessions.md`.
+- **All checks passed on 2026-09-28.** The commits since then touch none of the files they check:
   - `check_citations.py`: 18 files, 0 problems, and its self-test's 46 cases;
   - `register_coverage.py` and `trace_coverage.py`: 0 problems each, with their self-tests;
   - `claims_arithmetic.py`: exits 0;
   - `fetch_sources.sh`: the sources match their sha256, and the redaction is exact.
 - **Open:** PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1), `claude/paper-analysis`
-  into `main`. Its description carries the Codex verdict. The repository has no CI yet, so no
-  checks run on it.
-- **Running, each in its own terminal session:**
-  - task 2, in `.claude/worktrees/requirements`, on `claude/requirements`;
-  - task 6's `P0` part, in `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`.
+  into `main`, with no review or comment as of 2026-10-02. Its description carries the Codex
+  verdict. The repository has no CI yet, so no checks run on it.
+- **Running, in the tmux session `gs2`.** `ops/sessions.sh list` shows the windows, and `gs2 <n>`
+  opens one in a terminal tab.
+  - `T2`: task 2, in `.claude/worktrees/requirements`, on `claude/requirements`. Session
+    `be5dd052-f8df-4809-9900-03547c214b13`.
+  - `T6`: task 6's `P0` part, in `.claude/worktrees/integrity-blockers`, on
+    `claude/integrity-blockers`. Session `5c73bd1a-2ecb-42b9-bf9c-0e03b8630828`.
 
-  To continue one, run `claude --resume` in its folder and pick it from the list.
+  To continue one that has stopped:
+  `ops/sessions.sh restart T<n> claude --permission-mode auto --effort max --resume <its session>`.
+- **Also running, not ours:** a Codex session, in `.claude/worktrees/codex-reuse-survey`, on
+  `codex/reuse-survey`. The main checkout is on `main`, where that session left it.
 - **Next steps:**
   1. Vlad reviews PR #1. Merge to `main` only with his approval. The commits made after the Codex
-     passes change only process documents. They get a Codex pass of their own before the merge.
+     passes change only process documents and `ops/sessions.sh`. They get a Codex pass of their
+     own before the merge.
   2. Tasks 2 and 6's `P0` part continue in their sessions. Once PR #1 is merged, each brings its
      branch up to date with `main`.
-  3. Archive the two stopped app chats, "Start TODO task 2: requirements" and "Decide task 6's
-     four integrity blockers". Archiving removes their `nervous-…` worktrees.
+  3. Remove the two stopped app chats' worktrees, `nervous-rosalind-80b87b` and
+     `nervous-wozniak-48c870`. The app no longer lists those chats, so archiving them cannot remove
+     the worktrees. `nervous-wozniak-48c870` holds an uncommitted section not worth keeping, so
+     removing it takes `git worktree remove --force`: Vlad's call.
+  4. Remove `.claude/worktrees/paper-analysis` once no session needs it.
 - **If this session is lost:**
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,

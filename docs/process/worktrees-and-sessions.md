@@ -35,7 +35,8 @@ cd .claude/worktrees/<what-the-work-is> && claude
 
   An agent that wants a new session opens a terminal and runs `claude` in the task's worktree. In
   the desktop app, a tab of its Terminal panel is a terminal. Rule set by Vlad on 2026-09-28, after
-  two task sessions had been started from chips.
+  two task sessions had been started from chips. An agent that must then watch the sessions it
+  starts runs them in tmux: [Running task sessions in tmux](#running-task-sessions-in-tmux).
 - **Name the branch and the folder after the work:** `claude/paper-analysis`, never a generated
   name. Use `codex/<…>` for work Codex writes.
 - **`--no-track` keeps the new branch from tracking its base,** so `git status` and a bare
@@ -49,6 +50,57 @@ cd .claude/worktrees/<what-the-work-is> && claude
 - **When one session starts another, the first message is a brief that session wrote.** Record it
   in `DEVELOPMENT_PROCESS.md` as that brief, naming its author. Only Vlad's own words go under
   "Vlad, verbatim".
+
+## Running task sessions in tmux
+
+One tmux session, `gs2`, holds one window per task session, named `T<n>` after the task's number
+in `TODO.md`. The session that started them reads a window with `tmux capture-pane` and types into
+it with `tmux send-keys`. Vlad opens a window in any terminal tab with `gs2 <n>`. Every session
+survives a closed tab or app. Set up on 2026-10-02, after a guide Vlad uses in another project.
+
+```bash
+ops/sessions.sh start T2 "$PWD/.claude/worktrees/requirements" \
+  claude --permission-mode auto --effort max "'Read .claude/brief.md in this worktree and follow it.'"
+tmux capture-pane -p -t gs2:T2 | tail -8    # alive, or waiting at a prompt?
+ops/sessions.sh list                        # a version number: Claude runs. zsh: it does not
+```
+
+- **The brief goes in a file,** `.claude/brief.md` in the task's worktree, and the first prompt
+  only names it. `.gitignore` keeps the file out of commits.
+  - ⛔ WHY NOT the brief as a command-line argument: a long one has arrived cut.
+- **The first start in this repository stops at Claude Code's folder-trust prompt.** Its
+  highlighted choice is "No, exit", so Enter alone ends the session. Vlad answers it, or approves
+  in chat that the starting session answers it. The answer is recorded for the main checkout, not
+  for each worktree, so a later worktree should not ask again (untested).
+- **`restart` only an idle session.** It types `/exit`, which kills anything still running under
+  the session. If the session has background tasks, `/exit` opens a dialog instead, and the script
+  stops for a person to look.
+- **Never run two Claude processes on one session id.** Before resuming a session anywhere else,
+  exit it in its window.
+- **A session reads `CLAUDE.md` when it starts.** After the rules change, merge them into its
+  branch and `restart` it.
+- **`gs2 <n>` is a shell function in `~/.zshrc`.** Each tab gets a grouped session of its own, so
+  switching windows in one tab never moves another.
+  - ⛔ WHY NOT a plain `tmux attach -t gs2`: every attached client shares one current window.
+
+  ```zsh
+  gs2() {
+    local w="${1:-home}" s
+    if [[ "$w" == <-> ]]; then w="T$w"; fi
+    if [[ "$w" != T* && "$w" != home ]]; then command gs2 "$@"; return; fi
+    if ! tmux list-windows -t gs2 -F '#W' 2>/dev/null | grep -qx -- "$w"; then
+      echo "gs2: no window $w (see: tmux list-windows -t gs2)" >&2; return 1
+    fi
+    if [[ -z "$TMUX" ]]; then
+      tmux new-session -t gs2 \; set destroy-unattached on \; select-window -t "$w"
+    elif [[ "$(tmux display -p '#{session_group}')" == gs2 ]]; then
+      tmux select-window -t ":$w"          # this tab already shows gs2: switch window here only
+    else                                   # this tab shows another session: give it its own gs2 view
+      s=$(tmux new-session -d -P -F '#{session_name}' -t gs2) || return
+      tmux select-window -t "$s:$w" \; switch-client -t "$s" \; set -t "$s" destroy-unattached on
+    fi
+  }
+  ```
 
 ## While working
 
