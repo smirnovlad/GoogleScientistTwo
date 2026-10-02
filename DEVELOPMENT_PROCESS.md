@@ -359,3 +359,101 @@ and hold nothing to keep.
   - Run `bash playground/paper/fetch_sources.sh`, then read `docs/paper/README.md`.
   - The review record is in `docs/reviews/paper-analysis-2026-09-27/`. Start from `fix-list.md`,
     whose last section records the outcome of every fix, and from `codex-review.md`.
+
+## 2026-10-02: task 2 is relaunched in a terminal, under tmux
+
+**The relaunch note, verbatim.** The coordinating session of 2026-10-02 wrote it, at the top of
+this session's brief, and said that it wrote nothing else:
+
+> ## Relaunch note, 2026-10-02
+>
+> The coordinating session of 2026-10-02 relaunched you and wrote only this note. The brief below it
+> is unchanged from 2026-09-28. Record the two together, each under its author.
+>
+> - **The 2026-09-28 terminal start never began.** It waited at Claude Code's folder-trust prompt
+>   until its tab was closed, and left no transcript and no commit. Nothing of it carries over.
+> - **Vlad's words behind the relaunch, verbatim:** "Yes, relaunch both sessions in terminal, also
+>   use tmux for that so you can manage these sessions easily."
+> - **You run in tmux,** in window `T2` of the session `gs2`. The coordinating session can read your
+>   screen and type into it. Vlad opens your window with `gs2 2`.
+> - **A Codex session also works in this repository,** in `.claude/worktrees/codex-reuse-survey`, on
+>   `codex/reuse-survey`. Leave its worktree alone.
+
+**Vlad, verbatim,** as the relaunch note quotes him (this session did not see the message itself):
+
+> "Yes, relaunch both sessions in terminal, also use tmux for that so you can manage these sessions easily."
+
+**The brief, verbatim.** The session that finished task 1 wrote it on 2026-09-28, and the relaunch
+note says it is unchanged since. Vlad's own words behind it are "continue", and his instruction to
+restart the task sessions from a terminal, both quoted above. It is not Vlad's own words.
+
+> Start TODO task 2 (Requirements) of the GoogleScientistTwo repository. The project replicates the research engine of ScientistTwo (arXiv:2609.19644).
+>
+> ## Who wrote this brief
+>
+> The session that finished task 1 wrote it. It is not Vlad's own words. His words behind it are "continue", and then his instruction to restart the task sessions from a terminal. `DEVELOPMENT_PROCESS.md` quotes both. Record this brief there verbatim, in a new section, as the brief and with its author, never under "Vlad, verbatim" (`docs/process/worktrees-and-sessions.md`).
+>
+> A first attempt ran as a desktop-app chat and was stopped before it began the task. Nothing of it carries over. `DEVELOPMENT_PROCESS.md` records the restart ("task sessions start from a terminal").
+>
+> ## Read first, and follow
+>
+> - `CLAUDE.md`, `TODO.md` (task 2), and the last HANDOFF in `DEVELOPMENT_PROCESS.md`. They set the working rules:
+>   - the paper is the specification;
+>   - requirements come before code;
+>   - route work to personas by the question they judge;
+>   - every change passes the review gate;
+>   - commits are in a plain human voice, with no AI attribution and no Co-Authored-By lines;
+>   - never run a bare `git stash`.
+> - **The repository is public on GitHub.** Never commit a secret, an e-mail address or a path from someone's machine.
+>
+> ## Where you are
+>
+> - You run in the worktree `.claude/worktrees/requirements`, on the branch `claude/requirements`, which tracks `origin/claude/requirements`. Check it with `git status -sb` before your first commit.
+> - The branch contains `claude/paper-analysis`, which holds task 1's deliverables in PR #1 (https://github.com/smirnovlad/GoogleScientistTwo/pull/1). PR #1 is open and not merged into `main`. After it merges, bring your branch up to date with `main`.
+> - If you need another Claude session, start it from a terminal, never as a desktop-app chat (`CLAUDE.md`). Subagents are unaffected.
+>
+> ## The task
+>
+> Write `docs/requirements.md` (TODO.md, task 2):
+> - the goal, in one line;
+> - each requirement with its acceptance test, and either traced to the paper (P- ID and location) or marked as our own decision, with its reason.
+>
+> **Done when** every one of the 177 paper elements (P- IDs) in `docs/paper/traceability.md` maps to a requirement, or to a recorded decision to leave it out. A script must prove it. Extend `playground/paper/trace_coverage.py`, or add a checker beside it, with a `--selftest` that shows the check can fail.
+>
+> ## Inputs
+>
+> - **`docs/paper/traceability.md`:** 177 elements, whose requirement column reads `— (task 2)`. Fill it, or map it from your file.
+> - **`docs/paper/unspecified.md`:** the decision register. Task 2 owns 33 of its rows, 17 of them blocking. Blocking rows are ranked `blocks 1` to `blocks 8`, in the order task 3 needs them.
+> - **`docs/paper/analysis.md` §3.4–3.5:** one stage primitive, with parameters per stage. The stage requirements should state parameters as data, not one loop per stage.
+> - **`docs/paper/README.md`:** citation conventions. `python3 playground/paper/check_citations.py` enforces them on `docs/paper/`; decide whether it should also check your file.
+>
+> ## Boundaries with other tasks
+>
+> - **Integrity:** a parallel session may be deciding task 6's four blocking rows, U-INT-4, U-TOP-5, A-INT-1 and A-INT-3, in `docs/integrity/`. Reference those decisions; do not decide them yourself. The integrity rules in `CLAUDE.md` already settle U-INT-4 and U-TOP-5 in principle.
+> - **Components** are task 3's. Do not design them.
+>
+> ## Process
+>
+> - **Persona routing:** see `.claude/agents/README.md`. The completeness check belongs to `system-analyst`, which judges by what is missing, where it resolves.
+> - **Review gate:** two or three personas in parallel, one lens each, then fix. Save reviews verbatim in `docs/reviews/requirements-<date>/`.
+> - **Commits:** commit at every milestone, push, and keep the HANDOFF current.
+> - **Vlad's instructions:** quote them verbatim in `DEVELOPMENT_PROCESS.md`, in the same turn. Append a new section. A parallel session appends too, so expect to merge that file by hand.
+> - **Before the PR,** run the `/codex` review gate required by the parent `CLAUDE.md`. On this machine it needs two workarounds:
+>   - the configured model `gpt-6-sol` is refused on this ChatGPT account, so pass `-c model="gpt-6-astra"`;
+>   - `codex review` rejects custom instructions together with `--base`, so drop `--base` and name the range in the instructions (`git diff main...HEAD`, or against `claude/paper-analysis` while PR #1 is open).
+
+**This session.**
+- It started on 2026-10-02, in the worktree `.claude/worktrees/requirements`, on
+  `claude/requirements` at `fb4c8b1`, up to date with its remote branch. Its first message was
+  "Read .claude/brief.md in this worktree and follow it."
+- The brief lives in `.claude/brief.md`, which the repository's local exclude file keeps out of
+  git, so this section is its only committed record.
+- PR #1 is still open, with no review or comment (checked on 2026-10-02), so the branch stays on
+  top of `claude/paper-analysis`.
+- `bash playground/paper/fetch_sources.sh` filled this worktree's own `.cache/`: every sha256
+  matches, ScientistOne's TeX included. Every check of task 1 passes here unchanged:
+  `trace_coverage.py` (177 of 177), `register_coverage.py` and `check_citations.py` (18 files,
+  0 problems), each with its self-test.
+- **Task 6 has decided nothing yet.** Its branch, `claude/integrity-blockers`, holds no
+  `docs/integrity/` (checked on 2026-10-02). The requirements reference its four rows, U-INT-4,
+  U-TOP-5, A-INT-1 and A-INT-3, as pending, and depend only on what `CLAUDE.md` already settles.
