@@ -25,16 +25,17 @@ from __future__ import annotations
 import json
 import os
 import re
+import select
 import shutil
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Iterator, Optional
 
 from ...harness.sandbox import child_env
-from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, EnvironmentFault,
+from .base import (AgentCall, AgentFailed, AgentResult, AgentTimeout, BackendError, EnvironmentFault,
                    InvalidOutput, RateLimited, SubprocessBackend, TransientError)
 
 ISOLATION_FLAGS = ["--setting-sources", "", "--strict-mcp-config", "--mcp-config",
@@ -49,6 +50,7 @@ _LIMIT_TEXT = re.compile(r"usage limit|rate[ _-]?limit|too many requests|\b429\b
 _TRANSIENT_TEXT = re.compile(r"overloaded|internal server error|timed? ?out|connection|ECONNRESET|"
                              r"socket hang up|\b5\d\d\b|temporarily", re.I)
 # the machine failed, not the agent: a retry of the same unit would fail the same way
+DRAIN_S = 10.0          # how long the reader waits for the rest of the output after a kill
 _ENVIRONMENT = re.compile(r"\b(EPERM|EACCES|ENOSPC|EROFS|EMFILE|ENFILE|EDQUOT)\b|no space left", re.I)
 # a refusal of the command line itself, before any session started
 _USAGE_ERROR = re.compile(r"^error: |^Error: --|is not a valid|unknown option|invalid value", re.I | re.M)
@@ -126,14 +128,12 @@ class ClaudeCLIBackend(SubprocessBackend):
         started = time.time()
         spawned = self.spawn(call, self.argv(call), self.env(call))
         proc = spawned.proc
-        killed: dict[str, str] = {}
+        killed: dict[str, Any] = {}
 
         def _kill(reason: str) -> None:
-            killed.setdefault("reason", reason)
-            try:
-                os.killpg(proc.pid, 9)
-            except (ProcessLookupError, PermissionError):
-                pass
+            if "reason" not in killed:
+                killed.update(reason=reason, at=time.time())
+            spawned.kill_now()                         # the whole tree, not only the CLI's group
 
         timer = threading.Timer(call.timeout_s, _kill, args=("timeout",))
         timer.start()
@@ -154,9 +154,16 @@ class ClaudeCLIBackend(SubprocessBackend):
                 pass
 
         threading.Thread(target=_feed, daemon=True).start()
+
+        def _left() -> float:
+            # the reader is bounded on its own: a process that escaped every kill and still holds
+            # the pipe ends the read DRAIN_S after the kill, never at that process's own exit
+            end = killed["at"] + DRAIN_S if "at" in killed else started + call.timeout_s + DRAIN_S
+            return end - time.time()
+
         try:
             assert proc.stdout is not None
-            for line in proc.stdout:
+            for line in _lines(proc.stdout.fileno(), _left):
                 if transcript:
                     transcript.write(line)
                 try:
@@ -179,7 +186,9 @@ class ClaudeCLIBackend(SubprocessBackend):
             if transcript:
                 transcript.close()
             spawned.finish(grace=1.0 if result else 3.0)
-        err_thread.join(timeout=5)
+        # the tree is dead, so stderr is at its end, unless a process that escaped every kill holds
+        # it: then the thread is left to that process's exit, never waited for
+        err_thread.join(timeout=1.0)
         stderr = "".join(stderr_chunks)[-2000:]
         duration = time.time() - started
         if rate:
@@ -189,6 +198,18 @@ class ClaudeCLIBackend(SubprocessBackend):
 
     def _interpret(self, call: AgentCall, init: dict, result: dict, rate: dict, stderr: str,
                    returncode: Optional[int], killed: dict, duration: float) -> AgentResult:
+        try:
+            return self._classify(call, init, result, rate, stderr, returncode, killed, duration)
+        except BackendError as e:
+            # a failed result can still report its spending: the ledger keeps it, so the caps see
+            # it (Codex review 2026-10-02, P2: a result reporting $12.30 was counted as unknown)
+            cost = result.get("total_cost_usd")
+            e.cost_usd = float(cost) if isinstance(cost, (int, float)) else None
+            e.tokens = result.get("usage") or None
+            raise
+
+    def _classify(self, call: AgentCall, init: dict, result: dict, rate: dict, stderr: str,
+                  returncode: Optional[int], killed: dict, duration: float) -> AgentResult:
         if killed.get("reason", "").startswith("apiKeySource="):
             raise AgentFailed(f"{call.agent}: refused, the CLI would bill the API ({killed['reason']}); "
                               "the engine runs only on the subscription login")
@@ -231,6 +252,27 @@ class ClaudeCLIBackend(SubprocessBackend):
             raw={"model": init.get("model"), "api_key_source": init.get("apiKeySource"),
                  "num_turns": result.get("num_turns"), "rate_limit": rate,
                  "model_usage": result.get("modelUsage"), "cli_version": init.get("claude_code_version")})
+
+
+def _lines(fd: int, left: Callable[[], float]) -> Iterator[str]:
+    """The lines on `fd` until EOF, or until `left()` reaches 0 (then a partial line is dropped)."""
+    buf = b""
+    while True:
+        wait = left()
+        if wait <= 0:
+            return
+        ready, _, _ = select.select([fd], [], [], min(wait, 1.0))
+        if not ready:
+            continue
+        chunk = os.read(fd, 1 << 16)
+        if not chunk:
+            if buf:
+                yield buf.decode("utf-8", errors="replace")
+            return
+        buf += chunk
+        while b"\n" in buf:
+            line, buf = buf.split(b"\n", 1)
+            yield line.decode("utf-8", errors="replace") + "\n"
 
 
 def _reset_at(rate: dict) -> Optional[float]:

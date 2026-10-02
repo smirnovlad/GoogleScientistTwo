@@ -320,3 +320,66 @@ def test_a_resume_keeps_the_task_settings_the_run_started_with(tmp_path, toy_tas
     close(ctx2)
     history = read_json(ctx.run_dir / "run.json")["history"]
     assert any(h.get("event") == "task_changed" and h["keys"] == ["splits"] for h in history)
+
+
+def test_the_ablation_planner_reads_the_selected_version_and_cannot_write_it(tmp_path, toy_task):
+    """Codex review, P2: declared a reasoning agent, the planner ran in the scratch directory with
+    no read access to the code it was told to read."""
+    seen = []
+
+    class Spy(MockBackend):
+        def call(self, call):
+            if call.agent == "ablation_planner":
+                seen.append(call)
+            return super().call(call)
+
+    rules = [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]
+    rec, ctx, _ = go(tmp_path, toy_task, rules, backend=Spy({"rules": rules}))
+    assert rec["status"] == "done", rec.get("reason")
+    good = [t for t in read_json(ctx.run_dir / "traces.json") if t["verdict"] == "Good"]
+    selected = ctx.ws.path(good[0]["ws"])                     # s1, the only Good idea
+    c = seen[0]
+    assert c.kind == "readonly" and c.cwd == selected and (selected / "params.json").exists()
+    assert selected in c.sandbox.readable and selected in c.sandbox.readonly
+    assert selected not in c.sandbox.writable
+
+
+def test_downtime_after_a_crash_is_not_running_time(tmp_path, toy_task):
+    """P2: a crash left the status `running`, so the whole stop until the resume counted against
+    the running-time cap. Also: a finished run keeps no stale pause reason."""
+    from scientisttwo.runtime.budget import running_hours
+    from scientisttwo.runtime.store import atomic_write_json
+    pause = {"agent": "ablation_planner", "raise": "rate_limit"}
+    prof = profile()
+    prof["rate_limit"]["max_wait_minutes"] = 0
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT, pause], prof)
+    assert rec["status"] == "paused" and rec["resume_after"]
+    # the next engine starts, runs for a minute, and is killed: its status stays `running`. The
+    # resume comes ten hours later
+    run_json = ctx.run_dir / "run.json"
+    before = running_hours(ctx.run_dir)
+    r = read_json(run_json)
+    t = time.time() + 1
+    r["status"] = "running"
+    r["history"].append({"time": t, "status": "running"})
+    atomic_write_json(run_json, r)
+    atomic_write_json(ctx.run_dir / "heartbeat", {"time": t + 60})
+    assert running_hours(ctx.run_dir, now=t + 36000) - before > 9.9           # what it used to count
+    ctx2 = prepare(ctx.run_dir, None, None, MockBackend({"rules": [GOOD_IDEA, BAD_IDEA, BAD_VERDICT]}),
+                   sleep=lambda s: None)
+    assert read_json(run_json)["history"][-2]["status"] == "crashed"
+    assert running_hours(ctx.run_dir, now=t + 36000) - before == pytest.approx(60 / 3600, abs=1e-3)
+    rec2 = run(ctx2)
+    assert rec2["status"] == "done" and "resume_after" not in rec2 and "reason" not in rec2
+
+
+def test_the_exported_budget_counts_the_exports_own_calls(tmp_path, toy_task):
+    """P2: the budget was taken before the test reporter and the final judge ran."""
+    rec, ctx, _ = go(tmp_path, toy_task, [GOOD_IDEA, BAD_IDEA, BAD_VERDICT])
+    exported = read_json(ctx.run_dir / "export" / "results.json")["budget"]
+    assert exported["agent_calls"] == rec["budget"]["agent_calls"] == sum(exported["by_outcome"].values())
+    assert exported["by_agent"]["final_judge"]["calls"] == 1
+    early = ctx.rt.budget.summary()
+    ctx.rt.budget.record({"key": "x/1", "agent": "final_judge", "kind": "reasoning", "outcome": "ok",
+                          "seconds": 1, "equiv_usd": 0.0})
+    assert early["by_outcome"] == exported["by_outcome"]       # a stored summary does not move

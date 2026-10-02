@@ -23,12 +23,12 @@ import os
 import re
 import shutil
 import stat
-import subprocess
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from ..harness import sandbox as sbx
 from ..harness.harness import gain
+from ..runtime.procs import run_tree
 
 
 def latex_escape(text: Any) -> str:
@@ -238,31 +238,29 @@ def unverified_numbers(folder: Path, p: dict, context: str = "") -> list[str]:
 
 
 # ---- the PDF ----------------------------------------------------------------------------------
-def compile_pdf(folder: Path, build: Path, policy: sbx.SandboxPolicy, allow_unsandboxed: bool,
-                tables: Optional[str] = None) -> dict:
-    """Best effort: latexmk into a separate build directory, sandboxed, no network. With
-    `tables`, the build reads the engine's regenerated results.tex, never the version's copy."""
+def compile_pdf(src: Path, policy: Optional[sbx.SandboxPolicy], allow_unsandboxed: bool,
+                registry=None, key: str = "pdf", timeout: float = 240.0) -> dict:
+    """Best effort: latexmk in `src`, a copy of the committed version that holds the engine's
+    tables, sandboxed, no network, with every write inside `src`. The engine's process-tree
+    runner starts it, so a hung TeX dies with the build and a crash leaves a record to reap.
+
+    ⛔ WHY NOT build the version in place with `-outdir`: bibtex writes beside its sources, the
+    sandbox denies that, and every PDF of run 2 failed with "Not writing to /Use.bbl" (bisected
+    2026-10-02). ⛔ WHY NOT `subprocess.run(timeout=)`: it kills only latexmk, never the TeX it
+    started (Codex review 2026-10-02, P2)."""
     exe = shutil.which("latexmk") or ("/Library/TeX/texbin/latexmk" if Path("/Library/TeX/texbin/latexmk").exists() else None)
     if exe is None:
         return {"ok": False, "error": "latexmk is not installed"}
-    build.mkdir(parents=True, exist_ok=True)
-    texinputs = ""
-    if tables is not None:
-        engine_tables = build / "engine-tables"
-        engine_tables.mkdir(exist_ok=True)
-        write_regular(engine_tables / "results.tex", tables)
-        texinputs = f"{engine_tables}{os.pathsep}"          # searched before the version's own copy
-    env = {"PATH": os.pathsep.join([str(Path(exe).parent), "/usr/bin", "/bin"]), "HOME": str(build),
-           "TEXMFVAR": str(build / "texmf-var"), "TMPDIR": str(build), "LANG": "en_US.UTF-8"}
-    if texinputs:
-        env["TEXINPUTS"] = texinputs
-    argv = sbx.wrap([exe, "-pdf", "-interaction=nonstopmode", "-halt-on-error", f"-outdir={build}", "main.tex"],
+    env = {"PATH": os.pathsep.join([str(Path(exe).parent), "/usr/bin", "/bin"]), "HOME": str(src),
+           "TEXMFVAR": str(src / ".texmf-var"), "TMPDIR": str(src), "LANG": "en_US.UTF-8"}
+    argv = sbx.wrap([exe, "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
                     policy, allow_unsandboxed)
-    try:
-        r = subprocess.run(argv, cwd=str(folder), env=env, capture_output=True, text=True, timeout=240)
-    except subprocess.TimeoutExpired:
+    log_file = src / "latexmk.out"
+    rc, timed_out = run_tree(argv, cwd=src, env=env, timeout=timeout, output=log_file,
+                             registry=registry, key=key)
+    if timed_out:
         return {"ok": False, "error": "latexmk timed out"}
-    pdf = build / "main.pdf"
-    if r.returncode == 0 and pdf.exists():
+    pdf = src / "main.pdf"
+    if rc == 0 and pdf.exists():
         return {"ok": True, "pdf": str(pdf)}
-    return {"ok": False, "error": (r.stdout + r.stderr)[-1500:]}
+    return {"ok": False, "error": (read_regular(log_file) or f"exit code {rc}")[-1500:]}

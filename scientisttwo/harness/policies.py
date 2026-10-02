@@ -9,7 +9,7 @@ An agent's rights follow its KIND (agent.json), not the arguments of the call th
 | read-only agent | scratch, its TMPDIR | + the version it audits (never writable) | the Anthropic API |
 | coding / writer agent | its version but not its `.git`, its TMPDIR | + the public training data | the Anthropic API, plus the task's `network_allow` hosts |
 | evaluated code | its seed's directory only | the version's commit, the split's inputs, the public data, Python | none |
-| LaTeX build | its build directory only | the manuscript version | none |
+| LaTeX build | its build directory only: a copy of the committed version | nothing else | none |
 
 Every process: the run directory is never writable (results, units, ledger), and the locked
 harness, the task's own folder, its `deny_read` paths and its `deny_patterns` are never readable.
@@ -91,6 +91,6 @@ class RunRules:
                           readonly=[code, inputs, self.public], network="none",
                           temp_read=False, temp_write=False)
 
-    def build(self, folder: Path, build_dir: Path) -> SandboxPolicy:
-        return self._base(writable=[build_dir], readable=[folder], readonly=[folder],
-                          network="none", temp_read=False, temp_write=False)
+    def build(self, build_dir: Path) -> SandboxPolicy:
+        """`build_dir`: the copy of the version the engine exported, where every write lands."""
+        return self._base(writable=[build_dir], network="none", temp_read=False, temp_write=False)

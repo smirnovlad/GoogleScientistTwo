@@ -21,12 +21,14 @@ from __future__ import annotations
 
 import fcntl
 import hashlib
+import json
 import logging
 import os
 import platform
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -109,6 +111,7 @@ def _prepare(run_dir: Path, task_path: Optional[Path], profile: Optional[dict], 
     agents_dir = run_dir / "agents"
     resumed = manifest.exists()
     if resumed:
+        _close_crash(run_dir)                       # we hold the lock: no engine runs it now
         rec = read_json(manifest)
         task_path = Path(rec["task_path"])
         profile = rec["profile"]
@@ -204,6 +207,69 @@ def _pinned_manifest(run_dir: Path, rec: dict, task_path, allow_changed: bool) -
     return current
 
 
+HEARTBEAT_S = 30.0
+
+
+class Heartbeat:
+    """`<run>/heartbeat` holds the last time the engine was alive, rewritten every HEARTBEAT_S
+    seconds while a run runs: after a hard crash, the running time ends there, not at the resume
+    (Codex review 2026-10-02, P2: a quick run stopped overnight by a crash passed its 12-hour
+    cap without doing more work)."""
+
+    def __init__(self, run_dir: Path, every: float = HEARTBEAT_S):
+        self.path, self.every = run_dir / "heartbeat", every
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True, name="heartbeat")
+
+    def start(self) -> "Heartbeat":
+        self.beat()
+        self._thread.start()
+        return self
+
+    def beat(self) -> None:
+        atomic_write_json(self.path, {"time": time.time()})
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self.every):
+            self.beat()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+
+def _last_alive(run_dir: Path, rec: dict) -> float:
+    """The last time a dead engine left a trace: its heartbeat, or a later ledger or event line."""
+    times = [h["time"] for h in rec.get("history", []) if isinstance(h.get("time"), (int, float))]
+    try:
+        times.append(float(read_json(run_dir / "heartbeat")["time"]))
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    for name in ("ledger.jsonl", "events.jsonl"):
+        try:
+            lines = (run_dir / name).read_text().splitlines()
+            if lines:
+                times.append(float(json.loads(lines[-1])["time"]))
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+    return max(times) if times else time.time()
+
+
+def _close_crash(run_dir: Path) -> None:
+    """A run whose status is still `running` when its lock is free was ended by a crash: close
+    its running interval at its last sign of life, so the downtime is not running time."""
+    rec = read_json(run_dir / "run.json")
+    if rec.get("status") != "running":
+        return
+    at = _last_alive(run_dir, rec)
+    rec["status"] = "crashed"
+    rec.setdefault("history", []).append({"time": at, "status": "crashed",
+                                          "note": "the engine stopped without recording a status; "
+                                                  "running time ends at its last heartbeat"})
+    atomic_write_json(run_dir / "run.json", rec)
+    log.warning("the previous engine of this run stopped without a status: closing its running "
+                "time at its last heartbeat")
+
+
 def _history(run_dir: Path, what: str, **fields) -> None:
     rec = read_json(run_dir / "run.json")
     rec.setdefault("history", []).append({"time": time.time(), "event": what, **fields})
@@ -213,6 +279,8 @@ def _history(run_dir: Path, what: str, **fields) -> None:
 def _set_status(run_dir: Path, status: str, **extra) -> dict:
     rec = read_json(run_dir / "run.json")
     rec["status"] = status
+    for stale in ("reason", "resume_after", "retry_on_resume", "traceback"):
+        rec.pop(stale, None)                        # the previous status's; its history keeps them
     rec.update(extra)
     rec.setdefault("history", []).append({"time": time.time(), "status": status,
                                           **{k: v for k, v in extra.items() if isinstance(v, (str, int, float))}})
@@ -229,12 +297,13 @@ def scientist_two(ctx: Ctx) -> dict:
     core = select_best(ctx, traces, base)
     references = [r for s in seeds for r in s["novelty"].get("references", [])]
     final = meta_stage(ctx, base, core, limitations, references)
-    return export(ctx, base, final, traces, limitations, seeds, ctx.rt.budget.summary())
+    return export(ctx, base, final, traces, limitations, seeds)
 
 
 def run(ctx: Ctx) -> dict:
     run_dir = ctx.run_dir
     _set_status(run_dir, "running", started_at=time.time(), engine_commit=engine_commit())
+    ctx.services.append(Heartbeat(run_dir).start())
     ctx.event("run", status="running", task=ctx.task.id, profile=ctx.cfg.get("name"))
     try:
         record = scientist_two(ctx)

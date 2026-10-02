@@ -36,7 +36,7 @@ def _variants(final: dict) -> list[dict]:
 
 
 def export(ctx: Ctx, base: Baseline, final: dict, traces: list[Trace], limitations: list[dict],
-           seeds: list[dict], budget_summary: dict) -> dict:
+           seeds: list[dict]) -> dict:
     assert ctx.papers is not None
     core = final["core"]
     integ = ctx.cfg.get("integrity", {})
@@ -116,7 +116,8 @@ def export(ctx: Ctx, base: Baseline, final: dict, traces: list[Trace], limitatio
         "final_judge": judge, "pdf": pdf.get("ok"), "final_checks": checks,
         "ideas": [{"id": t.id, "title": t.idea.get("title"), "verdict": t.verdict, "ended_at": t.level,
                    "full_gain": gain(t.full, base.full) if t.full else None} for t in traces],
-        "egress": egress_summary(ctx), "budget": budget_summary}
+        # after the test reporter and the final judge, so the export counts its own calls too
+        "egress": egress_summary(ctx), "budget": ctx.rt.budget.summary()}
     atomic_write_json(out / "results.json", record)
     atomic_write_json(out / "audit.json", {**(final.get("audit") or {}), "final_checks": checks})
     (out / "report.md").write_text(report_md(ctx, record, limitations, final.get("audit") or {}))

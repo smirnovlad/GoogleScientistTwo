@@ -72,8 +72,11 @@ Every call is one `claude -p` process with:
   - ⛔ WHY NOT `--bare`: under it, auth is "strictly ANTHROPIC_API_KEY", which bills the API;
 - `--model` and `--effort` from `config/routing.json`;
 - `--tools`: `""` for a pure reasoning agent, `WebSearch` for the novelty and reference checks,
-  `Read,Glob,Grep` for the ablation planner, `Read,Glob,Grep,Bash` for read-only agents, and
-  `Bash,Read,Edit,Write,Glob,Grep` for coding and writer agents;
+  `Read,Glob,Grep,Bash` for read-only agents (the specification filter, the method-code auditor
+  and the ablation planner), and `Bash,Read,Edit,Write,Glob,Grep` for coding and writer agents;
+  - ⛔ WHY NOT the ablation planner as a reasoning agent with `Read,Glob,Grep`: a reasoning agent's
+    sandbox reads no version and runs in scratch, so the planner could not read the code its
+    prompt sends it to, and planned from the diff summary alone (Codex review 2026-10-02, P2);
   - ⛔ WHY NOT read-only agents without `Bash`: an auditor ties a claim to the version that made
     it with `git log`, `git show` and `git diff`. The sandbox, not the tool list, stops the writes
     (section 5), so `Bash` adds reading and nothing else;
@@ -200,7 +203,9 @@ reviews of 2026-10-02). Each process gets its sandbox from its KIND, in one plac
 - **The judge we report is not the reviewer we optimise against:** the in-loop reviewer and the
   final judge differ in prompt and model, and the final judge runs once, after the loop.
 - **Auditors cannot write.** The specification filter and the method-code auditor are read-only
-  agents (A-INT-3): their sandbox follows their kind, and a fixer gets their report.
+  agents (A-INT-3): their sandbox follows their kind, and a fixer gets their report. The ablation
+  planner is read-only for the same reason: it reads the selected version to find each component,
+  and can never change it.
 
 ## 6. The task contract (U-TOP-1, A-TOP-4 reading 2)
 
@@ -269,7 +274,7 @@ expected_effect, risks}`.
 | full_set_engineer | §3.2, §3.4, §3.6, P-ROSTER-12 | coding | task_title, rules, entrypoint, idea, feedback, best_result | `{idea: IDEA, summary, files_changed}` |
 | idea_evolver | §3.3, P-ROSTER-14 | reasoning | task_title, limitations, traces | `{idea: IDEA}` |
 | selector | §3.3, P-ROSTER-15 | reasoning | task_title, metric, candidates | `{choice, rationale}` |
-| ablation_planner | §3.4, P-ROSTER-16 | reasoning, Read/Glob/Grep | task_title, idea, best_result, n_plans, diff_summary | `{plans: [{id, component, change, hypothesis}]}` |
+| ablation_planner | §3.4, P-ROSTER-16 | read-only | task_title, idea, best_result, n_plans, diff_summary | `{plans: [{id, component, change, hypothesis}]}` |
 | ablation_coder | §3.4, P-ROSTER-17 | coding | task_title, rules, entrypoint, idea, plan | `{summary, files_changed, notes}` |
 | ablation_critic | §3.4, P-ROSTER-18 | reasoning | task_title, metric, idea, best_result, baseline_result, gain, ablations, reject_share | `{verdict: Good\|Refine\|Reject, feedback}` |
 | initial_drafter | §3.5, P-ROSTER-20 | writer | task_title, paper, idea, limitations, references, results_tex, results_json | `{title, abstract, notes}`, and `main.tex`, `references.bib` |
@@ -326,22 +331,29 @@ The Result Comparison Agent (P-ROSTER-19) is a numeric test, not an agent (secti
 ```
 <run>/
   run.json             the task, profile, routing, backend (pinned CLI binary), engine commit,
-                       agents hash, status, and a history entry per start, resume and status
+                       agents hash, the pinned task.json, status, and a history entry per start,
+                       resume and status (`crashed` when an engine died without one)
+  heartbeat            the last time the engine was alive, every 30 s while it runs
   run.lock             held by the one engine process driving the run
   agents/              the run's own copy of every agent's prompt and schema; a resume uses it
   .locked-harness/     the locked copy of the task's harness, with its manifest (denied to all)
   public_data/         the training data agents and evaluated code may read
   units/<key>.json     one finished unit: its inputs hash, output, attempts, cost, time
   prompts/<key>.json   what that unit's agent was asked, in full
-  transcripts/<key>[.attemptN].jsonl   each attempt's CLI stream
+  transcripts/<key>[.attemptN].jsonl   each attempt's CLI stream; N runs on across resumes
   workspaces/<v>/      codebase versions, each a git repository; a version is its commit
   manuscripts/<v>/     manuscript versions, the same way
   results/<key>.json   the harness's results, one per evaluation, with the commit it scored
   evals/<key>/         an evaluation's export of the commit, inputs, and one directory per seed
-  ledger.jsonl         one line per ATTEMPT: agent, outcome, model, seconds, equivalent cost or null
+  ledger.jsonl         an `attempt_started` line before each call, then one line per ATTEMPT:
+                       agent, outcome, model, seconds, equivalent cost or null; an attempt an
+                       engine's death cut off is counted on the next start as `interrupted`
   egress.jsonl         every network request the agents made through the proxy, allowed or refused
   events.jsonl         the run's narrative, one event per line
-  procs/               the live process trees of this engine, so a crash leaves a record
+  procs/               the live process trees of this engine, each process by pid and start
+                       time, with the unit's marker, so a crash leaves a record to reap
+  builds/<v>/          a version's PDF build: its commit exported, the engine's tables over the
+                       version's own, compiled there (bibtex writes beside its sources)
   tmp/<key>/           each unit's own TMPDIR
   export/              P+ (paper/), C+ (code/), changes.patch, variants/, results.json,
                        audit.json, report.md

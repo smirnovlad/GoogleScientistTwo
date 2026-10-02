@@ -1,9 +1,17 @@
 """Versions are what the engine reads, commits and exports OUTSIDE the sandbox, so nothing an agent
 leaves in one may lead the engine to a file outside it (Codex review 2026-10-02, P1)."""
 import os
+import shutil
 import subprocess
+import sys
+import time
 
-from scientisttwo.stages.manuscript import (manuscript_text, read_regular, tables_edited,
+import pytest
+
+from scientisttwo.harness import sandbox as sbx
+from scientisttwo.harness.policies import RunRules, python_read_paths
+from scientisttwo.stages import manuscript
+from scientisttwo.stages.manuscript import (compile_pdf, manuscript_text, read_regular, tables_edited,
                                             write_results)
 from scientisttwo.workspace import Workspaces, unsafe_entries
 
@@ -83,3 +91,51 @@ def test_the_engine_neither_writes_nor_reads_through_a_writers_link(tmp_path):
     os.symlink(secret, folder / "main.tex")
     assert "SECRET" not in manuscript_text(folder, tables="TABLES")
     assert read_regular(folder / "main.tex") is None
+
+
+
+# ---- the PDF build ------------------------------------------------------------------------------
+PAPER = (r"\documentclass{article}\begin{document}" "\n"
+         r"Results in Table~\ref{tab:main}, after \cite{knuth1984}." "\n"
+         r"\input{results}" "\n" r"\bibliographystyle{plain}\bibliography{references}" "\n"
+         r"\end{document}" "\n")
+BIBTEX = "@book{knuth1984, title={The TeXbook}, author={Knuth, Donald E.}, year={1984}, publisher={Addison-Wesley}}\n"
+
+
+@pytest.mark.skipif(not sbx.available() or shutil.which("latexmk") is None
+                    and not os.path.exists("/Library/TeX/texbin/latexmk"), reason="needs sandbox-exec and latexmk")
+def test_a_paper_with_a_bibliography_builds_in_the_sandbox(tmp_path):
+    """Run 2's every PDF failed: bibtex writes beside its sources, and the build could write only
+    to a separate directory ("Not writing to /Use.bbl"). The build now compiles a copy."""
+    src = tmp_path / "run" / "builds" / "v1"
+    src.mkdir(parents=True)
+    (src / "main.tex").write_text(PAPER)
+    (src / "references.bib").write_text(BIBTEX)
+    (src / "results.tex").write_text("\\begin{table}\\caption{Main}\\label{tab:main}x\\end{table}\n")
+    rules = RunRules(run_dir=tmp_path / "run", denied=(), deny_patterns=(), public=tmp_path / "public",
+                     python=tuple(python_read_paths()))
+    report = compile_pdf(src, rules.build(src), allow_unsandboxed=False)
+    assert report["ok"], report.get("error")
+    assert "Knuth" in (src / "main.bbl").read_text()
+
+
+def test_a_hung_build_dies_with_its_whole_tree(tmp_path, monkeypatch):
+    """Codex review, P2: `subprocess.run(timeout=)` killed only latexmk, never the TeX it started."""
+    beat, tex = tmp_path / "beat.txt", tmp_path / "tex.py"
+    tex.write_text("import time\nwhile True:\n"
+                   f"    open({str(beat)!r}, 'a').write('b')\n    time.sleep(0.1)\n")
+    fake = tmp_path / "latexmk"
+    fake.write_text(f"#!{sys.executable}\nimport os, subprocess, sys, time\n"
+                    f"subprocess.Popen([sys.executable, {str(tex)!r}], start_new_session=True)\n"
+                    f"while not os.path.exists({str(beat)!r}):\n    time.sleep(0.05)\n"   # it runs
+                    "time.sleep(30)\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(manuscript.shutil, "which", lambda name: str(fake))
+    src = tmp_path / "build"
+    src.mkdir()
+    started = time.time()
+    report = compile_pdf(src, None, allow_unsandboxed=True, timeout=5.0)
+    assert report == {"ok": False, "error": "latexmk timed out"} and time.time() - started < 15
+    size = beat.stat().st_size
+    time.sleep(0.5)
+    assert beat.stat().st_size == size                       # the detached TeX stand-in is dead

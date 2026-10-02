@@ -53,12 +53,31 @@ if scenario == "orphan":
         "while True:\n"
         "    open(p, 'a').write('beat\\n'); time.sleep(0.2)\n")], start_new_session=True,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+if scenario in ("holder", "escaped_holder"):
+    # a descendant in a session of its own that keeps the output pipe open, then a CLI that hangs.
+    # "escaped_holder" also drops the unit's environment, so neither the watcher's marker nor a
+    # live parent leads to it once its parent is gone: only the bounded reader ends the call
+    import subprocess
+    pid_file = next((Path(l.split("=", 1)[1].strip()) for l in prompt.splitlines() if l.startswith("PIDFILE=")),
+                    Path(os.environ.get("TMPDIR", "/tmp")) / "fake_claude_holder.pid")
+    hold = f"import os, time; open({str(pid_file)!r}, 'w').write(str(os.getpid())); time.sleep(30)"
+    if scenario == "holder":
+        subprocess.Popen([sys.executable, "-c", hold], start_new_session=True)
+    else:
+        spawn = ("import subprocess, sys; subprocess.Popen([sys.executable, '-c', " + repr(hold)
+                 + "], start_new_session=True, env={'PATH': '/usr/bin:/bin'})")
+        subprocess.Popen([sys.executable, "-c", spawn], env={"PATH": "/usr/bin:/bin"}).wait()
+    time.sleep(30)
 if scenario == "crash":
     sys.stderr.write("segfault-ish\n")
     sys.exit(2)
 if scenario == "error429":
     emit({"type": "result", "subtype": "error", "is_error": True, "api_error_status": 429,
           "result": "Claude AI usage limit reached"})
+    sys.exit(1)
+if scenario == "costly_error":
+    emit({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": "",
+          "total_cost_usd": 12.30, "usage": {"input_tokens": 900, "output_tokens": 100}})
     sys.exit(1)
 if scenario == "overloaded":
     emit({"type": "result", "subtype": "error", "is_error": True, "api_error_status": 529,

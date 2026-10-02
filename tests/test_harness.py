@@ -14,6 +14,20 @@ from scientisttwo.workspace import Workspaces
 needs_sandbox = pytest.mark.skipif(not sbx.available(), reason="sandbox-exec is macOS only")
 
 
+def probe(op: str, indent: str = "") -> str:
+    """Python lines that run `op` and print whether the sandbox denied it. A test asserts the
+    child got this far, so a sandbox that failed to start (`sandbox_apply: Operation not
+    permitted`, as in Codex's review environment) never passes for one that denied the operation
+    (Codex review 2026-10-02, P2)."""
+    lines = ["print('PROBE-REACHED', flush=True)", "try:", f"    {op}", "    print('PROBE-ALLOWED', flush=True)",
+             "except PermissionError as e:", "    print('PROBE-DENIED', e, flush=True)", "    raise SystemExit(3)"]
+    return "".join(f"{indent}{line}\n" for line in lines)
+
+
+def denied(text: str) -> bool:
+    return "PROBE-REACHED" in text and "PROBE-DENIED" in text and "PROBE-ALLOWED" not in text
+
+
 def setup(toy_task, tmp_path):
     task = load_task(toy_task)
     run = tmp_path / "run"
@@ -72,12 +86,11 @@ def test_agent_code_cannot_read_the_labels(toy_task, tmp_path):
         "import argparse, numpy as np\n"
         "ap = argparse.ArgumentParser(); [ap.add_argument(a) for a in ('--train-dir','--inputs','--out','--seed')]\n"
         "a = ap.parse_args()\n"
-        f"y = np.load({str(target)!r})['y']\n"
+        + probe(f"y = np.load({str(target)!r})['y']") +
         "np.save(a.out, y)\n")
     ws.finalize(tmp, "cheat", "cheat")
     r = h.evaluate("c", ws.path("cheat"), "full")
-    assert r["status"] == "failed"
-    assert "Operation not permitted" in r["log_tail"] or "PermissionError" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
 
 
 @needs_sandbox
@@ -93,22 +106,20 @@ def test_agent_code_cannot_forge_results_or_write_outside(toy_task, tmp_path, ta
         "import argparse, os\n"
         "ap = argparse.ArgumentParser(); [ap.add_argument(a) for a in ('--train-dir','--inputs','--out','--seed')]\n"
         "a = ap.parse_args()\n"
-        f"os.makedirs(os.path.dirname({str(path)!r}), exist_ok=True)\n"
-        f"open({str(path)!r}, 'w').write('{{\"mean\": 1.0}}')\n")
+        + probe(f"os.makedirs(os.path.dirname({str(path)!r}), exist_ok=True); "
+                f"open({str(path)!r}, 'w').write('{{\"mean\": 1.0}}')"))
     ws.finalize(tmp, "escape", "escape")
     before = path.read_text() if path.exists() else None
     r = h.evaluate("e", ws.path("escape"), "subset")
-    assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
     assert (path.read_text() if path.exists() else None) == before
 
 
 @needs_sandbox
 def test_agent_code_cannot_reach_the_network(tmp_path):
-    pol = sbx.SandboxPolicy.build(writable=[tmp_path], network="none")
-    import subprocess
-    out = subprocess.run(sbx.wrap(["/usr/bin/curl", "-s", "-m", "5", "https://example.com"], pol),
-                         capture_output=True, text=True)
-    assert out.returncode != 0
+    pol = sbx.SandboxPolicy.build(writable=[tmp_path], readable=python_read_paths(), network="none")
+    out = run_in(pol, "import socket\n" + probe("socket.create_connection(('1.1.1.1', 443), timeout=3)"), tmp_path)
+    assert denied(out.stdout)
 
 
 def test_unsandboxed_is_refused_unless_allowed(monkeypatch):
@@ -145,7 +156,7 @@ def test_a_test_seed_is_never_a_search_seed(toy_task):
 CHEAT = ("import argparse, numpy as np\n"
          "ap = argparse.ArgumentParser(); [ap.add_argument(a) for a in ('--train-dir','--inputs','--out','--seed')]\n"
          "a = ap.parse_args()\n"
-         "y = np.load({path!r})['y']\n"
+         + probe("y = np.load({path!r})['y']") +
          "np.save(a.out, y)\n")
 
 
@@ -160,7 +171,7 @@ def cheat_run(h, ws, name, path):
 def test_the_tasks_own_labels_are_unreadable(toy_task, tmp_path):
     task, run, h, ws = setup(toy_task, tmp_path)
     r = cheat_run(h, ws, "own", toy_task / "harness" / "labels" / "full.npz")
-    assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
 
 
 @needs_sandbox
@@ -169,7 +180,7 @@ def test_another_runs_locked_labels_are_unreadable(toy_task, tmp_path):
     other = Harness(task, tmp_path / "other-run")
     other.install()
     r = cheat_run(h, ws, "other", other.locked / "labels" / "full.npz")
-    assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
 
 
 @needs_sandbox
@@ -186,7 +197,7 @@ def test_sibling_runs_are_hidden_in_a_runs_folder(toy_task, tmp_path):
     ws = Workspaces(runs / "now")
     ws.init_from(task.code_dir, "base", "base")
     r = cheat_run(h, ws, "sib", leak)
-    assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
     assert h.evaluate("ok", ws.path("base"), "full")["status"] == "ok"      # its own run still works
 
 
@@ -202,7 +213,7 @@ def test_declared_extra_paths_are_unreadable(toy_task, tmp_path):
     (toy_task / "task.json").write_text(json.dumps(d))
     task, run, h, ws = setup(toy_task, tmp_path)
     r = cheat_run(h, ws, "vault", vault / "digits.npz")
-    assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and denied(r["log_tail"])
 
 
 def _ctx_for_checks(toy_task, tmp_path, **task_fields):
@@ -245,7 +256,7 @@ import uuid
 
 from scientisttwo.harness.egress import EgressProxy, host_allowed
 from scientisttwo.harness.policies import RunRules, python_read_paths
-from scientisttwo.runtime.procs import ProcRegistry, kill_groups, run_tree, started
+from scientisttwo.runtime.procs import ProcRegistry, TreeWatcher, kill_groups, run_tree, started
 
 
 def run_in(policy, code: str, cwd: Path) -> subprocess.CompletedProcess:
@@ -263,7 +274,7 @@ def test_a_dataset_copy_under_home_is_unreadable_unless_allowlisted(toy_task, tm
         np.savez(vault / "digits.npz", y=np.zeros(300, dtype=np.int64))
         task, run, h, ws = setup(toy_task, tmp_path)
         r = cheat_run(h, ws, "homecopy", vault / "digits.npz")
-        assert r["status"] == "failed" and "Operation not permitted" in r["log_tail"]
+        assert r["status"] == "failed" and denied(r["log_tail"])
         assert h.evaluate("fine", ws.path("base"), "full")["status"] == "ok"    # Python itself still runs
     finally:
         shutil.rmtree(vault, ignore_errors=True)
@@ -280,10 +291,10 @@ def test_a_deny_pattern_hides_every_copy_anywhere(toy_task, tmp_path):
     (toy_task / "task.json").write_text(json.dumps(d))
     task, run, h, ws = setup(toy_task, tmp_path)
     policy = sbx.SandboxPolicy.build(readable=[tmp_path, *python_read_paths()], deny_patterns=task.deny_patterns)
-    out = run_in(policy, f"open({str(copy / 'labels.npz')!r}, 'rb').read()", tmp_path)
-    assert out.returncode != 0 and "Operation not permitted" in out.stderr
-    ok = run_in(policy, f"open({str(toy_task / 'paper.md')!r}).read()", tmp_path)
-    assert ok.returncode == 0
+    out = run_in(policy, probe(f"open({str(copy / 'labels.npz')!r}, 'rb').read()"), tmp_path)
+    assert denied(out.stdout)
+    ok = run_in(policy, probe(f"open({str(toy_task / 'paper.md')!r}).read()"), tmp_path)
+    assert ok.returncode == 0 and "PROBE-ALLOWED" in ok.stdout
 
 
 @needs_sandbox
@@ -311,12 +322,12 @@ def test_one_seed_cannot_read_what_another_left(toy_task, tmp_path):
         "a = ap.parse_args()\n"
         "out = pathlib.Path(a.out)\n"
         "if a.seed == '1':\n"
-        "    print(open(out.parent.parent / 'seed0' / 'note.txt').read())\n"
+        + probe("print(open(out.parent.parent / 'seed0' / 'note.txt').read())", indent="    ") +
         "(out.parent / 'note.txt').write_text('left by seed 0')\n"
         "np.save(a.out, np.zeros(len(np.load(a.inputs)['X']), dtype=np.int64))\n")
     ws.finalize(tmp, "seedleak", "seedleak")
     r = h.evaluate("sl", ws.path("seedleak"), "full")
-    assert r["status"] == "failed" and "seed 1" in r["error"] and "Operation not permitted" in r["log_tail"]
+    assert r["status"] == "failed" and "seed 1" in r["error"] and denied(r["log_tail"])
 
 
 def _rules(tmp_path, port=0) -> RunRules:
@@ -329,9 +340,10 @@ def test_a_coding_agent_cannot_write_its_versions_git(tmp_path):
     work = tmp_path / "run" / "workspaces" / "v.tmp"
     (work / ".git").mkdir(parents=True)
     pol = _rules(tmp_path, 1).agent("coding", ("Bash",), tmp_path / "run" / "tmp", tmp_path / "run" / "scratch", work)
-    out = run_in(pol, "open('.git/index.lock', 'w')", work)
-    assert out.returncode != 0 and "Operation not permitted" in out.stderr
+    out = run_in(pol, probe("open('.git/index.lock', 'w')"), work)
+    assert denied(out.stdout)
     assert run_in(pol, "open('model.py', 'w').write('x = 1')", work).returncode == 0
+    assert (work / "model.py").read_text() == "x = 1"
 
 
 @needs_sandbox
@@ -341,12 +353,12 @@ def test_no_agent_can_write_the_users_claude_setup_or_read_its_history(tmp_path)
     work.mkdir(parents=True)
     pol = _rules(tmp_path, 1).agent("coding", ("Bash",), tmp_path / "run" / "tmp", tmp_path / "run" / "scratch", work)
     target = Path.home() / ".claude" / f"scientisttwo-probe-{uuid.uuid4().hex}"
-    out = run_in(pol, f"open({str(target)!r}, 'w')", work)
-    assert out.returncode != 0 and not target.exists()
+    out = run_in(pol, probe(f"open({str(target)!r}, 'w')"), work)
+    assert denied(out.stdout) and not target.exists()
     projects = Path.home() / ".claude" / "projects"
     if projects.exists():
-        out = run_in(pol, f"import os; print(os.listdir({str(projects)!r}))", work)
-        assert out.returncode != 0 and "Operation not permitted" in out.stderr
+        out = run_in(pol, "import os\n" + probe(f"print(os.listdir({str(projects)!r}))"), work)
+        assert denied(out.stdout)
 
 
 @needs_sandbox
@@ -358,8 +370,8 @@ def test_an_agent_reaches_the_proxy_and_nothing_else(tmp_path):
         work.mkdir(parents=True)
         pol = _rules(tmp_path, port).agent("coding", ("Bash",), tmp_path / "run" / "tmp",
                                            tmp_path / "run" / "scratch", work)
-        direct = run_in(pol, "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)", work)
-        assert direct.returncode != 0 and "not permitted" in direct.stderr.lower()
+        direct = run_in(pol, "import socket\n" + probe("socket.create_connection(('1.1.1.1', 443), timeout=3)"), work)
+        assert denied(direct.stdout)
         refused = run_in(pol, (
             "import socket; s = socket.create_connection(('127.0.0.1', %d), timeout=5);"
             "s.sendall(b'CONNECT archive.ics.uci.edu:443 HTTP/1.1\\r\\n\\r\\n');"
@@ -369,6 +381,16 @@ def test_an_agent_reaches_the_proxy_and_nothing_else(tmp_path):
         assert log[-1] == {**log[-1], "host": "archive.ics.uci.edu", "allowed": False}
     finally:
         proxy.stop()
+
+
+@needs_sandbox
+def test_a_child_that_never_ran_is_not_a_denial(tmp_path):
+    """The check behind every test above can fail: a sandbox that stops the child before it
+    starts prints "Operation not permitted" too, and is not taken for a denied operation."""
+    out = subprocess.run(["sandbox-exec", "-p", "(version 1)(deny default)", sys.executable, "-c",
+                          probe("open('/etc/hosts').read()")], capture_output=True, text=True, timeout=60)
+    assert out.returncode != 0 and not denied(out.stdout + out.stderr)
+    assert "PROBE-REACHED" not in out.stdout
 
 
 def test_the_allowlist_matches_hosts_not_suffixes():
@@ -387,6 +409,35 @@ def test_a_hung_child_holding_the_output_cannot_hang_the_harness(tmp_path):
     rc, timed_out = run_tree([sys.executable, "-c", script], cwd=tmp_path, env=dict(os.environ),
                              timeout=1.5, output=tmp_path / "log.txt", key="hang", grace=0.5)
     assert timed_out and time.time() - started_at < 10
+
+
+def test_a_group_that_outlived_its_leader_is_reaped_on_resume(tmp_path):
+    """Codex review, P1: a shell exits and leaves its child running in the shell's group. The
+    resume looked for the group's leader, found none, and dropped the record of a live process."""
+    reg = ProcRegistry(tmp_path)
+    shell = subprocess.Popen(["/bin/sh", "-c", f"{sys.executable} -c 'import time; time.sleep(60)' & sleep 1; exit 0"],
+                             start_new_session=True)
+    watcher = TreeWatcher(shell.pid, interval=0.1,
+                          on_new=lambda w: reg.record(shell.pid, "unit/c", w.groups, w.members, "no-marker")).start()
+    try:
+        shell.wait(timeout=5)                                   # the leader is gone; its child is not
+        time.sleep(0.3)
+        child = next(p for p in watcher.members if p != shell.pid)
+        assert os.getpgid(child) == shell.pid
+        watcher._stop.set()                                     # the engine "crashes" here
+        reaped = ProcRegistry(tmp_path).reap_orphans()
+        assert [r["key"] for r in reaped] == ["unit/c"]
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            try:
+                os.kill(child, 0)
+                time.sleep(0.05)
+            except ProcessLookupError:
+                break
+        else:
+            raise AssertionError("the orphaned child survived the resume")
+    finally:
+        kill_groups([shell.pid], grace=0.2)
 
 
 def test_orphans_of_a_crashed_engine_are_killed_on_resume_and_only_they(tmp_path):

@@ -124,6 +124,56 @@ def test_timeout_kills_the_call(fake):
         fake.call(call("slow", timeout=1))
 
 
+def _holder_pid(path: Path) -> int:
+    deadline = time.time() + 5
+    while not path.exists() and time.time() < deadline:
+        time.sleep(0.05)
+    return int(path.read_text())
+
+
+def _dead(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return False
+    except ProcessLookupError:
+        return True
+
+
+def test_a_timeout_kills_a_descendant_that_holds_the_output(fake, tmp_path):
+    """Codex review, P1: the timeout killed only the CLI's group, and the reader waited for the
+    descendant holding the pipe, for its whole life (30 s here)."""
+    pid_file = tmp_path / "holder.pid"
+    c = call("holder", timeout=1)
+    started = time.time()
+    with pytest.raises(AgentTimeout):
+        fake.call(AgentCall(**{**c.__dict__, "user": c.user + f"PIDFILE={pid_file}\n"}))
+    assert time.time() - started < 8
+    holder = _holder_pid(pid_file)
+    deadline = time.time() + 3
+    while not _dead(holder) and time.time() < deadline:
+        time.sleep(0.05)
+    assert _dead(holder)
+
+
+def test_the_reader_is_bounded_even_when_a_holder_escapes_every_kill(fake, tmp_path, monkeypatch):
+    """A descendant that left the tree and the unit's environment holds the pipe: the call still
+    ends DRAIN_S after the kill, never at that process's exit."""
+    import scientisttwo.runtime.backends.claude_cli as cli
+    monkeypatch.setattr(cli, "DRAIN_S", 1.0)
+    pid_file = tmp_path / "holder.pid"
+    c = call("escaped_holder", timeout=2)
+    started = time.time()
+    try:
+        with pytest.raises(AgentTimeout):
+            fake.call(AgentCall(**{**c.__dict__, "user": c.user + f"PIDFILE={pid_file}\n"}))
+        assert time.time() - started < 8          # 2 s timeout, 1 s drain, the clean-up
+    finally:
+        try:
+            os.kill(_holder_pid(pid_file), 9)
+        except (ProcessLookupError, ValueError, FileNotFoundError):
+            pass
+
+
 def test_a_delivered_result_survives_a_lingering_cli(fake):
     started = time.time()
     r = fake.call(call("linger", timeout=3))
@@ -321,3 +371,51 @@ def test_paused_time_does_not_count_as_running(tmp_path):
 def test_synth_fits_its_schema():
     import jsonschema
     jsonschema.validate(synth(SCHEMA), SCHEMA)
+
+
+# ---- the Codex review of 2026-10-02 ------------------------------------------------------------
+def test_a_failed_result_keeps_the_cost_it_reported(fake, tmp_path):
+    """P2: a result reporting $12.30 was counted as unknown, and a $1 cap let the next call run."""
+    with pytest.raises(AgentFailed) as e:
+        fake.call(call("costly_error"))
+    assert e.value.cost_usd == pytest.approx(12.30) and e.value.tokens["input_tokens"] == 900
+
+    class Costly(MockBackend):
+        def call(self, c):
+            self.calls.append((c.agent, c.key))
+            err = AgentFailed("error_max_turns")
+            err.cost_usd = 12.30
+            raise err
+
+    rt = AgentRuntime(Costly(), RunStore(tmp_path), Budget(tmp_path, Caps(max_equiv_usd=1.0), time.time()),
+                      Routing({"default": {"model": "sonnet"}}), tmp_path, specs={"critic": SPEC},
+                      sleep=lambda s: None)
+    with pytest.raises(UnitFailed):
+        rt.run("a/1", "critic", {"x": 1})
+    assert ledger(tmp_path)[0]["equiv_usd"] == pytest.approx(12.30)
+    with pytest.raises(BudgetExceeded):
+        rt.run("a/2", "critic", {"x": 2})
+
+
+def test_an_attempt_cut_off_by_the_engines_end_is_counted_and_numbered_on(tmp_path):
+    """P2: an attempt was journalled only after its call, so a kill during a call erased it from
+    the caps; and numbering restarted at 1, overwriting the earlier transcript."""
+    class Dies(MockBackend):
+        def call(self, c):
+            c.transcript.write_text("the first attempt's evidence")
+            raise KeyboardInterrupt                         # the engine is killed mid-call
+
+    rt = AgentRuntime(Dies(), RunStore(tmp_path), Budget(tmp_path, Caps(max_agent_calls=5), time.time()),
+                      Routing({"default": {"model": "sonnet"}}), tmp_path, specs={"critic": SPEC},
+                      sleep=lambda s: None)
+    with pytest.raises(KeyboardInterrupt):
+        rt.run("a/1", "critic", {"x": 1})
+    assert ledger(tmp_path) == []                              # only the journal line so far
+    rt2, backend2, _ = runtime(tmp_path)                       # the next engine process
+    assert ledger(tmp_path)[0]["outcome"] == "interrupted" and ledger(tmp_path)[0]["equiv_usd"] is None
+    assert rt2.budget.totals.agent_calls == 1 and rt2.budget.totals.unknown_cost_calls == 1
+    rt2.run("a/1", "critic", {"x": 1})
+    assert [e["attempt"] for e in ledger(tmp_path)] == [1, 2]
+    transcripts = tmp_path / "transcripts" / "a"
+    assert (transcripts / "1.jsonl").read_text() == "the first attempt's evidence"
+    assert (transcripts / "1.attempt2.jsonl").exists()

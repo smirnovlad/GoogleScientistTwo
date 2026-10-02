@@ -59,7 +59,10 @@ class AgentResult:
 
 
 class BackendError(Exception):
-    """Base of every backend failure."""
+    """Base of every backend failure. `cost_usd` and `tokens`: what the call reported spending
+    before it failed, if it got that far (None: unknown, never zero)."""
+    cost_usd: Optional[float] = None
+    tokens: Optional[dict] = None
 
 
 class TransientError(BackendError):
@@ -131,7 +134,8 @@ class SubprocessBackend(Backend):
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 text=True, start_new_session=True)
         registry = self.registry
-        on_new = (lambda groups: registry.record(proc.pid, call.key, groups)) if registry else None
+        on_new = ((lambda w: registry.record(proc.pid, call.key, w.groups, w.members, marker))
+                  if registry else None)
         return Spawned(proc, TreeWatcher(proc.pid, on_new=on_new).start(), registry, marker)
 
 
@@ -141,6 +145,13 @@ class Spawned:
     def __init__(self, proc: subprocess.Popen, watcher: TreeWatcher, registry: Optional[ProcRegistry],
                  marker: str):
         self.proc, self.watcher, self.registry, self.marker = proc, watcher, registry, marker
+
+    def kill_now(self) -> None:
+        """Kill the whole tree at once (a timeout), not only the CLI's group: a descendant in a
+        session of its own can hold the output pipe open (Codex review 2026-10-02, P1)."""
+        self.watcher.sample()
+        kill_groups(self.watcher.live_groups() | {self.proc.pid} | {g for _, g in marked(self.marker)},
+                    grace=0)
 
     def finish(self, grace: float = 3.0) -> None:
         groups = self.watcher.stop() | {self.proc.pid} | {g for _, g in marked(self.marker)}

@@ -578,31 +578,56 @@ trains.
     allowed, because none feeds a decision. Task 6 adopted this and records any read that could
     feed one as a violation.
 
-## HANDOFF, 2026-10-02 (the engine runs on the subscription; Codex fixes and run 2 in progress)
+## 2026-10-02: run 2 finishes, and the rest of the Codex findings
+
+- **Run 2** (`runs/digits-quick-2`) resumed on `c1850a5` at 16:33, after the 16:00 reset. It
+  finished `done` at 16:41:
+  - 42 agent calls, all ok; $3.42 API-equivalent, nothing billed; 0.31 h of running time;
+  - validation +0.0594 (3 seeds), test +0.0532 (10 seeds disjoint from search, read once);
+  - in-loop review 3/10; the held-out judge gave 4/10, reject.
+- **What its ablations show.** The idea combined a data-dependent orthogonal init (DOI) with
+  class-balanced batches (CSB). On test, removing the idea's own mechanism gives 0.9139, near the
+  baseline's 0.9103, so the gain is the idea's and not generic training controls. DOI alone (S1,
+  0.9641) carries all of it, and CSB adds nothing measurable. A paper true to these numbers would
+  claim the init alone.
+- **What it found wrong in the engine:**
+  - every PDF failed (R5);
+  - a finished run kept its earlier pause reason (R6);
+  - the export's budget said 40 calls beside 42 outcomes (folded into C14).
+
+  R5 took a bisection of the build profile, rule by rule. bibtex writes beside its sources, and
+  the build sandbox allowed writes only to a separate directory. A build now compiles an export of
+  the commit, in a directory of its own.
+- **The rest of the Codex findings are fixed**, each with a test that fails on `c1850a5`:
+  - C3: a timeout kills the whole tree, and the reader is bounded;
+  - C7: an orphan is reaped by pid, start time and marker;
+  - C9: the ablation planner is read-only, by the `agent-engineer`;
+  - C10: a failed call keeps its reported cost;
+  - C11 and C12: attempts are journalled before the call and numbered across resumes;
+  - C13: a heartbeat closes a dead engine's running time;
+  - C14: the export's budget is taken last, and a summary is a copy;
+  - C15: every sandbox test proves its child ran;
+  - C16: the PDF build runs in the process-tree runner.
+
+## HANDOFF, 2026-10-02 (run 2 done; every Codex finding fixed; the gate reruns next)
 
 - **The goal** (Vlad, verbatim above): a working ScientistTwo engine on `claude -p`, on the
   subscription, delivered without questions.
 - **Where it is:** branch `claude/engine` in `.claude/worktrees/engine`, stacked on
-  `claude/paper-analysis` (PR #1, still open). `cba39df` holds the hardened engine; the next
-  commit holds the first Codex fixes (C1, C2, C4, C5, C6, C8) and task 6's B1.
+  `claude/paper-analysis` (PR #1, still open). `c1850a5` holds the first Codex fixes and task 6's
+  B1; the next commit holds the rest (C3, C7, C9–C16) and run 2's R5 and R6.
 - **State:**
-  - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see the section above).
-  - **Run 2** (`runs/digits-quick-2`, profile `quick`, engine `cba39df`) started at 15:11 to check
-    the new sandbox on the subscription. So far:
-    - agents reach only `api.anthropic.com`;
-    - coding agents work, with no sandbox denials;
-    - the baseline check passed (0.9118);
-    - idea s3 is Good on `full` at +0.0594.
-  - **Tests:** 102 pass on the mock backend, and `playground/engine/check_agents.py` reports 0
-    problems on 28 agents.
-- **Running:** run 2, resumed after the 16:00 reset on the fixed engine. The `technical-writer`
-  stopped at the session limit before it wrote the guide (E9), and is to be relaunched.
+  - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see above).
+  - **Run 2** (`runs/digits-quick-2`) finished `done` on the subscription: test +0.0532 on 10
+    disjoint seeds, judge 4/10. E11 is ticked; the section above has its numbers and findings.
+  - **All 16 Codex findings are fixed with tests.** 113 tests pass on the mock backend, and
+    `playground/engine/check_agents.py` reports 0 problems on 28 agents.
+  - The `technical-writer` stopped at the session limit before it wrote the guide (E9).
 - **Next steps:**
-  1. Fix the open Codex findings: C3 and C7 (P1), then C9–C16 (P2). Record any dismissed one
-     with its reason. Then rerun the gate.
-  2. Read run 2's export. Tick E11 with its numbers, and fix what it shows.
-  3. The guide (E9): relaunch, then review it against the code.
-  4. Push. Open the engine's PR against `claude/paper-analysis`, with the Codex verdict in its body.
+  1. Rerun the `/codex` gate on the whole branch, and fix or record what it finds.
+  2. The guide (E9): relaunch, then review it against the code.
+  3. Push. Open the engine's PR against `claude/paper-analysis`, with the Codex verdict in its body.
+  4. A run 3 on the final engine, from scratch, for a clean end-to-end record.
 - **To run the engine:** `python3 -m scientisttwo run --task tasks/digits --profile quick`, then
   `python3 -m scientisttwo status <run-dir>`, and `resume <run-dir>` after a pause. Outputs are in
   `<run-dir>/export/`. The guide (`docs/guide.md`) covers the rest.

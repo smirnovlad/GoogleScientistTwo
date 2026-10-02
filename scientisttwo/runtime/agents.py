@@ -5,7 +5,8 @@
      inputs hash is checked against the inputs it would be sent now: a replay never answers a
      different question (infrastructure review 2026-10-02, I1);
   2. the budget guard may stop the run first;
-  3. the backend is called, with retries. Every attempt writes one ledger line first (I2):
+  3. the backend is called, with retries. Every attempt is journalled before its call, and writes
+     one ledger line after it (I2), numbered on from the unit's attempts in earlier processes:
      - a transient error is retried twice with backoff, then the RUN PAUSES (the idea is not at
        fault, and a half-recorded unit must not exist);
      - an invalid output is retried once, with the error shown to the agent;
@@ -30,6 +31,7 @@ import logging
 import re
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -218,17 +220,21 @@ class AgentRuntime:
         self._log_prompt(key, spec, route, user, inputs_sha)
         meta = {k: v for k, v in variables.items() if isinstance(v, (int, float, str)) and len(str(v)) < 200}
         text, transient, invalid, timeouts, waits, attempt = user, 0, 0, 0, 0, 0
+        prior = self.budget.attempts_of(key)              # this unit's attempts in earlier processes
         started = time.time()
         while True:
             self.budget.check(spec.kind)
             attempt += 1
+            number, attempt_id = prior + attempt, uuid.uuid4().hex
             if before_attempt is not None:
                 before_attempt(attempt)
+            self.budget.started({"key": key, "agent": agent, "kind": spec.kind, "attempt": number,
+                                 "attempt_id": attempt_id})
             call = AgentCall(agent=agent, kind=spec.kind, system=spec.system, user=text,
                              schema=spec.schema, model=route.model, effort=route.effort,
                              tools=spec.tools, cwd=cwd, sandbox=sandbox, timeout_s=route.timeout_s,
-                             transcript=self._transcript(key, attempt), key=key, meta=meta,
-                             tmpdir=tmpdir, attempt=attempt)
+                             transcript=self._transcript(key, number), key=key, meta=meta,
+                             tmpdir=tmpdir, attempt=number)
             t0 = time.time()
             result: Optional[AgentResult] = None
             try:
@@ -236,7 +242,8 @@ class AgentRuntime:
                 self._validate(spec, result)
             except (RateLimited, TransientError, InvalidOutput, AgentTimeout, AgentFailed,
                     EnvironmentFault) as e:
-                self._ledger(key, agent, spec, route, attempt, _outcome(e), t0, result, str(e))
+                self._ledger(key, agent, spec, route, number, attempt_id, _outcome(e), t0, result,
+                             str(e), failure=e)
                 if isinstance(e, RateLimited):
                     waits += 1
                     wait = (e.reset_at - time.time() + 60) if e.reset_at else None
@@ -268,7 +275,7 @@ class AgentRuntime:
                             "\nAnswer again, as the required structured output.")
                     continue
                 self._fail(key, agent, spec, route, f"{type(e).__name__}: {e}", started, inputs_sha, on_done)
-            self._ledger(key, agent, spec, route, attempt, "ok", t0, result, None)
+            self._ledger(key, agent, spec, route, number, attempt_id, "ok", t0, result, None)
             break
 
         assert result is not None
@@ -309,15 +316,18 @@ class AgentRuntime:
             "inputs_sha256": inputs_sha, "system_sha256": hashlib.sha256(spec.system.encode()).hexdigest(),
             "user": user})
 
-    def _ledger(self, key: str, agent: str, spec: AgentSpec, route: Route, attempt: int, outcome: str,
-                t0: float, result: Optional[AgentResult], error: Optional[str]) -> None:
+    def _ledger(self, key: str, agent: str, spec: AgentSpec, route: Route, attempt: int,
+                attempt_id: str, outcome: str, t0: float, result: Optional[AgentResult],
+                error: Optional[str], failure: Optional[Exception] = None) -> None:
         raw = result.raw if result is not None else {}
+        # a failure the backend raised still carries what the call reported spending
+        cost = result.cost_usd if result is not None else getattr(failure, "cost_usd", None)
+        tokens = result.tokens if result is not None else getattr(failure, "tokens", None)
         self.budget.record({"key": key, "agent": agent, "kind": spec.kind, "attempt": attempt,
-                            "outcome": outcome, "backend": route.backend,
+                            "attempt_id": attempt_id, "outcome": outcome, "backend": route.backend,
                             "model": raw.get("model") or route.model,
                             "seconds": round(time.time() - t0, 2),
-                            "equiv_usd": result.cost_usd if result is not None else None,
-                            "tokens": result.tokens if result is not None else None,
+                            "equiv_usd": cost, "tokens": tokens,
                             "rate_limit": raw.get("rate_limit"), "api_key_source": raw.get("api_key_source"),
                             "cli_version": raw.get("cli_version"),
                             **({"error": error[:500]} if error else {})})

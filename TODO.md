@@ -333,7 +333,10 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
       it cannot read, and CANNOT hard-link one.
     - [x] C2 · `P1` The export is the version's commit (`git archive`), never its working tree.
       Proof: `test_the_export_is_the_commit_not_the_working_tree`.
-    - [ ] C3 · `P1` The CLI's timeout kills the whole tree, and the stream reader is bounded.
+    - [x] C3 · `P1` The CLI's timeout kills the whole tree, and the stream reader is bounded.
+      Proof: `test_a_timeout_kills_a_descendant_that_holds_the_output`,
+      `test_the_reader_is_bounded_even_when_a_holder_escapes_every_kill`. On `c1850a5` each call
+      took about 33 s, the holder's life; now under 8 s.
     - [x] C4 · `P1` A finished unit is stored before its version is made, and a resume makes a
       missing version from the working copy the agent left, without a second call.
       Proof: `test_a_crash_between_storing_a_unit_and_making_its_version_does_not_pay_twice`.
@@ -344,23 +347,57 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
       `manuscript_text` has no default to the version's copy any more.
       Proof: `test_the_meta_reviewer_reads_the_verified_tables` (a forged 0.9999 in the repaired
       version no longer reaches the prompt).
-    - [ ] C7 · `P1` Process groups that outlive their leader are reaped on resume.
+    - [x] C7 · `P1` Process groups that outlive their leader are reaped on resume: a record names
+      every process by pid and start time, and the unit's marker.
+      Proof: `test_a_group_that_outlived_its_leader_is_reaped_on_resume`; on `c1850a5` the child
+      survived (`reaped []`).
     - [x] C8 · `P2` A coding unit's replay is checked against its inputs.
       Proof: `test_a_run_keeps_its_own_prompts_and_refuses_a_changed_one` (the `subset/code` step).
-    - [ ] C9 · `P2` The ablation planner reads the selected version (kind `readonly`).
-    - [ ] C10 · `P2` A failed CLI result keeps its reported cost and usage.
-    - [ ] C11 · `P2` An attempt is journalled before the call; one cut off by a crash is counted.
-    - [ ] C12 · `P2` Transcript and attempt numbers stay unique across resumes.
-    - [ ] C13 · `P2` Downtime after a crash is not counted as running time.
-    - [ ] C14 · `P2` The exported budget is taken after the export's own calls.
-    - [ ] C15 · `P2` The sandbox tests prove the child ran (a marker) and reached the forbidden step.
-    - [ ] C16 · `P2` The LaTeX build runs in the registered process-tree runner.
+    - [x] C9 · `P2` The ablation planner reads the selected version (kind `readonly`).
+      Proof: `test_the_ablation_planner_reads_the_selected_version_and_cannot_write_it`;
+      `check_agents.py` 0 problems.
+    - [x] C10 · `P2` A failed CLI result keeps its reported cost and usage.
+      Proof: `test_a_failed_result_keeps_the_cost_it_reported` (a $1 cap now stops the next call).
+    - [x] C11 · `P2` An attempt is journalled before the call; one cut off by a crash is counted.
+    - [x] C12 · `P2` Transcript and attempt numbers stay unique across resumes.
+      Proof (both): `test_an_attempt_cut_off_by_the_engines_end_is_counted_and_numbered_on`.
+    - [x] C13 · `P2` Downtime after a crash is not counted as running time: a heartbeat every 30 s,
+      and a resume closes a dead engine's interval at it (status `crashed`).
+      Proof: `test_downtime_after_a_crash_is_not_running_time` (10 h of downtime counted before,
+      60 s now).
+    - [x] C14 · `P2` The exported budget is taken after the export's own calls, and a summary is a
+      copy. Run 2's export said 40 calls next to 42 outcomes.
+      Proof: `test_the_exported_budget_counts_the_exports_own_calls`.
+    - [x] C15 · `P2` The sandbox tests prove the child ran (a marker) and reached the forbidden step.
+      Proof: every denial test asserts `PROBE-REACHED` and `PROBE-DENIED`;
+      `test_a_child_that_never_ran_is_not_a_denial` shows the check can fail.
+    - [x] C16 · `P2` The LaTeX build runs in the registered process-tree runner.
+      Proof: `test_a_hung_build_dies_with_its_whole_tree`.
   - From task 6 (`integrity-blockers`), blocker B1:
     - [x] T1 · A test seed is never a search seed; the digits test seeds are 100–109. With shared
       seeds the winner of 20 null candidates keeps +1.32 of its +2.65 validation gain on test
       (task 6's `null_control.py`, rerun 2026-10-02).
       Proof: `test_a_test_seed_is_never_a_search_seed`.
-- [ ] `P1` **E11 · A second real run** after the fixes, to check them on the subscription.
+  - From run 2:
+    - [x] R5 · `P1` Every PDF failed in the build sandbox. bibtex writes beside its sources, the
+      build could write only elsewhere, and bibtex reported "Not writing to /Use.bbl". The cause
+      was bisected rule by rule. A build now compiles an export of the commit with the engine's
+      tables, in its own directory, and the error goes into the event.
+      Proof: `test_a_paper_with_a_bibliography_builds_in_the_sandbox`; run 2's two papers rebuild
+      in about 1 s each.
+    - [x] R6 · `P2` A finished run kept the reason and `resume_after` of its earlier pause.
+      Proof: `test_downtime_after_a_crash_is_not_running_time` (its last assertion).
+- [x] `P1` **E11 · A second real run** after the fixes, to check them on the subscription.
+  `runs/digits-quick-2`, profile `quick`, engine `cba39df`, resumed on `c1850a5` after the
+  usage-window pause. Status `done`: 42 agent calls, all ok; 17 coding sessions; $3.42
+  API-equivalent, nothing billed; 0.31 h running.
+  - Validation: +0.0594 (0.9118 to 0.9712, 3 seeds).
+  - Test, once, 10 seeds disjoint from search: +0.0532 (0.9103 ± 0.0101 to 0.9635 ± 0.0055).
+  - Reviews: in-loop 3/10, held-out judge 4/10, reject.
+  - Integrity: references 6/6 verified; two invented numbers flagged in the draft and repaired;
+    no writer edit of the tables; egress only to the Anthropic API plus 6 logged fetches by
+    agents with WebFetch.
+  - It found R5 and R6, and the inconsistent export budget behind C14.
 - [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real runs' behaviour.
 - [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
   the harness with task 6's four blocking decisions.

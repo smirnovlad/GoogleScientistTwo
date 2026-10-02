@@ -11,6 +11,11 @@ such a child running and writing (infrastructure review 2026-10-02, I5). So:
 - the end of every call, normal or not, kills every remembered or marked group still alive;
 - each live child is recorded under `<run>/procs/`, so an engine that crashed leaves a record,
   and the next `prepare` kills what it left behind before anything else starts.
+
+A record names every process the watcher saw, by pid AND start time, and the unit's marker. A
+group can outlive its leader (a shell exits and leaves its training child running), so reaping
+by the leader alone missed it (Codex review 2026-10-02, P1). A process is killed on resume only
+if it is verifiably the one recorded: the same pid with the same start time, or the marker.
 """
 from __future__ import annotations
 
@@ -48,50 +53,59 @@ def marked(marker: str) -> set[tuple[int, int]]:
     return found
 
 
-def _table() -> list[tuple[int, int, int]]:
-    """(pid, ppid, pgid) of every process, from `ps`."""
+def _norm(t: Optional[str]) -> Optional[str]:
+    return " ".join(t.split()) if t else None
+
+
+def _table() -> list[tuple[int, int, int, Optional[str]]]:
+    """(pid, ppid, pgid, start time) of every process, from one `ps`."""
     try:
-        out = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,pgid="], capture_output=True, text=True,
-                             timeout=10).stdout
+        out = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,pgid=,lstart="], capture_output=True,
+                             text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return []
     rows = []
     for line in out.splitlines():
-        parts = line.split()
-        if len(parts) == 3 and all(p.lstrip("-").isdigit() for p in parts):
-            rows.append((int(parts[0]), int(parts[1]), int(parts[2])))
+        parts = line.split(None, 3)
+        if len(parts) >= 3 and all(p.lstrip("-").isdigit() for p in parts[:3]):
+            rows.append((int(parts[0]), int(parts[1]), int(parts[2]),
+                         _norm(parts[3]) if len(parts) == 4 else None))
     return rows
+
+
+def _tree(table: list[tuple[int, int, int, Optional[str]]], root: int) -> list[tuple[int, int, Optional[str]]]:
+    """(pid, pgid, start time) of `root` and everything under it, in `table`."""
+    children: dict[int, list[int]] = {}
+    rows = {}
+    for pid, ppid, pgid, t in table:
+        children.setdefault(ppid, []).append(pid)
+        rows[pid] = (pid, pgid, t)
+    if root not in rows:
+        return []
+    out, stack, seen = [rows[root]], [root], {root}
+    while stack:
+        for child in children.get(stack.pop(), []):
+            if child not in seen:
+                seen.add(child)
+                out.append(rows[child])
+                stack.append(child)
+    return out
 
 
 def descendants(root: int) -> set[tuple[int, int]]:
     """(pid, pgid) of `root` and everything under it, now."""
-    rows = _table()
-    children: dict[int, list[tuple[int, int]]] = {}
-    pgid_of = {}
-    for pid, ppid, pgid in rows:
-        children.setdefault(ppid, []).append((pid, pgid))
-        pgid_of[pid] = pgid
-    found: set[tuple[int, int]] = set()
-    if root in pgid_of:
-        found.add((root, pgid_of[root]))
-    stack = [root]
-    while stack:
-        for pid, pgid in children.get(stack.pop(), []):
-            if (pid, pgid) not in found:
-                found.add((pid, pgid))
-                stack.append(pid)
-    return found
+    return {(pid, pgid) for pid, pgid, _ in _tree(_table(), root)}
 
 
 def started(pid: int) -> Optional[str]:
     """When `pid` started, as `ps` prints it: with the pid, it names one process for good, so a
-    recorded group is never confused with a later group that reuses its number."""
+    recorded process is never confused with a later one that reuses its number."""
     try:
         out = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True,
-                             timeout=10).stdout.strip()
+                             timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         return None
-    return out or None
+    return _norm(out)
 
 
 def _alive(pid: int) -> bool:
@@ -134,14 +148,19 @@ def kill_groups(groups: Iterable[int], grace: float = 3.0) -> None:
 
 
 class TreeWatcher:
-    """Samples the tree under `root` every `interval` seconds and remembers every group in it,
-    with its leader's start time; `on_new(groups)` hears of each new group as it appears."""
+    """Samples the tree under `root` every `interval` seconds. It remembers every process it saw,
+    as (group, start time), for as long as that process lives, even after it leaves the tree
+    (its parent died) or its group (setsid); and every group such a process was in, with the
+    group leader's start time if the leader was alive. `on_new(watcher)` hears of each new
+    process or group, from inside the sample."""
 
     def __init__(self, root: int, interval: float = 0.25, on_new=None):
         self.root = root
         self.interval = interval
+        self.members: dict[int, tuple[int, Optional[str]]] = {}
         self.groups: dict[int, Optional[str]] = {}
         self.on_new = on_new
+        self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, daemon=True, name=f"tree-{root}")
 
@@ -151,13 +170,32 @@ class TreeWatcher:
         return self
 
     def sample(self) -> None:
-        new = False
-        for _, pgid in descendants(self.root):
-            if pgid not in self.groups:
-                self.groups[pgid] = started(pgid)
-                new = True
-        if new and self.on_new is not None:
-            self.on_new(dict(self.groups))
+        table = _table()
+        if not table:                               # `ps` failed: keep what is known
+            return
+        live = {pid: (pgid, t) for pid, _, pgid, t in table}
+        with self._lock:
+            new = False
+            for pid, pgid, t in _tree(table, self.root):
+                new = new or pid not in self.members
+                self.members[pid] = (pgid, t)
+            for pid, (_, t) in list(self.members.items()):
+                now = live.get(pid)
+                if now is None or now[1] != t:          # gone, or its number reused
+                    del self.members[pid]
+                    continue
+                self.members[pid] = now
+                if now[0] not in self.groups:
+                    leader = live.get(now[0])
+                    self.groups[now[0]] = leader[1] if leader else None
+                    new = True
+            if new and self.on_new is not None:
+                self.on_new(self)
+
+    def live_groups(self) -> set[int]:
+        """Every group that holds a process this watcher saw, at the last sample."""
+        with self._lock:
+            return {pgid for pgid, _ in self.members.values()}
 
     def _loop(self) -> None:
         while not self._stop.wait(self.interval):
@@ -166,7 +204,7 @@ class TreeWatcher:
     def stop(self) -> set[int]:
         self._stop.set()
         self.sample()
-        return set(self.groups)
+        return self.live_groups()
 
 
 class ProcRegistry:
@@ -177,9 +215,14 @@ class ProcRegistry:
         self.dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
 
-    def record(self, pid: int, key: str, groups: dict[int, Optional[str]]) -> None:
-        """`groups`: each process group of the child's tree, with its leader's start time."""
-        data = {"pid": pid, "key": key, "groups": {str(g): t for g, t in groups.items()},
+    def record(self, pid: int, key: str, groups: dict[int, Optional[str]],
+               members: Optional[dict[int, tuple[int, Optional[str]]]] = None,
+               marker: Optional[str] = None) -> None:
+        """`groups`: each process group of the child's tree, with its leader's start time;
+        `members`: each process seen, with its group and start time; `marker`: the unit's."""
+        data = {"pid": pid, "key": key, "marker": marker,
+                "groups": {str(g): t for g, t in groups.items()},
+                "members": {str(p): [g, t] for p, (g, t) in (members or {}).items()},
                 "time": time.time()}
         with self._lock:
             tmp = self.dir / f"{pid}.json.tmp"
@@ -194,22 +237,34 @@ class ProcRegistry:
                 pass
 
     def reap_orphans(self, log=None) -> list[dict]:
-        """Kill what a previous engine process left running in this run, then clear the records."""
-        reaped = []
+        """Kill what a previous engine process left running in this run, then clear the records.
+        A group is killed only through a process that is verifiably the one recorded."""
+        records = []
         for f in sorted(self.dir.glob("*.json")):
             try:
-                data = json.loads(f.read_text())
+                records.append((f, json.loads(f.read_text())))
             except (OSError, json.JSONDecodeError):
                 f.unlink(missing_ok=True)
-                continue
-            # a group is killed only if its leader is the very process recorded (same start time)
-            live = [int(g) for g, t in (data.get("groups") or {}).items()
-                    if t and _group_alive(int(g)) and started(int(g)) == t]
-            if live:
-                kill_groups(live)
-                reaped.append({**data, "killed_groups": live})
+        if not records:
+            return []
+        live = {pid: (pgid, t) for pid, _, pgid, t in _table()}
+
+        def same(pid: int, t: Optional[str]) -> Optional[int]:
+            now = live.get(pid)                         # the group it is in now, if it is the one
+            return now[0] if t and now and now[1] == _norm(t) else None
+
+        reaped = []
+        for f, data in records:
+            kill = {same(int(g), t) for g, t in (data.get("groups") or {}).items()}   # a leader
+            kill |= {same(int(p), m[1]) for p, m in (data.get("members") or {}).items()}  # any process seen
+            if data.get("marker"):                      # one that inherited the unit's environment
+                kill |= {g for _, g in marked(data["marker"])}
+            kill.discard(None)
+            if kill:
+                kill_groups(kill)                       # type: ignore[arg-type]
+                reaped.append({**data, "killed_groups": sorted(kill)})   # type: ignore[type-var]
                 if log is not None:
-                    log(f"killed {len(live)} process group(s) left by a previous engine: {data.get('key')}")
+                    log(f"killed {len(kill)} process group(s) left by a previous engine: {data.get('key')}")
             f.unlink(missing_ok=True)
         return reaped
 
@@ -225,7 +280,8 @@ def run_tree(argv: list[str], *, cwd: Path, env: dict, timeout: float, output: P
     with open(output, "wb") as out:
         proc = subprocess.Popen(argv, cwd=str(cwd), env=env, stdin=subprocess.DEVNULL, stdout=out,
                                 stderr=subprocess.STDOUT, start_new_session=True)
-    on_new = (lambda groups: registry.record(proc.pid, key, groups)) if registry is not None else None
+    on_new = ((lambda w: registry.record(proc.pid, key, w.groups, w.members, marker))
+              if registry is not None else None)
     watcher = TreeWatcher(proc.pid, on_new=on_new).start()
     timed_out = False
     try:

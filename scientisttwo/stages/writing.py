@@ -22,7 +22,7 @@ from ..runtime.agents import UnitFailed
 from ..state import Baseline, Core
 from .common import Ctx
 from .manuscript import (compile_pdf, manuscript_text, payload, read_regular, results_tex,
-                         tables_edited, unverified_numbers, write_results)
+                         tables_edited, unverified_numbers, write_regular, write_results)
 from .shared import run_variants
 
 
@@ -55,12 +55,15 @@ def _refresh_results(ctx: Ctx, parent: str, name: str, p: dict) -> str:
 
 
 def build(ctx: Ctx, name: str, p: dict) -> dict:
-    """The PDF of a version, built against the engine's tables, never the version's own copy."""
+    """The PDF of a version: its commit, exported into `builds/<name>/` with the engine's tables
+    over the version's own copy, compiled there."""
     assert ctx.papers is not None
-    folder, out = ctx.papers.path(name), ctx.run_dir / "builds" / name
-    report = compile_pdf(folder, out, ctx.harness.rules.build(folder, out),
-                         ctx.harness.allow_unsandboxed, tables=results_tex(p))
-    ctx.event("pdf", version=name, ok=report["ok"])
+    out = ctx.run_dir / "builds" / name
+    ctx.papers.export(name, out)                        # made fresh: the committed files only
+    write_regular(out / "results.tex", results_tex(p))
+    report = compile_pdf(out, ctx.harness.rules.build(out), ctx.harness.allow_unsandboxed,
+                         registry=ctx.harness.procs, key=f"pdf/{name}")
+    ctx.event("pdf", version=name, ok=report["ok"], error=(report.get("error") or "")[-300:])
     return report
 
 

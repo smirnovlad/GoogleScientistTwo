@@ -5,6 +5,10 @@ holds one line per ATTEMPT, written and fsync'd before the unit is stored: the a
 outcome, seconds, the API-equivalent cost the CLI reports (`null` when it reports none: unknown,
 never zero), and the usage windows after the call. Retries and failures spend too, so they count.
 
+Each attempt is journalled BEFORE its call (`attempt_started`), so an engine killed during a call
+leaves a record: the next start counts that attempt as `interrupted`, with an unknown cost, and
+the caps keep it (Codex review 2026-10-02, P2). Attempt numbers run on across resumes, per unit.
+
 The guard stops a run before it passes any cap of its profile: attempts, coding sessions, hours
 of RUNNING time (paused time does not count), API-equivalent dollars, or a usage window above its
 ceiling. A stop raises `BudgetExceeded`, a `RunPaused`: the orchestrator records a resumable
@@ -113,21 +117,34 @@ class Budget:
         self.hours = hours or (lambda: running_hours(self.run_dir))
         self.totals = Totals()
         self.windows: dict[str, Any] = {}
+        self.attempts: dict[str, int] = {}                   # per unit key, every attempt so far
         self._lock = threading.Lock()
         cut = repair_ledger(self.ledger_path)
         if cut is not None:
             log.warning("ledger: removed a partial last line left by a crash: %r", cut)
             self.record_event({"type": "ledger_repaired", "removed": cut})
         if self.ledger_path.exists():                      # resume: count what was already spent
+            started: dict[str, dict] = {}
             for line in self.ledger_path.read_text().splitlines():
                 if line.strip():
-                    self._count(json.loads(line))
+                    entry = json.loads(line)
+                    if entry.get("type") == "attempt_started":
+                        started[entry["attempt_id"]] = entry
+                    else:
+                        started.pop(entry.get("attempt_id"), None)
+                        self._count(entry)
+            for entry in started.values():                 # cut off by the end of an engine
+                self.record({k: entry.get(k) for k in ("key", "agent", "kind", "attempt", "attempt_id")}
+                            | {"outcome": "interrupted", "seconds": None, "equiv_usd": None,
+                               "error": "the engine stopped during this call; what it spent is unknown"})
 
     def _count(self, entry: dict) -> None:
         if entry.get("type") != "agent":
             return
         t = self.totals
         t.agent_calls += 1
+        if entry.get("key"):
+            self.attempts[entry["key"]] = self.attempts.get(entry["key"], 0) + 1
         if entry.get("kind") in CODING_KINDS:
             t.coding_sessions += 1
         t.seconds += float(entry.get("seconds") or 0)
@@ -184,6 +201,15 @@ class Budget:
             f.flush()
             os.fsync(f.fileno())
 
+    def started(self, entry: dict) -> None:
+        """An attempt is about to call the backend (`entry` names it by `attempt_id`)."""
+        with self._lock:
+            self._append({"type": "attempt_started", "time": time.time(), **entry})
+
+    def attempts_of(self, key: str) -> int:
+        with self._lock:
+            return self.attempts.get(key, 0)
+
     def record(self, entry: dict) -> None:
         """One attempt: written and fsync'd before its unit is stored."""
         entry = {"type": "agent", "time": time.time(), **entry}
@@ -199,7 +225,10 @@ class Budget:
         t = self.totals
         return {"agent_calls": t.agent_calls, "coding_sessions": t.coding_sessions,
                 "agent_seconds": round(t.seconds, 1), "equiv_usd": round(t.equiv_usd, 4),
-                "unknown_cost_calls": t.unknown_cost_calls, "by_outcome": t.by_outcome,
+                # copies: a summary stored earlier must not change with later calls (run 2's
+                # export said 40 calls and 42 outcomes)
+                "unknown_cost_calls": t.unknown_cost_calls, "by_outcome": dict(t.by_outcome),
                 "running_hours": round(self.hours(), 3),
                 "wall_hours": round((time.time() - self.started_at) / 3600, 3),
-                "by_agent": t.by_agent, "usage_windows": (self.windows or {}).get("unifiedWindows")}
+                "by_agent": {k: dict(v) for k, v in t.by_agent.items()},
+                "usage_windows": (self.windows or {}).get("unifiedWindows")}
