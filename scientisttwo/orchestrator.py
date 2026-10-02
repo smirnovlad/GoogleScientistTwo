@@ -320,7 +320,7 @@ def run(ctx: Ctx) -> dict:
     except UnitFailed as e:
         # a failure no stage absorbs stops the run; the resume tries that unit again rather than
         # replaying its failure forever (architecture review 2026-10-02, finding 4)
-        ctx.rt.store.delete(e.key)
+        ctx.rt.forget(e.key)
         ctx.event("stopped", unit=e.key, error=e.error[:300])
         return _set_status(run_dir, "error", reason=f"unit {e.key} failed: {e.error[:500]}",
                            retry_on_resume=e.key, budget=ctx.rt.budget.summary())

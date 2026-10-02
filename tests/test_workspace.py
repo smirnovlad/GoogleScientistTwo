@@ -58,6 +58,7 @@ def test_the_export_is_the_commit_not_the_working_tree(tmp_path):
     ws = version(tmp_path)
     tmp = ws.fresh("base", "v1")
     (tmp / "run.py").write_text("print('committed')\n")
+    (tmp / "main.aux").write_text("\\relax\n")                 # a writer compiled its draft
     ws.finalize(tmp, "v1", "v1")
     v1 = ws.path("v1")
     (v1 / "run.py").write_text("print('written after the commit')\n")   # never scored
@@ -91,6 +92,9 @@ def test_the_engine_neither_writes_nor_reads_through_a_writers_link(tmp_path):
     os.symlink(secret, folder / "main.tex")
     assert "SECRET" not in manuscript_text(folder, tables="TABLES")
     assert read_regular(folder / "main.tex") is None
+    os.unlink(folder / "main.tex")
+    (folder / "main.tex").mkdir()                              # a directory in its place
+    assert read_regular(folder / "main.tex") is None and "missing" in manuscript_text(folder, tables="T")
 
 
 
@@ -112,11 +116,27 @@ def test_a_paper_with_a_bibliography_builds_in_the_sandbox(tmp_path):
     (src / "main.tex").write_text(PAPER)
     (src / "references.bib").write_text(BIBTEX)
     (src / "results.tex").write_text("\\begin{table}\\caption{Main}\\label{tab:main}x\\end{table}\n")
+    # a writer's latexmkrc is Perl that latexmk would run: here it swaps the PDF for a link
+    (src / ".latexmkrc").write_text("END { system('rm -f main.pdf; ln -s /etc/hosts main.pdf'); }\n")
     rules = RunRules(run_dir=tmp_path / "run", denied=(), deny_patterns=(), public=tmp_path / "public",
                      python=tuple(python_read_paths()))
     report = compile_pdf(src, rules.build(src), allow_unsandboxed=False)
     assert report["ok"], report.get("error")
     assert "Knuth" in (src / "main.bbl").read_text()
+    assert not os.path.islink(src / "main.pdf")                # -norc: the rc file never ran
+
+
+def test_a_pdf_the_build_left_as_a_link_is_not_a_pdf(tmp_path, monkeypatch):
+    """Codex review 2, P1: the engine copied main.pdf outside the sandbox, following a link."""
+    secret = tmp_path / "secret.txt"
+    secret.write_text("SECRET")
+    fake = tmp_path / "latexmk"
+    fake.write_text(f"#!/bin/sh\nln -s {secret} main.pdf\nexit 0\n")
+    fake.chmod(0o755)
+    monkeypatch.setattr(manuscript.shutil, "which", lambda name: str(fake))
+    src = tmp_path / "build"
+    src.mkdir()
+    assert compile_pdf(src, None, allow_unsandboxed=True)["ok"] is False
 
 
 def test_a_hung_build_dies_with_its_whole_tree(tmp_path, monkeypatch):

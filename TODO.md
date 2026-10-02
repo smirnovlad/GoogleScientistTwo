@@ -373,6 +373,37 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
       `test_a_child_that_never_ran_is_not_a_denial` shows the check can fail.
     - [x] C16 · `P2` The LaTeX build runs in the registered process-tree runner.
       Proof: `test_a_hung_build_dies_with_its_whole_tree`.
+  - From the second `/codex` gate (`origin/claude/paper-analysis...f470f27`): **GATE: FAIL, 3 P1
+    and 7 P2**, saved verbatim in `docs/reviews/engine-2026-10-02/codex-2.md`. A first attempt
+    was stopped by OpenAI's classifier ("possible cybersecurity risk") and returned nothing.
+    - [x] D1 · `P1` A writer's `.latexmkrc` could turn the built PDF into a link that the export
+      followed. The build now runs with `-norc`, and the PDF is read and written only as a
+      regular file.
+      Proof: `test_a_pdf_the_build_left_as_a_link_is_not_a_pdf`; the bibliography test now plants
+      an rc file too.
+    - [x] D2 · `P1` Parallel workers each passed a cap of one. `Budget.admit` now checks the caps
+      and reserves the call in one step.
+      Proof: `test_parallel_calls_cannot_pass_a_cap_together`.
+    - [x] D3 · `P1` A crash after the success line and before the unit write paid twice. The success
+      line now holds the unit, and the next start rebuilds the unit from it. `forget` journals a
+      deletion, so a forgotten unit stays forgotten.
+      Proof: `test_a_unit_finished_but_not_stored_is_rebuilt_without_a_second_call`.
+    - [x] D4 · `P2` A rejection replayed another commit's result.
+      Proof: `test_a_rejection_never_replays_another_commits_result`.
+    - [x] D5 · `P2` A failed call now keeps the usage windows it saw.
+      Proof: `test_a_failed_call_keeps_its_usage_windows`.
+    - [x] D6 · `P2` The replay fingerprint now covers the schema, the kind and the tools. Units
+      hashed before this change need `--allow-changed` to replay.
+      Proof: `test_a_changed_schema_does_not_replay`.
+    - [x] D7 · `P2` The task's `coding_session_seconds` bounds every coding and writer session.
+      An agent's own routing entry still wins over it.
+      Proof: `test_a_coding_session_gets_the_tasks_timeout_unless_its_route_sets_one`.
+    - [x] D8 · `P2` The exported patch is the whole diff, not the copy capped for prompts.
+      Proof: `test_the_exported_patch_is_the_whole_change` (`git apply --check` on 280 kB).
+    - [x] D9 · `P2` A directory named like a manuscript file now reads as missing instead of
+      crashing. Proof: `test_the_engine_neither_writes_nor_reads_through_a_writers_link`.
+    - [x] D10 · `P2` The orphan test now waits for the child's first heartbeat.
+      Proof: `test_the_whole_process_tree_dies_with_the_call`.
   - From task 6 (`integrity-blockers`), blocker B1:
     - [x] T1 · A test seed is never a search seed; the digits test seeds are 100–109. With shared
       seeds the winner of 20 null candidates keeps +1.32 of its +2.65 validation gain on test
@@ -387,6 +418,16 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
       in about 1 s each.
     - [x] R6 · `P2` A finished run kept the reason and `resume_after` of its earlier pause.
       Proof: `test_downtime_after_a_crash_is_not_running_time` (its last assertion).
+  - For use on the subscription, found while writing the guide:
+    - [x] U1 · `P1` A long run pauses at every 5-hour window and waited for a person. `run` and
+      `resume` now take `--wait`: sleep until the window resets, then resume, until the run ends.
+      A pause with no known reset, or one further than `--max-wait-hours` (24), still stops.
+      Proof: `tests/test_cli.py` (a run paused by a usage window finishes `done` after one sleep;
+      a cap pause is not waited on).
+    - [x] U2 · `P2` A resume after the CLI updated itself would fail on the deleted pinned binary.
+      The current `claude` now takes over, with a warning, and the history entry of that start
+      records its path and version.
+      Proof: `test_the_registry_resumes_a_run_on_the_backend_it_recorded`.
 - [x] `P1` **E11 · A second real run** after the fixes, to check them on the subscription.
   `runs/digits-quick-2`, profile `quick`, engine `cba39df`, resumed on `c1850a5` after the
   usage-window pause. Status `done`: 42 agent calls, all ok; 17 coding sessions; $3.42
@@ -398,6 +439,22 @@ questions to him. It runs ahead of tasks 2–8, on `claude/engine`; tasks 2 and 
     no writer edit of the tables; egress only to the Anthropic API plus 6 logged fetches by
     agents with WebFetch.
   - It found R5 and R6, and the inconsistent export budget behind C14.
+- [x] `P1` **E12 · Run 3, from scratch on the final engine** (`f470f27`), to check every fix
+  live. `runs/digits-quick-3`, profile `quick`: status `done` in 0.31 h, with 36 agent calls, all
+  ok, and 36 outcomes. $2.85 API-equivalent, nothing billed.
+  - Idea CCI-CM, a class-contrast prototype init with a cosine-margin head.
+  - Validation +0.0557. Test, once, on 10 disjoint seeds: +0.0465 (0.9103 to 0.9568).
+  - Every PDF built in the sandbox. One invented number was flagged and repaired.
+  - Egress went only to the API, plus 6 logged fetches by agents with WebFetch.
+  - Judge 4/10.
+  - Its ablations: removing the init costs 0.011 on test, while removing the cosine head gains
+    0.006. So the head hurts, and a true paper would drop it.
+  - It found R7: a writer that compiled its draft committed LaTeX's outputs into the paper, and
+    the export carried them. These outputs are now ignored in every version.
+    Proof: `test_the_export_is_the_commit_not_the_working_tree`.
 - [ ] `P1` **E9 · The user guide** (`technical-writer`), from the real runs' behaviour.
 - [ ] `P2` **E10 · Fold in tasks 2 and 6:** trace `docs/requirements.md` to the engine, and align
-  the harness with task 6's four blocking decisions.
+  the harness with task 6's four blocking decisions. Task 6's PR #3 adds positive lineage
+  (IR-3.1–3.4 in its `docs/integrity/decisions/u-int-4-who-computes.md`): score only artifacts
+  that a recorded fit job produced. The engine enforces lineage only by exclusion (checks.py);
+  that is new work, here.

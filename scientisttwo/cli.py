@@ -2,11 +2,14 @@
 
     run     --task tasks/digits [--profile quick|paper|file.json] [--run-dir runs/<id>]
             [--backend claude|mock] [--mock-script rules.json] [--set limits.K=2 ...]
-            [--parallel N] [--allow-unsandboxed]
-    resume  <run-dir> [--allow-changed]
+            [--parallel N] [--allow-unsandboxed] [--wait [--max-wait-hours H]]
+    resume  <run-dir> [--allow-changed] [--wait [--max-wait-hours H]]
                              continue a paused or crashed run; finished units are not re-run.
                              A unit whose inputs changed since it ran (new prompts, new engine
                              code) stops the resume, unless --allow-changed replays it as recorded.
+            --wait           when the run pauses on a subscription usage window, sleep until the
+                             window resets and go on, until the run ends; a pause with no known
+                             reset, or one further away than --max-wait-hours (24), still stops.
     status  <run-dir>        the run's status, budget and last events
     agents                   list the agents, their kind, model and paper reference
 
@@ -46,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--backend", choices=BACKENDS)
     s.add_argument("--mock-script")
     s.add_argument("--allow-changed", action="store_true")
+    for p in (r, s):
+        p.add_argument("--wait", action="store_true", help="sleep through usage-window pauses")
+        p.add_argument("--max-wait-hours", type=float, default=24.0)
     st = sub.add_parser("status", help="show a run's status")
     st.add_argument("run_dir")
     sub.add_parser("agents", help="list the agents")
@@ -87,8 +93,34 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     print(f"run directory: {ctx.run_dir}", file=sys.stderr)
     rec = run(ctx)
+    if a.wait:
+        allow = bool(getattr(a, "allow_changed", False))
+        rec = wait_and_resume(rec, lambda: run(prepare(ctx.run_dir, None, None, backend, allow_changed=allow)),
+                              a.max_wait_hours)
     print(json.dumps({k: rec.get(k) for k in ("status", "reason", "resume_after", "final")}, indent=1, default=str))
     return 0 if rec["status"] in ("done", "no_success", "ablation_rejected") else (3 if rec["status"] == "paused" else 1)
+
+
+RESUME_MARGIN_S = 120.0       # after a window's reset, before the next call
+_sleep = time.sleep
+
+
+def wait_and_resume(rec: dict, resume, max_wait_hours: float, sleep=None) -> dict:
+    """While the run is paused on a usage window with a known reset, sleep until it and resume.
+    The subscription's windows make a long run pause every few hours; without this, each pause
+    waits for a person. ⛔ WHY NOT wait on any pause: a cap or a persisting error needs a person."""
+    while rec.get("status") == "paused":
+        reset = rec.get("resume_after")
+        wait = None if not reset else max(60.0, float(reset) - time.time() + RESUME_MARGIN_S)
+        if wait is None or wait > max_wait_hours * 3600:
+            why = "it has no known reset time" if wait is None else f"its reset is {wait / 3600:.1f} h away"
+            print(f"paused, and not waiting: {why} ({rec.get('reason')})", file=sys.stderr)
+            return rec
+        print(f"paused ({rec.get('reason')}); resuming at "
+              f"{time.strftime('%H:%M', time.localtime(time.time() + wait))}", file=sys.stderr)
+        (sleep or _sleep)(wait)
+        rec = resume()
+    return rec
 
 
 if __name__ == "__main__":

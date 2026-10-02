@@ -609,7 +609,33 @@ trains.
   - C15: every sandbox test proves its child ran;
   - C16: the PDF build runs in the process-tree runner.
 
-## HANDOFF, 2026-10-02 (run 2 done; every Codex finding fixed; the gate reruns next)
+## 2026-10-02: run 3, and running unattended
+
+- **Run 3** (`runs/digits-quick-3`) ran from scratch on `f470f27`, 17:11–17:29. Status `done`:
+  36 calls, all ok; test +0.0465 on 10 disjoint seeds; judge 4/10. Every PDF built, the budget
+  agrees with itself, and the final status carries no stale field. TODO E12 has the numbers. It
+  found R7: LaTeX outputs a writer committed reached the exported paper. They are now ignored.
+- **Running unattended (U1).** A long run pauses at every 5-hour window, and before this change
+  it waited there for a person. `run` and `resume` now take `--wait`: the engine sleeps until the
+  window resets and goes on. Only a pause with a known reset is waited on.
+- **The pinned CLI may vanish (U2).** The CLI's updater deletes old versions, so a resume days
+  later now falls back to the current `claude`, and records the switch.
+- **The second `/codex` gate was refused once.** OpenAI's classifier flagged the request as a
+  possible cybersecurity risk and stopped the review; my prompt had named "sandbox or symlink
+  escapes". It was rerun with a plainer, correctness-focused prompt.
+
+## 2026-10-02: the second Codex gate
+
+- **The rerun returned FAIL: 3 P1, 7 P2**, all new (`docs/reviews/engine-2026-10-02/codex-2.md`).
+  All ten are fixed with tests (TODO E8, D1–D10). The three P1s:
+  - a writer's `.latexmkrc` could swap the built PDF for a link that the export followed;
+  - parallel workers could pass a cap together;
+  - a crash between the ledger's success line and the unit write paid twice.
+- **Replays of older runs.** The replay fingerprint now covers each agent's schema and tools, so
+  units recorded before this change replay only with `--allow-changed`.
+- **Task 6 opened PR #3.** Its positive-lineage rules (IR-3) are new work under E10.
+
+## HANDOFF, 2026-10-02 (run 2 done; every Codex finding fixed; gates 1 and 2 fixed; a third check of the delta next)
 
 - **The goal** (Vlad, verbatim above): a working ScientistTwo engine on `claude -p`, on the
   subscription, delivered without questions.
@@ -620,11 +646,11 @@ trains.
   - **Run 1** (`runs/digits-quick-1`) finished `done` before the hardening (see above).
   - **Run 2** (`runs/digits-quick-2`) finished `done` on the subscription: test +0.0532 on 10
     disjoint seeds, judge 4/10. E11 is ticked; the section above has its numbers and findings.
-  - **All 16 Codex findings are fixed with tests.** 113 tests pass on the mock backend, and
+  - **All 26 findings of two Codex gates are fixed with tests.** 123 tests pass on the mock backend, and
     `playground/engine/check_agents.py` reports 0 problems on 28 agents.
   - The `technical-writer` stopped at the session limit before it wrote the guide (E9).
 - **Next steps:**
-  1. Rerun the `/codex` gate on the whole branch, and fix or record what it finds.
+  1. Run `/codex` on the delta since `f470f27`, and fix or record what it finds.
   2. The guide (E9): relaunch, then review it against the code.
   3. Push. Open the engine's PR against `claude/paper-analysis`, with the Codex verdict in its body.
   4. A run 3 on the final engine, from scratch, for a clean end-to-end record.

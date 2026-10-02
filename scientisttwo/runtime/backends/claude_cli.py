@@ -206,6 +206,7 @@ class ClaudeCLIBackend(SubprocessBackend):
             cost = result.get("total_cost_usd")
             e.cost_usd = float(cost) if isinstance(cost, (int, float)) else None
             e.tokens = result.get("usage") or None
+            e.rate_limit = rate or None                # so the window ceilings see a failed call too
             raise
 
     def _classify(self, call: AgentCall, init: dict, result: dict, rate: dict, stderr: str,

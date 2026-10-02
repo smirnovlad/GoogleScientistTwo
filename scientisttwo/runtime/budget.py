@@ -118,6 +118,8 @@ class Budget:
         self.totals = Totals()
         self.windows: dict[str, Any] = {}
         self.attempts: dict[str, int] = {}                   # per unit key, every attempt so far
+        self._inflight: dict[str, str] = {}                  # attempt_id -> kind, admitted, not ended
+        self.recoverable: dict[str, dict] = {}               # unit key -> the unit its success line holds
         self._lock = threading.Lock()
         cut = repair_ledger(self.ledger_path)
         if cut is not None:
@@ -130,7 +132,11 @@ class Budget:
                     entry = json.loads(line)
                     if entry.get("type") == "attempt_started":
                         started[entry["attempt_id"]] = entry
+                    elif entry.get("type") == "unit_forgotten":
+                        self.recoverable.pop(entry.get("key"), None)
                     else:
+                        if entry.get("unit") is not None and entry.get("key"):
+                            self.recoverable[entry["key"]] = entry["unit"]
                         started.pop(entry.get("attempt_id"), None)
                         self._count(entry)
             for entry in started.values():                 # cut off by the end of an engine
@@ -164,20 +170,33 @@ class Budget:
 
     def check(self, kind: str) -> None:
         """Raise BudgetExceeded if one more call of this kind would pass a cap."""
-        c, t = self.caps, self.totals
         with self._lock:
-            if c.max_agent_calls is not None and t.agent_calls >= c.max_agent_calls:
-                raise BudgetExceeded(f"agent-call cap reached ({t.agent_calls}/{c.max_agent_calls})")
-            if (kind in CODING_KINDS and c.max_coding_sessions is not None
-                    and t.coding_sessions >= c.max_coding_sessions):
-                raise BudgetExceeded(f"coding-session cap reached ({t.coding_sessions}/{c.max_coding_sessions})")
-            if c.max_hours is not None:
-                hours = self.hours()
-                if hours >= c.max_hours:
-                    raise BudgetExceeded(f"running-time cap reached ({hours:.1f} h / {c.max_hours} h)")
-            if c.max_equiv_usd is not None and t.equiv_usd >= c.max_equiv_usd:
-                raise BudgetExceeded(f"API-equivalent cost cap reached (${t.equiv_usd:.2f})")
-            self._check_windows()
+            self._check(kind)
+
+    def admit(self, kind: str, entry: dict) -> None:
+        """Check the caps and reserve the call, in one step: with parallel units, a check followed
+        by a later count let two calls through a cap of one (Codex review 2, P1). The attempt is
+        journalled here, before its call; `record` ends the reservation."""
+        with self._lock:
+            self._check(kind)
+            self._inflight[entry["attempt_id"]] = kind
+            self._append({"type": "attempt_started", "time": time.time(), **entry})
+
+    def _check(self, kind: str) -> None:
+        c, t = self.caps, self.totals
+        calls = t.agent_calls + len(self._inflight)
+        sessions = t.coding_sessions + sum(1 for k in self._inflight.values() if k in CODING_KINDS)
+        if c.max_agent_calls is not None and calls >= c.max_agent_calls:
+            raise BudgetExceeded(f"agent-call cap reached ({calls}/{c.max_agent_calls})")
+        if kind in CODING_KINDS and c.max_coding_sessions is not None and sessions >= c.max_coding_sessions:
+            raise BudgetExceeded(f"coding-session cap reached ({sessions}/{c.max_coding_sessions})")
+        if c.max_hours is not None:
+            hours = self.hours()
+            if hours >= c.max_hours:
+                raise BudgetExceeded(f"running-time cap reached ({hours:.1f} h / {c.max_hours} h)")
+        if c.max_equiv_usd is not None and t.equiv_usd >= c.max_equiv_usd:
+            raise BudgetExceeded(f"API-equivalent cost cap reached (${t.equiv_usd:.2f})")
+        self._check_windows()
 
     def _check_windows(self) -> None:
         windows = (self.windows or {}).get("unifiedWindows") or {}
@@ -201,10 +220,11 @@ class Budget:
             f.flush()
             os.fsync(f.fileno())
 
-    def started(self, entry: dict) -> None:
-        """An attempt is about to call the backend (`entry` names it by `attempt_id`)."""
+    def forget(self, key: str) -> None:
+        """A unit that must run again: its success line no longer rebuilds it."""
         with self._lock:
-            self._append({"type": "attempt_started", "time": time.time(), **entry})
+            self.recoverable.pop(key, None)
+            self._append({"type": "unit_forgotten", "time": time.time(), "key": key})
 
     def attempts_of(self, key: str) -> int:
         with self._lock:
@@ -214,6 +234,7 @@ class Budget:
         """One attempt: written and fsync'd before its unit is stored."""
         entry = {"type": "agent", "time": time.time(), **entry}
         with self._lock:
+            self._inflight.pop(entry.get("attempt_id"), None)
             self._append(entry)
             self._count(entry)
 

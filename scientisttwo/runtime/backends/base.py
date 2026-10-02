@@ -63,6 +63,7 @@ class BackendError(Exception):
     before it failed, if it got that far (None: unknown, never zero)."""
     cost_usd: Optional[float] = None
     tokens: Optional[dict] = None
+    rate_limit: Optional[dict] = None             # the usage windows the call observed
 
 
 class TransientError(BackendError):

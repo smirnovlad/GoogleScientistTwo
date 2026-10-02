@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import shutil
 from collections import Counter
+from pathlib import Path
 from typing import Optional
 
 from ..harness.harness import gain, summarize
@@ -22,7 +23,8 @@ from ..runtime.agents import UnitFailed
 from ..runtime.store import atomic_write_json
 from ..state import Baseline, Trace
 from .common import Ctx
-from .manuscript import payload, tables_edited, unverified_numbers, write_results
+from .manuscript import (payload, read_regular_bytes, tables_edited, unverified_numbers,
+                         write_regular, write_results)
 from .writing import _refresh_results, build, read
 
 
@@ -95,10 +97,12 @@ def export(ctx: Ctx, base: Baseline, final: dict, traces: list[Trace], limitatio
         shutil.rmtree(out)
     out.mkdir(parents=True)
     ctx.papers.export(name, out / "paper")              # the committed version, no link followed
-    if pdf.get("ok"):
-        shutil.copy2(pdf["pdf"], out / "paper" / "main.pdf")
+    data = read_regular_bytes(Path(pdf["pdf"])) if pdf.get("ok") else None
+    if data is not None:                                # never through a link the build left
+        write_regular(out / "paper" / "main.pdf", data)
     ctx.ws.export(core.ws, out / "code")
-    (out / "changes.patch").write_text(ctx.diff(core.ws))
+    # the whole change: ctx.diff caps what a model reads, a patch must apply (Codex review 2)
+    (out / "changes.patch").write_text(ctx.ws.diff(core.ws, ctx.base_commit))
     core_commit = ctx.ws.commit(core.ws)
     if variants:
         (out / "variants").mkdir()

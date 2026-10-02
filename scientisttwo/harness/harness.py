@@ -137,11 +137,22 @@ class Harness:
             self._metric = module
         return self._metric
 
+    @staticmethod
+    def _stored(key: str, out_file: Path, commit: str) -> dict:
+        """A stored result, only for the commit it scored: a version regenerated on resume is
+        another commit, and never inherits the old one's score, by evaluation or by rejection
+        (Codex review 2, P2)."""
+        stored = read_json(out_file)
+        if commit and stored.get("commit") and stored["commit"] != commit:
+            raise StaleResult(f"{key}: the stored result is for commit {stored['commit'][:10]}, "
+                              f"the version is now {commit[:10]}")
+        return stored
+
     def reject(self, key: str, workspace: Path, split: str, reason: str, commit: str = "") -> dict:
         """A version that breaks a checkable rule is never run: its result is `failed`, with why."""
         out_file = self.results / f"{key}.json"
         if out_file.exists():
-            return read_json(out_file)
+            return self._stored(key, out_file, commit)
         result = {"key": key, "split": split, "workspace": workspace.name, "commit": commit,
                   "status": "failed", "error": f"rejected before running: {reason}",
                   "metric": self.task.metric_name, "direction": self.task.direction,
@@ -155,11 +166,7 @@ class Harness:
         """Evaluate a codebase version on a split. Memoised by `key` in results/."""
         out_file = self.results / f"{key}.json"
         if out_file.exists():
-            stored = read_json(out_file)
-            if commit and stored.get("commit") and stored["commit"] != commit:
-                raise StaleResult(f"{key}: the stored result is for commit {stored['commit'][:10]}, "
-                                  f"the version is now {commit[:10]}")
-            return stored
+            return self._stored(key, out_file, commit)
         self.verify()
         s = self.task.splits[split]
         eval_dir = self.run_dir / "evals" / key

@@ -453,3 +453,14 @@ def test_orphans_of_a_crashed_engine_are_killed_on_resume_and_only_they(tmp_path
         assert victim.wait(timeout=5) is not None and bystander.poll() is None
     finally:
         kill_groups([bystander.pid, victim.pid], grace=0.2)
+
+
+
+def test_a_rejection_never_replays_another_commits_result(toy_task, tmp_path):
+    """Codex review 2, P2: a version regenerated on resume inherited the old version's result."""
+    from scientisttwo.harness.harness import StaleResult
+    task, run, h, ws = setup(toy_task, tmp_path)
+    h.reject("k", ws.path("base"), "full", "a rule", commit="a" * 40)
+    assert h.reject("k", ws.path("base"), "full", "a rule", commit="a" * 40)["status"] == "failed"
+    with pytest.raises(StaleResult):
+        h.reject("k", ws.path("base"), "full", "a rule", commit="b" * 40)

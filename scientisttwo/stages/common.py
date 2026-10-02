@@ -126,7 +126,7 @@ class Ctx:
             else:
                 # the version this unit made is gone (removed by hand): its record alone cannot replay it
                 log.warning("%s: version %s is missing; the unit runs again", key, name)
-                self.rt.store.delete(key)
+                self.rt.forget(key)
                 record = None
         if record is not None:
             return (record.get("output"), None) if record.get("status") == "ok" else (None, record.get("error"))
@@ -143,9 +143,10 @@ class Ctx:
             self._seal(ws, tmp, key, agent, name, failed=error is not None)
 
         try:
+            # the task's `coding_session_seconds` bounds every session on its code (Codex review 2)
             return self.rt.run(key, agent, variables, cwd=tmp, tmpdir=unit_tmp,
                                sandbox=self.policy(agent, unit_tmp, tmp), on_done=done,
-                               before_attempt=attempt), None
+                               before_attempt=attempt, timeout_s=self.task.coding_timeout_s), None
         except UnitFailed as e:
             if not ws.exists(name):
                 self._seal(ws, tmp, key, agent, name, failed=True)

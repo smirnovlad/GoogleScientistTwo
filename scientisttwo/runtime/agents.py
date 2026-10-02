@@ -126,6 +126,7 @@ class Route:
     effort: Optional[str]
     timeout_s: int
     backend: str = "default"
+    explicit_timeout: bool = False        # the agent's own routing entry sets it: nothing overrides
 
 
 class Routing:
@@ -140,7 +141,8 @@ class Routing:
         d.update(self.data.get("agents", {}).get(spec.name, {}))
         timeout = int(d.get("timeout_s") or self.data.get("timeouts_s", {}).get(spec.kind, 1800))
         return Route(model=d.get("model", "sonnet"), effort=d.get("effort"), timeout_s=timeout,
-                     backend=d.get("backend", "default"))
+                     backend=d.get("backend", "default"),
+                     explicit_timeout="timeout_s" in self.data.get("agents", {}).get(spec.name, {}))
 
 
 def _outcome(e: Exception) -> str:
@@ -186,14 +188,34 @@ class AgentRuntime:
         return self.backends[route.backend]
 
     def inputs_sha(self, spec: AgentSpec, route: Route, user: str) -> str:
-        return hashlib.sha256(json.dumps([spec.system, user, route.model, route.effort, route.backend],
-                                         default=str).encode()).hexdigest()
+        # the schema, kind and tools too: an answer made under another output contract or other
+        # tools is not this unit's answer (Codex review 2, P2). Records hashed before this
+        # change no longer match: resume such a run with --allow-changed.
+        return hashlib.sha256(json.dumps([spec.system, user, route.model, route.effort, route.backend,
+                                          spec.schema, spec.kind, list(spec.tools)],
+                                         sort_keys=True, default=str).encode()).hexdigest()
+
+    def stored(self, key: str) -> Optional[dict]:
+        """The finished unit at `key`: from the store, or rebuilt from the ledger's success line
+        when the engine died between that line and the store write."""
+        record = self.store.get(key)
+        if record is None:
+            record = self.budget.recoverable.get(key)
+            if record is not None:
+                log.warning("%s: rebuilt from the ledger (the engine stopped before storing it)", key)
+                self.store.put(key, record)
+        return record
+
+    def forget(self, key: str) -> None:
+        """Forget a finished unit for good, so it runs again: in the store and in the ledger."""
+        self.store.delete(key)
+        self.budget.forget(key)
 
     def recorded(self, key: str, agent: str, variables: dict[str, Any]) -> Optional[dict]:
         """The finished unit at `key`, checked against the inputs it would be sent now; None if
         the unit has not run. For callers that must look before `run` (a coding unit checks its
         version exists first), so no replay skips the check."""
-        record = self.store.get(key)
+        record = self.stored(key)
         if record is not None:
             spec = self.spec(agent)
             route = self.routing.route(spec)
@@ -203,13 +225,18 @@ class AgentRuntime:
     def run(self, key: str, agent: str, variables: dict[str, Any], *, cwd: Optional[Path] = None,
             sandbox: Optional[SandboxPolicy] = None, tmpdir: Optional[Path] = None,
             on_done: Optional[Callable[[Optional[dict], Optional[str]], None]] = None,
-            before_attempt: Optional[Callable[[int], None]] = None) -> dict:
+            before_attempt: Optional[Callable[[int], None]] = None,
+            timeout_s: Optional[int] = None) -> dict:
+        """`timeout_s`: the caller's bound for this call (a task's coding-session length); an
+        agent's own routing entry still wins over it."""
         spec = self.spec(agent)
         route = self.routing.route(spec)
+        if timeout_s and not route.explicit_timeout:
+            route = Route(route.model, route.effort, int(timeout_s), route.backend, False)
         user = spec.render(variables)
         inputs_sha = self.inputs_sha(spec, route, user)
 
-        record = self.store.get(key)
+        record = self.stored(key)
         if record is not None:
             self._check_replay(key, record, inputs_sha)
             if record.get("status") == "failed":
@@ -223,13 +250,12 @@ class AgentRuntime:
         prior = self.budget.attempts_of(key)              # this unit's attempts in earlier processes
         started = time.time()
         while True:
-            self.budget.check(spec.kind)
             attempt += 1
             number, attempt_id = prior + attempt, uuid.uuid4().hex
+            self.budget.admit(spec.kind, {"key": key, "agent": agent, "kind": spec.kind,
+                                          "attempt": number, "attempt_id": attempt_id})
             if before_attempt is not None:
                 before_attempt(attempt)
-            self.budget.started({"key": key, "agent": agent, "kind": spec.kind, "attempt": number,
-                                 "attempt_id": attempt_id})
             call = AgentCall(agent=agent, kind=spec.kind, system=spec.system, user=text,
                              schema=spec.schema, model=route.model, effort=route.effort,
                              tools=spec.tools, cwd=cwd, sandbox=sandbox, timeout_s=route.timeout_s,
@@ -275,15 +301,19 @@ class AgentRuntime:
                             "\nAnswer again, as the required structured output.")
                     continue
                 self._fail(key, agent, spec, route, f"{type(e).__name__}: {e}", started, inputs_sha, on_done)
-            self._ledger(key, agent, spec, route, number, attempt_id, "ok", t0, result, None)
+            unit = {"status": "ok", "agent": agent, "kind": spec.kind, "model": route.model,
+                    "effort": route.effort, "backend": route.backend, "inputs_sha256": inputs_sha,
+                    "attempts": attempt, "output": result.output, "text": result.text[-4000:],
+                    "equiv_usd": result.cost_usd, "seconds": round(time.time() - started, 2),
+                    "session_id": result.session_id, "finished_at": time.time()}
+            # the success line holds the unit itself: if the engine dies before the store write
+            # below, the next start rebuilds the unit from the ledger instead of paying again
+            # (Codex review 2, P1)
+            self._ledger(key, agent, spec, route, number, attempt_id, "ok", t0, result, None, unit=unit)
             break
 
         assert result is not None
-        self.store.put(key, {"status": "ok", "agent": agent, "kind": spec.kind, "model": route.model,
-                             "effort": route.effort, "backend": route.backend, "inputs_sha256": inputs_sha,
-                             "attempts": attempt, "output": result.output, "text": result.text[-4000:],
-                             "equiv_usd": result.cost_usd, "seconds": round(time.time() - started, 2),
-                             "session_id": result.session_id, "finished_at": time.time()})
+        self.store.put(key, unit)
         if on_done is not None:
             on_done(result.output, None)
         return result.output  # type: ignore[return-value]
@@ -318,7 +348,8 @@ class AgentRuntime:
 
     def _ledger(self, key: str, agent: str, spec: AgentSpec, route: Route, attempt: int,
                 attempt_id: str, outcome: str, t0: float, result: Optional[AgentResult],
-                error: Optional[str], failure: Optional[Exception] = None) -> None:
+                error: Optional[str], failure: Optional[Exception] = None,
+                unit: Optional[dict] = None) -> None:
         raw = result.raw if result is not None else {}
         # a failure the backend raised still carries what the call reported spending
         cost = result.cost_usd if result is not None else getattr(failure, "cost_usd", None)
@@ -328,9 +359,11 @@ class AgentRuntime:
                             "model": raw.get("model") or route.model,
                             "seconds": round(time.time() - t0, 2),
                             "equiv_usd": cost, "tokens": tokens,
-                            "rate_limit": raw.get("rate_limit"), "api_key_source": raw.get("api_key_source"),
+                            "rate_limit": raw.get("rate_limit") or getattr(failure, "rate_limit", None),
+                            "api_key_source": raw.get("api_key_source"),
                             "cli_version": raw.get("cli_version"),
-                            **({"error": error[:500]} if error else {})})
+                            **({"error": error[:500]} if error else {}),
+                            **({"unit": unit} if unit is not None else {})})
 
     def _validate(self, spec: AgentSpec, result: AgentResult) -> None:
         if result.output is None:

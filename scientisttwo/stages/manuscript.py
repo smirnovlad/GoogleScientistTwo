@@ -137,25 +137,31 @@ def results_tex(p: dict) -> str:
 
 def read_regular(path: Path) -> Optional[str]:
     """A writer's file, if it is a regular file: never through a link, never a FIFO."""
+    data = read_regular_bytes(path)
+    return None if data is None else data.decode("utf-8", errors="replace")
+
+
+def read_regular_bytes(path: Path) -> Optional[bytes]:
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     except OSError:                                    # missing, or a link (ELOOP)
         return None
-    with os.fdopen(fd, encoding="utf-8", errors="replace") as f:
-        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
-            return None
+    if not stat.S_ISREG(os.fstat(fd).st_mode):        # a directory or a FIFO: before any read
+        os.close(fd)
+        return None
+    with os.fdopen(fd, "rb") as f:
         return f.read()
 
 
-def write_regular(path: Path, text: str) -> None:
+def write_regular(path: Path, text: str | bytes) -> None:
     """Replace whatever is at `path` (a link, a file, a directory) with a new regular file."""
     if os.path.isdir(path) and not os.path.islink(path):
         shutil.rmtree(path)
     elif os.path.lexists(path):
         os.unlink(path)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(text)
+    with os.fdopen(fd, "wb") as f:
+        f.write(text.encode("utf-8") if isinstance(text, str) else text)
 
 
 def write_results(folder: Path, p: dict) -> None:
@@ -253,7 +259,8 @@ def compile_pdf(src: Path, policy: Optional[sbx.SandboxPolicy], allow_unsandboxe
         return {"ok": False, "error": "latexmk is not installed"}
     env = {"PATH": os.pathsep.join([str(Path(exe).parent), "/usr/bin", "/bin"]), "HOME": str(src),
            "TEXMFVAR": str(src / ".texmf-var"), "TMPDIR": str(src), "LANG": "en_US.UTF-8"}
-    argv = sbx.wrap([exe, "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
+    # -norc: a writer's .latexmkrc is Perl, run by latexmk; the version may hold one (Codex review 2)
+    argv = sbx.wrap([exe, "-norc", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
                     policy, allow_unsandboxed)
     log_file = src / "latexmk.out"
     rc, timed_out = run_tree(argv, cwd=src, env=env, timeout=timeout, output=log_file,
@@ -261,6 +268,8 @@ def compile_pdf(src: Path, policy: Optional[sbx.SandboxPolicy], allow_unsandboxe
     if timed_out:
         return {"ok": False, "error": "latexmk timed out"}
     pdf = src / "main.pdf"
-    if rc == 0 and pdf.exists():
+    # the engine copies the PDF outside the sandbox: only a regular file, never a link the build
+    # left (Codex review 2, P1: a link to a private file was exported in its place)
+    if rc == 0 and read_regular_bytes(pdf) is not None:
         return {"ok": True, "pdf": str(pdf)}
     return {"ok": False, "error": (read_regular(log_file) or f"exit code {rc}")[-1500:]}

@@ -53,6 +53,9 @@ if scenario == "orphan":
         "while True:\n"
         "    open(p, 'a').write('beat\\n'); time.sleep(0.2)\n")], start_new_session=True,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    deadline = time.time() + 10                 # the result comes only once the child is alive
+    while not beat.exists() and time.time() < deadline:
+        time.sleep(0.05)
 if scenario in ("holder", "escaped_holder"):
     # a descendant in a session of its own that keeps the output pipe open, then a CLI that hangs.
     # "escaped_holder" also drops the unit's environment, so neither the watcher's marker nor a

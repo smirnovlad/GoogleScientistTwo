@@ -383,3 +383,19 @@ def test_the_exported_budget_counts_the_exports_own_calls(tmp_path, toy_task):
     ctx.rt.budget.record({"key": "x/1", "agent": "final_judge", "kind": "reasoning", "outcome": "ok",
                           "seconds": 1, "equiv_usd": 0.0})
     assert early["by_outcome"] == exported["by_outcome"]       # a stored summary does not move
+
+
+def test_the_exported_patch_is_the_whole_change(tmp_path, toy_task):
+    """Codex review 2, P2: the patch was cut at the cap on what a model reads, and did not apply."""
+    import subprocess
+    big = {"agent": "subset_coder", "key": "^evo/r0/s1/",
+           "edits": {"params.json": params(0.3), "notes.py": "# note\n" * 40000}}       # 280 kB
+    rec, ctx, _ = go(tmp_path, toy_task, [big, BAD_IDEA, BAD_VERDICT])
+    assert rec["status"] == "done", rec.get("reason")
+    patch = ctx.run_dir / "export" / "changes.patch"
+    assert patch.stat().st_size > 280000
+    base = tmp_path / "base-copy"
+    ctx.ws.export("base", base)
+    subprocess.run(["git", "init", "-q", str(base)], check=True)
+    check = subprocess.run(["git", "-C", str(base), "apply", "--check", str(patch)], capture_output=True, text=True)
+    assert check.returncode == 0, check.stderr

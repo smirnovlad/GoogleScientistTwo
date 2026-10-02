@@ -185,10 +185,11 @@ def test_the_whole_process_tree_dies_with_the_call(fake, tmp_path):
     beat = tmp_path / "beat.txt"
     c = call("orphan")
     fake.call(AgentCall(**{**c.__dict__, "user": c.user + f"BEAT={beat}\n"}))
+    assert beat.exists() and beat.stat().st_size > 0           # the child ran (Codex review 2, P2)
     time.sleep(0.6)
-    size = beat.stat().st_size if beat.exists() else 0
+    size = beat.stat().st_size
     time.sleep(0.8)
-    assert (beat.stat().st_size if beat.exists() else 0) == size, "a detached child outlived its call"
+    assert beat.stat().st_size == size, "a detached child outlived its call"
 
 
 def test_child_env_is_an_allowlist(monkeypatch):
@@ -203,6 +204,9 @@ def test_the_registry_resumes_a_run_on_the_backend_it_recorded(tmp_path):
     assert isinstance(make_backend("mock"), MockBackend)
     with pytest.raises(ValueError):
         make_backend("gemini")
+    # the CLI updated since and deleted the pinned version: the current binary takes over
+    gone = make_backend("claude_cli", claude_bin=str(tmp_path / "versions" / "2.1.0"))
+    assert isinstance(gone, ClaudeCLIBackend) and gone.claude_bin != str(tmp_path / "versions" / "2.1.0")
 
 
 # ---- the runtime, on the mock backend ---------------------------------------------------------
@@ -419,3 +423,85 @@ def test_an_attempt_cut_off_by_the_engines_end_is_counted_and_numbered_on(tmp_pa
     transcripts = tmp_path / "transcripts" / "a"
     assert (transcripts / "1.jsonl").read_text() == "the first attempt's evidence"
     assert (transcripts / "1.attempt2.jsonl").exists()
+
+
+
+# ---- the second Codex review of 2026-10-02 ------------------------------------------------------
+def test_parallel_calls_cannot_pass_a_cap_together(tmp_path):
+    """P1: two workers checked a cap of one before either call was counted."""
+    import threading
+
+    class Slow(MockBackend):
+        def call(self, c):
+            time.sleep(0.3)
+            return super().call(c)
+
+    backend = Slow()
+    rt = AgentRuntime(backend, RunStore(tmp_path), Budget(tmp_path, Caps(max_agent_calls=1), time.time()),
+                      Routing({"default": {"model": "sonnet"}}), tmp_path, specs={"critic": SPEC},
+                      sleep=lambda s: None)
+    errors = []
+
+    def one(i):
+        try:
+            rt.run(f"a/{i}", "critic", {"x": i})
+        except BudgetExceeded as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=one, args=(i,)) for i in range(2)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert len(backend.calls) == 1 and len(errors) == 1
+
+
+def test_a_unit_finished_but_not_stored_is_rebuilt_without_a_second_call(tmp_path, monkeypatch):
+    """P1: a crash after the success line and before the store write paid for the unit twice."""
+    rt, backend, _ = runtime(tmp_path)
+    real = RunStore.put
+
+    def dies(self, key, record):
+        raise KeyboardInterrupt                                   # the engine dies here
+
+    monkeypatch.setattr(RunStore, "put", dies)
+    with pytest.raises(KeyboardInterrupt):
+        rt.run("a/1", "critic", {"x": 1})
+    monkeypatch.setattr(RunStore, "put", real)
+    rt2, backend2, _ = runtime(tmp_path)                          # the next engine process
+    rt2.run("a/1", "critic", {"x": 1})
+    assert backend2.calls == [] and RunStore(tmp_path).has("a/1")
+    rt2.forget("a/1")                                             # forgotten for good: runs again
+    rt3, backend3, _ = runtime(tmp_path)
+    rt3.run("a/1", "critic", {"x": 1})
+    assert len(backend3.calls) == 1
+
+
+def test_a_changed_schema_does_not_replay(tmp_path):
+    """P2: the replay fingerprint ignored the output schema and the tools."""
+    rt, _, _ = runtime(tmp_path)
+    rt.run("a/1", "critic", {"x": 1})
+    changed = AgentSpec(**{**SPEC.__dict__, "schema": {**SCHEMA, "required": ["verdict"]}})
+    rt2, _, _ = runtime(tmp_path, spec=changed)
+    with pytest.raises(InputsChanged):
+        rt2.run("a/1", "critic", {"x": 1})
+
+
+def test_a_failed_call_keeps_its_usage_windows(fake):
+    with pytest.raises(AgentFailed) as e:
+        fake.call(call("costly_error"))
+    assert e.value.rate_limit["unifiedWindows"]["five_hour"]["utilization"] == 0.4
+
+
+def test_a_coding_session_gets_the_tasks_timeout_unless_its_route_sets_one(tmp_path):
+    seen = []
+
+    class Spy(MockBackend):
+        def call(self, c):
+            seen.append(c.timeout_s)
+            return super().call(c)
+
+    for routing, expected in (({"default": {"model": "sonnet"}}, 60),
+                              ({"default": {"model": "sonnet"}, "agents": {"critic": {"timeout_s": 99}}}, 99)):
+        rt = AgentRuntime(Spy(), RunStore(tmp_path / str(expected)), Budget(tmp_path / str(expected), Caps(), time.time()),
+                          Routing(routing), tmp_path / str(expected), specs={"critic": SPEC}, sleep=lambda s: None)
+        rt.run("a/1", "critic", {"x": 1}, timeout_s=60)
+        assert seen[-1] == expected

@@ -29,7 +29,10 @@ from typing import Optional
 
 GIT = ["git", "-c", "user.name=scientisttwo", "-c", "user.email=engine@localhost",
        "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
-IGNORE = "__pycache__/\n*.pyc\n.ipynb_checkpoints/\n"
+# LaTeX's own outputs too: a writer that compiles its draft must not commit them into the paper
+# (run 3 exported main.aux, main.bbl and main.log beside main.tex)
+IGNORE = ("__pycache__/\n*.pyc\n.ipynb_checkpoints/\n"
+          "*.aux\n*.bbl\n*.blg\n*.fls\n*.fdb_latexmk\n*.synctex.gz\n*.toc\n")
 
 
 def archive_commit(repo: Path, commit: str, dest: Path) -> None:
