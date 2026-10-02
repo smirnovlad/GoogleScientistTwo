@@ -457,3 +457,47 @@ restart the task sessions from a terminal, both quoted above. It is not Vlad's o
 - **Task 6 has decided nothing yet.** Its branch, `claude/integrity-blockers`, holds no
   `docs/integrity/` (checked on 2026-10-02). The requirements reference its four rows, U-INT-4,
   U-TOP-5, A-INT-1 and A-INT-3, as pending, and depend only on what `CLAUDE.md` already settles.
+
+## 2026-10-02: task 2's first draft, and the check that proves its coverage
+
+**What exists now** (on `claude/requirements`):
+- **`docs/requirements.md`**, the entry point. It holds the goal in one line, how to read the
+  requirements, the decisions on task 2's 33 register rows, the five elements left out, and the
+  rows the requirements leave to tasks 3 to 7.
+- **`docs/requirements/01-run.md` to `08-operation.md`:** 71 requirements in eight areas, each with
+  its trace to the paper or its reason, and one acceptance test, mostly in mock mode.
+  - **The stages are data.** They are one table, the default stage configuration, setting the
+    parameters of one primitive (`02-primitive.md`). Each stage then has one requirement for what a
+    value alone cannot say, and its test.
+- **The decisions.** Of the 33 rows, 25 are confirmed as the register proposed them, 8 are refined,
+  and none is replaced. Each register row now ends with a pointer to its decision.
+- **`playground/paper/requirement_coverage.py`.** It checks that every one of the 177 paper elements
+  is traced by a requirement (172) or left out by a recorded decision (5). It also checks the
+  requirement fields, the decisions table, the register pointers and the boundary: a requirement
+  may decide only task 2's rows, and lists every other task's rows under *Depends on*.
+  - `--write` filled `traceability.md`'s requirement column. The diff was checked to change that
+    cell only, in all 177 rows.
+  - `--selftest` plants 26 defects beside a clean twin, and checks the column fill.
+  - Before the column was filled, the real run failed with 210 problems: 177 placeholders and 33
+    missing pointers.
+- **`check_citations.py` now checks the requirements too,** 27 files in all. The requirements mix the
+  paper's statements with our decisions, which is where a reading of ours could pass as the paper's.
+
+**Persona routing.** A `system-analyst` elicitation pass started first, in the background, reading
+the same inputs independently. Its report goes into the review folder when it arrives.
+
+## HANDOFF, 2026-10-02 (task 2: first draft committed; the review gate is next)
+
+- **Done:** the draft above. All checks pass: `check_citations.py` (27 files),
+  `trace_coverage.py`, `register_coverage.py` and `requirement_coverage.py`, each with its
+  self-test.
+- **Next:**
+  1. Save the `system-analyst` elicitation verbatim in `docs/reviews/requirements-2026-10-02/`.
+  2. Run the review gate: `system-analyst`, `system-architect` and `evaluation-integrity-engineer` in
+     parallel, one lens each, saved verbatim in the same folder. Fix, then a closure check.
+  3. Run the `/codex` gate on `git diff claude/paper-analysis...HEAD`, with
+     `-c model="gpt-6-astra"` and no `--base`.
+  4. Tick task 2 in `TODO.md` with its proof, and open the PR against `claude/paper-analysis` while
+     PR #1 is open.
+- **Task 6 had decided nothing** when the draft was written. If its decisions land, check every
+  requirement that lists U-INT-4, U-TOP-5, A-INT-1 or A-INT-3 under *Depends on*.
