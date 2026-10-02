@@ -102,6 +102,9 @@ after it; `P1` is needed before building; `P2` comes later.
     (`docs/requirements/03-stages.md`) and R-RUN-4's sequence. The register proposals that the
     requirements presume, such as U-TOP-2's retry policy and U-ART-15's access per role, are listed
     in `docs/requirements.md`; deciding one otherwise means revising the requirement that names it.
+    Rank 1 also has a table of failures after retries for every role. The engine as built departs
+    from the requirements once, by keeping the run's sequence and the seed and evolution loops in
+    code (R-PRIM-1, R-PRIM-2, R-RUN-4); `docs/requirements.md`, *The engine as built*.
   - **Done when:** each of these five changes touches one component, or only data, and the design
     shows which files for each:
     - a new agent;
@@ -140,6 +143,11 @@ after it; `P1` is needed before building; `P2` comes later.
   - **Found by task 2:** price more coding sessions than `docs/paper/analysis.md` section 9
     counts: its bound leaves out the specification filter after every code-producing unit and the
     manuscript checks after every revision (R-INT-4, R-INT-10; the elicitation's CONT-8).
+  - **Found by task 2:** values the requirements name and wait for, under task 6's rules: the
+    baseline tolerance (IR-15.3's formula), k (IR-15.5), the seed floor (IR-9.3) and the bound on
+    attempts per identity (IR-33.3); the configuration refuses to load without them (R-STG-13). The
+    gates' false-pass bound α defaults to 0.05 and the duplicate rule's attempts M to 3 × N_seed,
+    both ours, which task 5 may change before a task's admission.
   - **Found by task 1:**
     - **The $3,765 is a mean over the 33 NeurIPS successes only.** Failed runs are not costed
       (`docs/paper/claims/discussion.md`, C-DISC-3; U-COST-2).
@@ -167,9 +175,9 @@ after it; `P1` is needed before building; `P2` comes later.
 
   The integrity rules in `CLAUDE.md` already settle the first two in principle.
 
-  **Found by task 2:** the requirements cite the first version's rules by their IR- IDs, and eleven
-  of task 2's decisions adopt them, marked provisional in `docs/requirements.md`. When the review
-  closes, recheck those rows and every clause that cites an IR- rule. The integrity review of the
+  **Found by task 2:** the requirements cite the second version's rules (adc3484) by their IR- IDs,
+  and eleven of task 2's decisions adopt them, marked provisional in `docs/requirements.md`. When
+  its review closes, recheck those rows and every clause that cites an IR- rule. The integrity review of the
   requirements (EI-13) proposes that people also check a random sample of the audit's passes, not
   only its flags; that is U-NOTE-4's to decide.
 
@@ -192,7 +200,8 @@ after it; `P1` is needed before building; `P2` comes later.
 
 - [ ] `P2` **10 · Split `DEVELOPMENT_PROCESS.md`.** Found by task 2: every task branch appends to
   it, and it is past `CLAUDE.md`'s cap of 600 lines on two of them (639 lines on
-  `claude/integrity-blockers`, 608 on `claude/requirements`, counted 2026-10-02). Split it, by
+  `claude/integrity-blockers`, 608 on `claude/requirements`, counted 2026-10-02; 655 on
+  `claude/requirements` after its third revision). Split it, by
   period or by task, when those branches merge, so that no branch restructures a file all of them
   write. Vlad's quotes stay verbatim, each where its section is.
 

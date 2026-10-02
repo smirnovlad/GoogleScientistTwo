@@ -11,7 +11,9 @@ picks up again [§3] [ours]. Where each object is stored is task 3's [ours].
 - **Traces.** P-STATE-1 [§3, Eq. 1]; P-STATE-2 [App. B] [Tab. 15].
 - **Why ours.** The paper forbids changing the protocol by audit only; CLAUDE.md enforces integrity by the setup, never by a prompt [Tab. 15] [ours]. A comparison of hashes after the run misses an edit restored before it ends (EI-16) [ours].
 - **Depends on.** U-TOP-5 and U-INT-4, task 6 [ours].
-- **Test.** Enforcement, on the toy task: an agent scripted to write into the task's files, and one scripted to open a label file, both fail on the real sandbox; a task file edited and restored between two harness jobs makes the second job refuse to run. In the twin with a writable mount and a hash check only after the run, the edit changes the next decision and the final check passes [ours].
+- **Test.** Enforcement, on the toy task [ours]:
+  - an agent scripted to write into the task's files, and one scripted to open a label file, both fail on the real sandbox; in the twin with a writable mount and the labels present, both succeed [ours];
+  - a task file edited after one harness job makes the next job, started while the file is still changed, refuse to run; the file is then restored. In the twin with a hash check only after the run, the second job runs on the edited file, its result changes the next decision, and the final check, made after the restore, passes [ours].
 
 ### R-STATE-2 · Some records only grow
 
@@ -23,11 +25,12 @@ picks up again [§3] [ours]. Where each object is stored is task 3's [ours].
 - **Traces.** P-STATE-3 [§3.1]; P-STATE-4 [§3.1] [§3.3]; P-STATE-7 [§3.3, Eq. 3]; P-STATE-13 [§3.5].
 - **Test.** Logic, in mock mode: a write that changes an existing trace entry is refused, and after a run with two review rounds the record holds all three reviews [ours].
 
-### R-STATE-3 · The core state changes only through the selection and the guard
+### R-STATE-3 · The core state changes only through the selection, the guard, and a restore
 
-- **Requirement.** h_best, E_best and C_best are set by the selection, and replaced only by a refinement that the guard accepts; every refinement candidate is recorded as promoted or discarded, and every change of the core state leaves an audit row with its cause [§3.3, Eq. 4] [§3.4] [§3.6] [ours].
+- **Requirement.** h_best, E_best and C_best are set by the selection, replaced only by a refinement that the guard accepts, and restored only when a later `Reject` undoes a promotion, to the state kept before it (R-STG-9, R-STG-12) [§3.3, Eq. 4] [§3.4] [§3.6] [App. B] [ours]. Every refinement candidate is recorded as promoted or discarded. Every change of the core state, and every resume or amendment of the run (R-RUN-8), leaves an audit row that names the old and new hashes, its cause, the records the decision read, and the hash of the rule it applied; a restore may only return to a state the core state has held [ours].
 - **Traces.** P-STATE-9 [§3.3, Eq. 4] [§3.4]; P-STATE-11 [§3.4] [§3.6].
-- **Test.** Logic, in mock mode: a write to the core state from anywhere but the selection or a guard that accepted is refused; every A_FullEng result in the record is marked promoted or discarded; each change of the core state has its audit row [ours].
+- **Why ours.** The paper keeps the previous best outputs after a failed refinement [§3.6], and its one `Reject` ended a task [App. B]; once a `Reject` can undo a promotion, the core state needs a third writer, which the first revision forbade (the Codex review, P1). An audit row that says only *guard* cannot be checked (MISS-6) [ours].
+- **Test.** Logic, in mock mode: a write to the core state from anywhere but the selection, an accepted guard or a restore is refused; every A_FullEng result in the record is marked promoted or discarded; after `Refine`, an accepted guard and a `Reject`, the core state equals the one before the promotion, and the restore's audit row names both hashes, its cause and the rule's hash; a restore to a state never held is refused; a resume leaves its row [ours].
 
 ### R-STATE-4 · Every code version is a snapshot, and work happens on copies
 
@@ -57,17 +60,18 @@ picks up again [§3] [ours]. Where each object is stored is task 3's [ours].
 
 ### R-STATE-7 · A stopped run resumes, and never pays twice for finished work
 
-- **Requirement.** Every unit of work, an agent call, a coding session or a harness job, has a key derived from its place in the run: stage path, pass, round, item and attempt. Its record is written to disk before the next unit that depends on it starts [ours]. On resume [ours]:
-  - a finished unit is never run again, and a unit with a harness result reuses that result on any retry (U-INT-4) [ours];
-  - a unit whose call may have finished is in doubt, and is reconciled before any retry, never retried blind [ours];
+- **Requirement.** A unit of work is a leaf: an agent call, a coding session or a harness job. It has a key derived from its place in the run: stage path, pass, round, item and attempt. A stage, a pass or a run is a composite, whose record is derived from its units' records. A unit's record is written to disk before the next unit that depends on it starts [ours]. On resume [ours]:
+  - a finished unit is never run again [ours];
+  - a harness job whose result was released is never run again, and its result, a failure of agent code included, is reused on any retry; one stopped before it released a result runs again under the same identity and seeds, which is not a second use of its data (task 6's IR-33.1, IR-33.3; U-INT-4) [ours];
+  - a unit whose call may have finished is in doubt, and is reconciled before any retry, never retried blind; one that cannot be settled within its bound is settled as spent, and then run once more, with the duplicate recorded [ours];
   - a resumed unit starts from its recorded input snapshot, never from a half-edited workspace [ours];
   - the run reads the configuration versions and the ledger its record names, never the files as they now are on disk [ours].
 
   The unit of work and the failure policy are task 3's (U-CFG-2, U-TOP-2) [ours].
 - **Traces.** none.
-- **Why ours.** CLAUDE.md requires long runs to resume, and a retry never to spend twice. The paper's runs last 2.51 days on average, and most of the time and cost is spent inside A_Coder, so the unit that resumes sits inside it [Fig. 10] (image). After a timeout the engine cannot know whether a paid call finished, and a retry after a poor result would re-draw it (SA-4, EI-21) [ours].
+- **Why ours.** CLAUDE.md requires long runs to resume, and a retry never to spend twice. The paper's runs last 2.51 days on average, and most of the time and cost is spent inside A_Coder, so the unit that resumes sits inside it [Fig. 10] (image). After a timeout the engine cannot know whether a paid call finished, and a retry after a poor result would re-draw it (SA-4, EI-21) [ours]. A test event killed in flight and run again would be a second report job unless identity, not attempts, counts its uses (IR-33); a unit in doubt with no bound would stall the run (the analyst's closure, NEW-7) [ours].
 - **Depends on.** U-CFG-2 and U-TOP-2, task 3; U-INT-4, task 6, the harness's records [ours].
-- **Test.** Logic, in mock mode: the run is killed at every unit boundary, inside a fan-out, inside the second downstream pass, during a harness job, and between a paid call's return and its durable record. After each restart, every finished unit has been called once, the unit in flight at most once more, the records equal an uninterrupted run's, and configuration files edited on disk in the meantime are ignored [ours].
+- **Test.** Logic, in mock mode: the run is killed at every unit boundary, inside a fan-out, inside the second downstream pass, during a harness job, during the test event, and between a paid call's return and its durable record. After each restart, every finished unit has been called once, the unit in flight at most once more, the test event's report jobs count one, the records equal an uninterrupted run's, and configuration files edited on disk in the meantime are ignored; a unit in doubt that cannot be settled is recorded as spent, run once more, and the duplicate is in the ledger [ours].
 
 ### R-STATE-8 · A run's parts resolve from its record, each with its own writers
 
@@ -79,16 +83,16 @@ picks up again [§3] [ours]. Where each object is stored is task 3's [ours].
 
 ### R-STATE-9 · Every idea has a decision trail that one query returns
 
-- **Requirement.** For any idea, one query over the run's records returns its whole trail: its origin, a seed's rank or the traces it evolved from; its novelty score with its references; every verdict with its feedback and the harness records the judge read; every engineering step with its code version; and, if chosen, the Selector's reason. A pruned idea's trail ends at the verdict that pruned it. The record format is task 3's (U-ART-10), and the records the judges read are the harness's (U-INT-4) [§3.1] [§3.2] [§3.3] [ours].
+- **Requirement.** For any idea, one query over the run's records returns its whole trail: its origin, a seed's rank or the traces it evolved from; its novelty score with its references; every verdict with its feedback and the harness records the judge read; every precondition's result with the hash of the rule it used; every filter verdict; every engineering step with its code version; for a `Good` idea, its rank in the band; and, if chosen, the Selector's reason and its ablation, control, guard and meta decisions. A pruned idea's trail ends at the verdict that pruned it. The record format is task 3's (U-ART-10), and the records the judges read are the harness's (U-INT-4) [§3.1] [§3.2] [§3.3] [ours].
 - **Traces.** none.
 - **Why ours.** A_Evolve reads the failure logs of `Bad` ideas, and CLAUDE.md keeps run history as data that can be queried; the paper prints no verdict at all [§3.3] [pp. 34–71] [ours].
 - **Depends on.** U-ART-10, task 3; U-INT-4, task 6 [ours].
-- **Test.** Logic: after a mock run, for every idea ID, one query returns a trail with each of the parts above, and a pruned idea's trail ends at its `Bad` [ours].
+- **Test.** Logic: after a mock run, for every idea ID, one query returns a trail with each of the parts above that applies to it, the chosen idea's ablation, control, guard and meta decisions included, and a pruned idea's trail ends at its `Bad` [ours].
 
 ### R-STATE-10 · The verified results table is run state that only engine code writes
 
-- **Requirement.** The verified results table, which the writers, the Meta-Reviewer and the export read, is written only by engine code from the harness's result records (U-INT-4). It is versioned and append-only; each entry cites its records by ID and hash and carries its row's role, its split role, its metric and direction, and its seed count (U-TOP-5); a result the specification filter discarded never enters it, and its discard is recorded. Its form, and the consistency check before export, are task 6's (A-ART-7); what the drafter reads from it is task 3's (U-DRAFT-1) [§3.5] [ours].
+- **Requirement.** The verified results table, which the writers, the Meta-Reviewer and the export read, is written only by engine code, from the harness's result records (U-INT-4) or, for a published number, from the manifest, each entry labelled with its source. It is versioned and append-only; each entry cites its records by ID and hash and carries its row's role, its split role, its metric and direction, and its seed count (U-TOP-5); a table rendered for a manuscript draws each row from that row's own entries; a result the specification filter discarded never enters it, and its discard is recorded. Its form, and the consistency check before export, are task 6's (A-ART-7); what the drafter reads from it is task 3's (U-DRAFT-1) [§3.5] [ours].
 - **Traces.** none.
 - **Why ours.** CLAUDE.md lets the manuscript writer see only verified results. Four stages and the export read one table that no requirement had defined (SA-9), and a number without its role can be quoted as another row's (EI-5) [§3.5] [ours].
 - **Depends on.** U-INT-4, U-TOP-5 and A-ART-7, task 6; U-DRAFT-1, task 3 [ours].
-- **Test.** Logic, in mock mode: after a run, every entry of every table version resolves to harness records with matching hashes and carries its roles; a result the filter discarded is absent, and its discard is in the record; an attempt by an agent to write an entry is refused [ours].
+- **Test.** Logic, in mock mode: after a run, every entry of every table version resolves to harness records or to the manifest, with matching hashes, and carries its source and roles; a result the filter discarded is absent, and its discard is in the record; an attempt by an agent to write an entry is refused [ours].

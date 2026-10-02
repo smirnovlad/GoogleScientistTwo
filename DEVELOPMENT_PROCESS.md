@@ -519,8 +519,10 @@ session did not receive it directly, and found it while answering the architect'
   becomes a requirement. It forces a recorded departure from App. A.2's routing, since Gemini
   cannot run there, and a ledger kept in the subscription's own units.
 - **The engine is being built now,** on `claude/engine`, against its own contract,
-  `docs/architecture/engine.md`. That session folds tasks 2 and 6 in when they land. Its decisions
-  on the register mostly match the ones taken here; where they differ, the requirements say so.
+  `docs/architecture/engine.md`. That session folds tasks 2 and 6 in when they land. (Corrected
+  later the same day: this entry said its decisions mostly match the ones taken here. The
+  architect's closure check found that its contract decides rank 1 against the requirements, and
+  the requirements now list each departure, in *The engine as built*.)
 
 **Other work found, outside this task's brief.** Codex sessions have built engine slices, each with a
 requirements file of its own, in `docs/requirements/`:
@@ -589,19 +591,65 @@ and `register_coverage.py`, 0 problems; every self-test passes; pyflakes is clea
 is 536 lines; a scan of the diff for paths, e-mail addresses and keys finds none, and finds the line
 planted to prove that it can.
 
-## HANDOFF, 2026-10-02 (task 2: revision committed; closure checks and the Codex gate are next)
+## 2026-10-02: the closure checks, task 6's second version, and the third revision
 
-- **Done:** the first draft, the review gate (three reviews, saved verbatim), and the revision above,
-  with its fix list.
+**The closure checks** ran in parallel on c2ad177, one per lens, saved verbatim in
+`docs/reviews/requirements-2026-10-02/`, beside the Codex gate's review of the same commit:
+- **Codex** (`codex-review.md`): 4 P1 and 6 P2. The P1s: an ablation `Reject` could not undo a
+  promotion; a late manuscript repair escaped the earlier checks; R-INT-3's test forbade the sealed
+  check; R-MEAS-1 asked for a test gain that an ablation reject never has.
+- **`system-analyst`:** 60 closed, 25 partly, 4 open, and 17 new findings, 7 of them major.
+- **`system-architect`:** 13 closed, 4 partly; 11 new, 6 major; "Task 3 can start rank 1".
+- **`evaluation-integrity-engineer`:** 14 closed, 10 partly, none open; 15 new, one a blocker: the
+  winner's training luck survived the test event. Its report is split in two files at "Minors", to
+  stay under 600 lines, and its simulations are saved as `playground/requirements/closure_sims.py`,
+  which reproduces its numbers exactly.
+
+**The coordinating session's decisions** (relayed to this session, 2026-10-02):
+- task 3 starts from `docs/architecture/engine.md`, and the requirements record each departure of
+  the engine as built, as the coordinating session read it against cba39df and its uncommitted
+  fixes;
+- task 6's F-46 is decided without asking Vlad: the three extra reads of the test split are allowed
+  because none feeds a decision, and any read that could is a violation. This session relayed it to
+  task 6, which agreed, and set its conditions on C_base's hash, on suspending a run, and on the
+  mechanism switches; all three are met here.
+
+**Task 6's second version landed during the fixes,** at adc3484: rules IR-1 to IR-41, applying its
+fix list and amendments A1 to A6. Three of its facts changed requirements written that hour: E_base
+is not fitted again at the test event (IR-14.4); k, the seed floor and the attempt bound are task
+5's; and the gates' values are task 2's (IR-7.1), so each margin is now derived from a false-pass
+bound α, whose default, 0.05, is ours.
+
+**The third revision** (this commit):
+- **Outcomes:** ten, final, plus one suspended state for budget, wall-clock, usage window, billing
+  and infrastructure; *abandoned*; *test event done, not exported*; the baseline's refusal at
+  admission (R-RUN-5, R-RUN-8).
+- **The primitive:** an outcome vocabulary, and a table of failures after retries for every role;
+  agent-code failures are released results, never retried; harness failures retry under the same
+  identity, then suspend.
+- **Ablation:** paired fresh fits of C_best and its control, a floor against E_base, switch scope
+  checked at the code hook, a restore for `Reject`, and the mark *attribution not established*.
+- **Measurement:** the register's three readings of success, a pre-registered success test, a noise
+  floor across seeds, a null idea that redraws its randomness, and a reporting judge held out from
+  the authors' family, with a transfer control.
+- **Tests:** every enforcement clause has a twin or a positive control.
+- **The checker:** row-width guards, range endpoints, HTML comments, loose U- and A- IDs, task
+  attribution, an IR- citation's row, a test's tier, and an A_Coder row; 52 self-test cases.
+- **Bookkeeping:** all 17 questions listed with their answers; the engine's branch mapped with its
+  one remaining departure; the register's pointers moved to task 6's second version.
+
+## HANDOFF, 2026-10-02 (task 2: third revision committed; a narrow closure check and Codex are next)
+
+- **Done:** the draft, the review gate, two revisions, the closure checks and their dispositions,
+  in `docs/reviews/requirements-2026-10-02/fix-list.md`.
 - **Next:**
-  1. Closure checks, in parallel, by the same three personas, each on its own findings, saved
-     verbatim beside the reviews. Fix what they find.
-  2. The `/codex` gate on `git diff claude/paper-analysis...HEAD`, with `-c model="gpt-6-astra"`
-     and no `--base`. Record the verdict and every HIGH or MEDIUM finding, with its disposition.
-  3. Tick task 2 in `TODO.md` with its proof; open the PR against `claude/paper-analysis` while PR
-     #1 is open.
-- **When task 6's review closes:** check every requirement that cites an IR- rule, and the eleven
-  rows marked provisional, against the reviewed rules.
-- **For the engine's integrator:** the Codex contracts (RJ, BA, VT, and the runtime integration)
-  move beside their components on merge, never into `docs/requirements/`, which the checker
-  enforces. The Codex slices use the package name `scientist_two`, the engine `scientisttwo`.
+  1. A narrow closure check of the majors and the blocker, by the same personas, saved verbatim.
+  2. The `/codex` gate on the delta, with `-c model="gpt-6-astra"`, no `--base`, the range named in
+     the instructions (`git diff claude/paper-analysis...HEAD` while PR #1 is open).
+  3. Tick task 2 in `TODO.md` with its proof; open the PR against `claude/paper-analysis`.
+- **When the review of task 6's second version closes:** check every requirement that cites an IR-
+  rule, and the eleven rows marked provisional.
+- **This file is over 600 lines;** TODO task 10 splits it, which needs the parallel sessions'
+  entries merged first.
+- **For the engine's integrator:** the Codex contracts move beside their components on merge, never
+  into `docs/requirements/`, which the checker enforces.

@@ -38,6 +38,7 @@ REGISTER = """# Register
 | U-AAA-1 (an) | UNSPECIFIED | q | d **Task 2 decided it: confirmed, in R-STG-1.** | 2 | blocks 1 | U-AAA-2 (an) |
 | U-BBB-1 (an) | UNSPECIFIED | q | d | 3 | later | none |
 | U-INT-4 (an) | UNSPECIFIED | q | d | 6 | blocks 3 | U-ART-16 (an) |
+| U-CCC-1 (an) | UNSPECIFIED | q | d | 5 | later | none |
 ## Why these rows merge
 """
 MAIN = """# Requirements
@@ -48,11 +49,13 @@ MAIN = """# Requirements
 ## Elements left out
 ### X-1 · A figure
 - **Leaves out.** P-BBB-1 [Fig. 1].
-- **Why.** Nothing to reproduce [ours].
+- **Why.** Nothing to reproduce, as U-CCC-1 decides [ours].
+- **Depends on.** U-CCC-1, task 5 [ours].
 ## What the requirements leave to other tasks
 | Task | Rows the requirements depend on |
 |---|---|
 | 3 · components | U-BBB-1 |
+| 5 · scope | U-CCC-1 |
 | 6 · integrity | U-INT-4 |
 """
 STAGES = ("## The default stage configuration\n| " + " | ".join(STAGE_COLUMNS) + " |\n|" + "---|" * len(STAGE_COLUMNS)
@@ -62,17 +65,17 @@ AREA1 = "# Area\n" + STAGES + """## The requirements
 - **Requirement.** It runs [§3].
 - **Traces.** P-AAA-1 … 2 [§3].
 - **Departs from.** P-AAA-1: done another way [ours].
-- **Test.** It ran [ours].
+- **Test.** Logic: it ran [ours].
 ### R-STG-1 · A stage
 - **Requirement.** It stages as U-BBB-1 decides, scored by the harness (U-INT-4) [ours].
 - **Traces.** P-AAA-2, P-CCC-1 [§3.1].
 - **Why ours.** A reason [ours].
 - **Decides.** U-AAA-2 [ours].
-- **Depends on.** U-BBB-1; U-INT-4 [ours].
-- **Test.** It staged:
+- **Depends on.** U-BBB-1, task 3; U-INT-4, task 6 [ours].
+- **Test.** Logic, in mock mode: it staged:
   - first case [ours].
 """
-OURS_REQ = "### R-OPS-1 · Ours\n- **Requirement.** x [ours].\n- **Traces.** {traces}.\n{why}- **Test.** y [ours].\n"
+OURS_REQ = "### R-OPS-1 · Ours\n- **Requirement.** x [ours].\n- **Traces.** {traces}.\n{why}- **Test.** Logic: y [ours].\n"
 
 
 def selftest() -> int:
@@ -94,16 +97,24 @@ def selftest() -> int:
         "a trace to nothing": ({"area": edit(AREA1, "P-AAA-2, P-CCC-1 [§3.1]", "P-AAA-2, P-CCC-1, P-DDD-1 [§3.1]")},
                                {"dangling-trace"}),
         "a malformed ID": ({"area": edit(AREA1, "P-AAA-2, P-CCC-1 [§3.1]", "P-AAA-2, P-CCC-1, P–AAA–1 [§3.1]")}, {"malformed-id"}),
+        "a padded range endpoint": ({"area": edit(AREA1, "P-AAA-1 … 2 [§3]", "P-AAA-1 … 02 [§3]")}, {"malformed-id"}),
+        "a backwards range": ({"area": edit(AREA1, "P-AAA-1 … 2 [§3]", "P-AAA-2 … 1 [§3]")}, {"malformed-id"}),
+        "a truncated decision row": ({"main": edit(MAIN, "| U-AAA-1 | blocks 1 | confirmed | d | r | R-STG-1 |",
+                                                   "| U-AAA-1 | blocks 1 | confirmed | d | r |")}, {"decision-table"}),
+        "a truncated register row": ({"register": edit(REGISTER, "| 3 | later | none |", "| 3 |")},
+                                     {"structure", "unknown-row", "pending-table"}),
+        "a truncated pending row": ({"main": edit(MAIN, "| 3 · components | U-BBB-1 |", "| 3 · components |")},
+                                    {"structure", "pending-table"}),
         "an ID defined twice": ({"area": AREA1 + "### R-RUN-1 · Again\n- **Requirement.** x [ours].\n"
-                                 "- **Traces.** P-AAA-1 [§3].\n- **Test.** y [ours].\n"}, {"duplicate-id"}),
+                                 "- **Traces.** P-AAA-1 [§3].\n- **Test.** Logic: y [ours].\n"}, {"duplicate-id"}),
         "a missing field": ({"area": edit(AREA1, traces_1, "- **Departs from.** P-AAA-1: done another way [ours].\n")},
                             {"fields", "unmapped", "column", "departs"}),
         "fields out of order": ({"area": edit(AREA1, "- **Why ours.** A reason [ours].\n- **Decides.** U-AAA-2 [ours].\n",
                                               "- **Decides.** U-AAA-2 [ours].\n- **Why ours.** A reason [ours].\n")}, {"fields"}),
-        "text outside a field": ({"area": edit(AREA1, "- **Test.** It ran [ours].\n", "- **Test.** It ran [ours].\nStray text.\n")},
+        "text outside a field": ({"area": edit(AREA1, "- **Test.** Logic: it ran [ours].\n", "- **Test.** Logic: it ran [ours].\nStray text.\n")},
                                  {"fields"}),
-        "an empty test": ({"area": edit(AREA1, "- **Test.** It ran [ours].", "- **Test.** [ours]")}, {"no-test"}),
-        "a placeholder test": ({"area": edit(AREA1, "- **Test.** It ran [ours].", "- **Test.** TBD [ours].")}, {"placeholder"}),
+        "an empty test": ({"area": edit(AREA1, "- **Test.** Logic: it ran [ours].", "- **Test.** [ours]")}, {"no-test"}),
+        "a placeholder test": ({"area": edit(AREA1, "- **Test.** Logic: it ran [ours].", "- **Test.** TBD [ours].")}, {"placeholder"}),
         "a placeholder requirement": ({"area": edit(AREA1, "- **Requirement.** It runs [§3].", "- **Requirement.** TODO.")},
                                       {"placeholder"}),
         "no trace and no reason": ({"area": AREA1 + OURS_REQ.format(traces="none", why="")}, {"no-source"}),
@@ -119,24 +130,39 @@ def selftest() -> int:
         "an empty stage cell": ({"area": edit(AREA1, "| SEED | v |", "| SEED |  |")}, {"stage-table"}),
         "no stage table": ({"area": edit(AREA1, "## The default stage configuration", "## Stages")}, {"structure"}),
         "a file with no requirement": ({"extra": "# Another scheme\n| RJ-1 | something | a test |\n"}, {"structure"}),
-        "a leave-out with no reason": ({"main": edit(MAIN, "- **Why.** Nothing to reproduce [ours].", "- **Why.** [ours]")},
+        "a leave-out with no reason": ({"main": edit(MAIN, "- **Why.** Nothing to reproduce, as U-CCC-1 decides [ours].",
+                                                     "- **Why.** [ours] (U-CCC-1)")},
                                        {"no-reason"}),
         "deciding another task's row": ({"area": edit(AREA1, "- **Decides.** U-AAA-2 [ours].", "- **Decides.** U-AAA-2, U-BBB-1 [ours].")},
                                         {"boundary"}),
-        "depending on a task-2 row": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1;", "- **Depends on.** U-BBB-1, U-AAA-1;"),
+        "depending on a task-2 row": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1, task 3;", "- **Depends on.** U-BBB-1, task 3; U-AAA-1;"),
                                                     "as U-BBB-1 decides", "as U-BBB-1 and U-AAA-1 decide")},
                                       {"boundary", "pending-table"}),
-        "a row the register lacks": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1;", "- **Depends on.** U-BBB-1, U-ZZZ-9;"),
+        "a row the register lacks": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1, task 3;", "- **Depends on.** U-BBB-1, task 3; U-ZZZ-9;"),
                                                    "as U-BBB-1 decides", "as U-BBB-1 and U-ZZZ-9 decide")},
                                      {"unknown-row"}),
         "a dependency the text does not name": ({"area": edit(AREA1, "It stages as U-BBB-1 decides,", "It stages,")},
                                                 {"inline-dependency"}),
-        "the harness without task 6's rows": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1; U-INT-4 [ours].",
-                                                                  "- **Depends on.** U-BBB-1 [ours]."), " (U-INT-4)", ""),
+        "a leave-out's dependency it does not name": ({"main": edit(MAIN, "Nothing to reproduce, as U-CCC-1 decides [ours].",
+                                                                   "Nothing to reproduce [ours].")}, {"inline-dependency"}),
+        "a row given to the wrong task": ({"area": edit(AREA1, "U-BBB-1, task 3;", "U-BBB-1, task 5;")}, {"task-attribution"}),
+        "a malformed row ID under Depends on": ({"area": edit(edit(AREA1, "U-BBB-1, task 3;", "U–BBB–1, task 3;"),
+                                                              "as U-BBB-1 decides", "as U–BBB–1 decides")},
+                                                {"malformed-id", "pending-table"}),
+        "a test with no tier": ({"area": edit(AREA1, "- **Test.** Logic: it ran [ours].", "- **Test.** It ran [ours].")},
+                                {"test-tier"}),
+        "an IR- rule with no task-6 row": ({"area": edit(AREA1, "It runs [§3].", "It runs, as task 6's IR-3 sets it [§3].")},
+                                           {"integrity-dependency"}),
+        "an IR- rule beside its task-6 row": ({"area": edit(AREA1, "scored by the harness (U-INT-4)",
+                                                            "scored by the harness (IR-5; U-INT-4)")}, set()),
+        "a trace inside an HTML comment": ({"area": edit(AREA1, "P-AAA-2, P-CCC-1 [§3.1]", "P-AAA-2 <!-- , P-CCC-1 --> [§3.1]")},
+                                           {"unmapped", "column"}),
+        "the harness without task 6's rows": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1, task 3; U-INT-4, task 6 [ours].",
+                                                                  "- **Depends on.** U-BBB-1, task 3 [ours]."), " (U-INT-4)", ""),
                                                "main": edit(MAIN, "| 6 · integrity | U-INT-4 |\n", "")},
                                               {"integrity-dependency"}),
-        "a task-6 row named by its alias": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1; U-INT-4 [ours].",
-                                                                "- **Depends on.** U-BBB-1; U-ART-16 [ours]."), "(U-INT-4)", "(U-ART-16)")},
+        "a task-6 row named by its alias": ({"area": edit(edit(AREA1, "- **Depends on.** U-BBB-1, task 3; U-INT-4, task 6 [ours].",
+                                                                "- **Depends on.** U-BBB-1, task 3; U-ART-16, task 6 [ours]."), "(U-INT-4)", "(U-ART-16)")},
                                             set()),
         "a task-2 row nobody decides": ({"area": edit(AREA1, "- **Decides.** U-AAA-2 [ours].\n", ""),
                                          "main": edit(MAIN, "| R-STG-1 |\n", "|  |\n"),

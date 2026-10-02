@@ -189,8 +189,8 @@ Every required part has at least one element [ours]. The first version of this f
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
 | P-DRAFT-1 | Initial Drafter with PaperOrchestra: h_best, E_best, E_abl → P_new, in the ICLR 2025 format | [§3.5] [App. A.2] | SPECIFIED (quoted); other inputs UNSPECIFIED (U-DRAFT-1); failures UNSPECIFIED (U-DRAFT-2) | U-DRAFT-1, U-DRAFT-2, A-INT-2 | R-STG-10, R-INT-8 | stage config DRAFT: generator, zero rounds |
-| P-PEER-1 | ScholarPeer reviews P_new → R_new with a score in [1, 10] | [§3.5] | SPECIFIED (quoted); its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3 | R-STG-11 | stage config PEER: assessor |
-| P-PEER-2 | a score below the threshold of 8 starts the rebuttal | [§3.5] [App. A.2] | SPECIFIED (quoted); the threshold reviewer-dependent, to calibrate [ours] | A-EVAL-3 | R-PRIM-7, R-STG-11 | stage config PEER: assessor's rule and verdict map, 8 or more → accept |
+| P-PEER-1 | ScholarPeer reviews P_new → R_new with a score in [1, 10] | [§3.5] | SPECIFIED (quoted); its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3 | R-STG-11 (departs) | stage config PEER: assessor |
+| P-PEER-2 | a score below the threshold of 8 starts the rebuttal | [§3.5] [App. A.2] | SPECIFIED (quoted); the threshold reviewer-dependent, to calibrate [ours] | A-EVAL-3 | R-PRIM-7, R-STG-11 (departs) | stage config PEER: assessor's rule and verdict map, 8 or more → accept |
 | P-PEER-3 | Rebuttal Planner: R_new → N_t supplementary tasks | [§3.5] | SPECIFIED (quoted); N_t UNSPECIFIED (U-PEER-1) | U-PEER-1, A-CFG-1 | R-PRIM-8, R-STG-11 | stage config PEER: judged → refined, first of three refining agents; fan-out N_t |
 | P-PEER-4 | Rebuttal Coding Agent runs each task on C_best → E_reb | [§3.5] | SPECIFIED (quoted); whether its code stays UNSPECIFIED (U-PEER-2) | U-PEER-2, U-ART-15, U-TOP-5 | R-PRIM-8, R-STG-11, R-INT-1 (departs) | stage config PEER: judged → refined, second refining agent |
 | P-PEER-5 | Paper Enhancer: P_new, R_new, E_reb → a revised P_new | [§3.5] | SPECIFIED (quoted); its scope UNSPECIFIED (U-PEER-4) | U-PEER-4 | R-STG-11, R-INT-8 | stage config PEER: judged → refined, third refining agent |
@@ -230,7 +230,7 @@ Every required part has at least one element [ours]. The first version of this f
 | P-CFG-6 | K, refinement rounds: 4 | [§3.3] [App. A.2] [Fig. 9] (image) | SPECIFIED value; whether round 0 counts AMBIGUOUS (A-EVO-2) | A-EVO-2 | R-STG-7, R-STG-13 | stage config EVO: limit, K |
 | P-CFG-7 | S, successes that stop the rounds: 4 | [§3.3] [App. A.2] | SPECIFIED value; when it is checked UNSPECIFIED (U-EVO-1) | U-EVO-1 | R-STG-7, R-STG-13 | stage config EVO: limit, the stop count S |
 | P-CFG-8 | N_abl, ablation refinements: 1 | [§3.4] [App. A.2] | SPECIFIED value; what it counts AMBIGUOUS (A-TOP-2) | A-ABL-2, U-ABL-4, A-TOP-2 | R-STG-9, R-STG-13 | stage config ABL: limit (its value) |
-| P-CFG-9 | the review-score threshold: 8 | [§3.5] [App. A.2] | SPECIFIED: App. A.2 fixes §3.5's example value; reviewer-dependent, to calibrate [ours] | A-EVAL-3 | R-STG-11, R-STG-13 | stage config PEER: the assessor's rule, the threshold |
+| P-CFG-9 | the review-score threshold: 8 | [§3.5] [App. A.2] | SPECIFIED: App. A.2 fixes §3.5's example value; reviewer-dependent, to calibrate [ours] | A-EVAL-3 | R-STG-11 (departs), R-STG-13 (departs) | stage config PEER: the assessor's rule, the threshold |
 | P-CFG-10 | N_peer, the review–rebuttal budget: 2 | [§3.5] [App. A.2] [Tab. 5] | SPECIFIED value; its unit AMBIGUOUS (A-PEER-1) | A-PEER-1, A-TOP-2 | R-STG-11, R-STG-13 | stage config PEER: limit (its value) |
 | P-CFG-11 | N_meta, meta-review refinements: 1 | [§3.6] [App. A.2] [Tab. 6] | SPECIFIED value; a second meta-review AMBIGUOUS (A-META-2) | A-META-2, U-META-1, A-TOP-2 | R-STG-12, R-STG-13 | stage config META: limit (its value) |
 | P-CFG-12 | N_seed, the size of the seed pool | [§3.1] [App. A.2] | UNSPECIFIED: App. A.2 sets no value (U-SEED-1) | U-SEED-1 | R-STG-2, R-STG-13 | stage config SEED: limit, the pool size |
@@ -284,8 +284,8 @@ The paper tests every agent below only end to end, through Tables 5–8 and Figu
 | P-ROSTER-29 | Idea Generator, Figure 3's box around seed generation and the evolver | [Fig. 3] (image) | SPECIFIED (image); its name collides (A-ROSTER-1) | A-ROSTER-1 | R-AGT-3 | — (task 3) |
 | P-ROSTER-30 | Seed Idea Generator: the Limitation Extractor and the Novelty Checker | [Fig. 3] (image) | SPECIFIED (image) | none | R-AGT-3 | — (task 3) |
 | P-ROSTER-31 | Evaluator: the two experiment agents | [Fig. 3] (image) | SPECIFIED (image); that it is A_Coder [inferred] | A-BASE-1 | R-STG-6, R-AGT-3 | — (task 3) |
-| P-ROSTER-32 | Subset Experiment Agent: a Coding Agent and a Critic Agent in a cycle | [Fig. 3] (image) | SPECIFIED (image) | U-BASE-1 | R-STG-4, R-AGT-3 | — (task 3) |
-| P-ROSTER-33 | Full-Set Experiment Agent: the same pair, with no separate engineer | [Fig. 3] (image) | SPECIFIED (image) | A-CFG-1, U-ABL-2 | R-STG-5, R-AGT-2, R-AGT-3 | — (task 3) |
+| P-ROSTER-32 | Subset Experiment Agent: a Coding Agent and a Critic Agent in a cycle | [Fig. 3] (image) | SPECIFIED (image) | U-BASE-1 | R-RUN-2, R-STG-4, R-AGT-3 | — (task 3) |
+| P-ROSTER-33 | Full-Set Experiment Agent: the same pair, with no separate engineer | [Fig. 3] (image) | SPECIFIED (image) | A-CFG-1, U-ABL-2 | R-STG-5, R-STG-9, R-AGT-2, R-AGT-3 | — (task 3) |
 | P-ROSTER-34 | Analyzer: the Ablation Study Agent and an Idea Refiner | [Fig. 3] (image) | SPECIFIED (image) | U-ABL-2 | R-STG-9, R-AGT-3 | — (task 3) |
 | P-ROSTER-35 | Ablation Study Agent: a Planning Agent and a Coding Agent | [Fig. 3] (image) [App. A.2] | SPECIFIED; App. A.2's Claude Code group [inferred] | A-CFG-1 | R-AGT-2, R-AGT-3 | — (task 3) |
 | P-ROSTER-36 | Idea Refiner, drawn twice, in the Analyzer and in the Meta-Review Agent box | [Fig. 3] (image) | AMBIGUOUS: one name for two roles (A-ROSTER-1) | A-ROSTER-1 | R-AGT-3 | — (task 3) |
@@ -297,11 +297,11 @@ The paper tests every agent below only end to end, through Tables 5–8 and Figu
 | P-ROSTER-42 | Idea Critic Agent, App. A.2's name for the subset critic, and perhaps the full-set one | [App. A.2] | SPECIFIED; its scope AMBIGUOUS (A-FULL-2) | A-FULL-2 | R-STG-5, R-AGT-3 | — (task 3) |
 | P-ROSTER-43 | Coding Agent, a generic name | [§4.2] [Fig. 3] (image) | SPECIFIED; which session runs the checks AMBIGUOUS (A-INT-3) | A-INT-3 | R-AGT-3, R-INT-4 | — (task 3) |
 | P-ROSTER-44 | Critic Agent, a generic name; App. C prints a page of its feedback | [Fig. 3] (image) [App. C] | SPECIFIED; which critic wrote that page AMBIGUOUS (A-ART-1) | A-ART-1 | R-AGT-3, R-AGT-8 | — (task 3) |
-| P-ROSTER-45 | PaperOrchestra, inside the Initial Drafter | [§2] [§3.5] [Bib: song2026paperorchestra] | SPECIFIED; how it divides the work UNSPECIFIED (U-DRAFT-1) | U-DRAFT-1 | R-AGT-7 | — (task 3) |
+| P-ROSTER-45 | PaperOrchestra, inside the Initial Drafter | [§2] [§3.5] [Bib: song2026paperorchestra] | SPECIFIED; how it divides the work UNSPECIFIED (U-DRAFT-1) | U-DRAFT-1 | R-AGT-7 (departs) | — (task 3) |
 | P-ROSTER-46 | ScholarPeer, the in-loop reviewer and an evaluation reviewer | [§3.5] [§4] [Bib: goyal2026scholarpeer] | SPECIFIED; its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3, U-EVAL-2 | R-AGT-5 (departs) | — (task 3) |
-| P-ROSTER-47 | Google Search, two reference papers per novelty check | [App. A.2] | SPECIFIED; the query UNSPECIFIED (U-SEED-2) | U-SEED-2 | R-AGT-6 | — (task 3) |
+| P-ROSTER-47 | Google Search, two reference papers per novelty check | [App. A.2] | SPECIFIED; the query UNSPECIFIED (U-SEED-2) | U-SEED-2 | R-AGT-6 (departs) | — (task 3) |
 | P-ROSTER-48 | Claude Code with Opus 4.8, the coding backend | [§4.2] [App. A.2] | SPECIFIED; which agents use it AMBIGUOUS (A-CFG-1) | A-CFG-1, U-CFG-1 | R-AGT-4 | — (task 3) |
-| P-ROSTER-49 | Antigravity with Gemini 3.8 Flash, Table 8's replacement backend | [§4.2] [Tab. 8] | SPECIFIED; its Gemini version AMBIGUOUS (A-CFG-2) | A-CFG-2 | R-AGT-4 | — (task 3) |
+| P-ROSTER-49 | Antigravity with Gemini 3.8 Flash, Table 8's replacement backend | [§4.2] [Tab. 8] | SPECIFIED; its Gemini version AMBIGUOUS (A-CFG-2) | A-CFG-2 | R-AGT-4 (departs) | — (task 3) |
 | P-ROSTER-50 | Stanford Agentic Reviewer, the held-out evaluator | [§4] [fn. 1] | SPECIFIED; its acceptance rule UNSPECIFIED (U-EVAL-3) | U-EVAL-3 | R-MEAS-5 | — (task 3) |
 | P-ROSTER-51 | CoE Integrity Audit, a post-hoc evaluation and not a stage | [§4.2] [Bib: meng2026scientistone] | SPECIFIED by reference; its auditor UNSPECIFIED (U-EVAL-5) | U-EVAL-5, A-INT-1 | R-INT-7 | — (task 3) |
 

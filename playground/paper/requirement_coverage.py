@@ -5,7 +5,8 @@ The completeness control of TODO task 2 (docs/requirements.md, section "Controls
     "### R-<AREA>-n · <title>" followed by its fields as top-level list items
     ("- **Requirement.** ...", then Traces, Departs from, Why ours, Decides, Depends on, Test, in
     that order);
-    decisions to leave an element out, "### X-n · <title>" with "Leaves out" and "Why"; the table of
+    decisions to leave an element out, "### X-n · <title>" with "Leaves out", "Why" and, when it rests
+    on another task's row, "Depends on"; the table of
     decisions on the register's task-2 rows; and the table of rows left to other tasks;
   - docs/paper/traceability.md, Part 2, whose "Requirement" column must name, for each P- ID, the
     requirements and leave-outs that trace it;
@@ -23,25 +24,31 @@ Problem kinds (any one makes the exit status 1):
   no-source         a requirement that traces no P- ID and gives no reason under "Why ours"
   no-reason         an X- decision with no element under "Leaves out", or no reason under "Why"
   placeholder       a Requirement or Test field that holds only a placeholder (TBD, TODO, ?, —)
-  malformed-id      a P- ID in a trace field written with a dash, case or padding of the wrong kind
+  malformed-id      a P- ID in a trace field, or a U-/A- ID under Decides or Depends on, written with a
+                    dash, case or padding of the wrong kind, or a
+                    range whose endpoint is padded, zero or before its start ("P-ABL-1 … 02", "P-ABL-3 … 1")
   departs           a "Departs from" field names a P- ID that the requirement does not trace
   split-pair        a value and the mechanism that uses it (analysis.md section 6) share no requirement
-  stage-table       the default stage configuration lacks a stage (Table 1's eleven and the tail) or a
+  stage-table       the default stage configuration lacks a stage (Table 1's eleven, A_Coder and the tail) or a
                     parameter column, or has an empty cell
   column            a Requirement cell of traceability.md that differs from what the requirements say
   unknown-ref       a cell of a table here names an R- or X- ID that is not defined
   unknown-row       a Decides or Depends-on field names an ID that no register row holds
   boundary          a requirement decides a row that task 2 does not own, or depends on one it does
-  inline-dependency a Depends-on row that the Requirement text does not name beside its clause
+  inline-dependency a Depends-on row that the Requirement text (an X- decision's Why) does not name
+  task-attribution  a Depends-on clause that names a row as one task's ("U-TOP-2, task 3") when the
+                    register gives it to another
   integrity-dependency  a Requirement that names the harness, a data role, a gain or the verified
-                    table, and depends on neither U-INT-4 nor U-TOP-5 (task 6's blocking rows)
+                    table, and depends on neither U-INT-4 nor U-TOP-5 (task 6's blocking rows); or one
+                    that cites a rule of task 6's (IR-n) and depends on none of its four blocking rows
+  test-tier         a Test field that does not open with its tier, "Logic" or "Enforcement"
   undecided         a task-2 register row that no requirement decides
   decision-table    the decisions table: a missing, repeated or foreign row, a bad status, or a
                     "Carried by" cell that differs from the requirements that decide the row
   pointer           a task-2 register row without its pointer, or whose pointer disagrees with the table
   pending-table     the table of rows left to other tasks differs from the Depends-on fields
-  structure         a file, a section or a table column is missing, or a file of docs/requirements/
-                    defines no requirement
+  structure         a file, a section or a table column is missing, a table row has fewer cells than its
+                    header, or a file of docs/requirements/ defines no requirement
 
 Usage:
   python3 playground/paper/requirement_coverage.py             # check the real files
@@ -56,7 +63,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from trace_coverage import collect, ids_in, part2_bounds, sort_key  # noqa: E402  (one definition of a P- ID)
+from trace_coverage import RANGE, collect, ids_in, part2_bounds, sort_key  # noqa: E402  (one definition of a P- ID)
 
 ROOT = Path(__file__).resolve().parents[2]
 PAPER = ROOT / "docs/paper"
@@ -71,7 +78,7 @@ GAP = re.compile(r"\b[UA]-[A-Z]+-\d+\b")
 TAGS = re.compile(r"\[[^\]]*\]|\([^)]*\)")
 R_FIELDS = ["Requirement", "Traces", "Departs from", "Why ours", "Decides", "Depends on", "Test"]
 R_REQUIRED = {"Requirement", "Traces", "Test"}
-X_FIELDS = ["Leaves out", "Why"]
+X_FIELDS = ["Leaves out", "Why", "Depends on"]
 AREAS = ["RUN", "PRIM", "STG", "AGT", "STATE", "INT", "MEAS", "OPS"]   # reading order, then X-
 STATUSES = ("confirmed", "refined", "replaced")
 PLACEHOLDER = "— (task 2)"
@@ -79,14 +86,21 @@ FILLER = re.compile(r"^(?:tbd|todo|tba|\?+|—|–|-|…)$", re.I)
 # A P- ID with the wrong dash, case or padding: "P–ABL–1", "p-abl-1", "P-ABL-01". Only the strict form counts.
 LOOSE_PID = re.compile(r"\bP[-‐–—][A-Z]+[-‐–—]\d+\b", re.I)
 STRICT_PID = re.compile(r"^P-[A-Z]+-[1-9]\d*$")
+LOOSE_GAP = re.compile(r"\b[UA][-‐–—][A-Z]+[-‐–—]\d+\b", re.I)
+STRICT_GAP = re.compile(r"^[UA]-[A-Z]+-[1-9]\d*$")
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
 USES = re.compile(r"(P-[A-Z]+-\d+) uses (P-[A-Z]+-\d+(?: and P-[A-Z]+-\d+)*)")
 STAGE_TABLE = r"^##\s+The default stage configuration"
-STAGE_KEYS = ["LIM", "SEED", "BASE", "SUB", "FULL", "EVO", "SEL", "ABL", "DRAFT", "PEER", "META", "TAIL"]
+STAGE_KEYS = ["LIM", "SEED", "BASE", "SUB", "FULL", "CODER", "EVO", "SEL", "ABL", "DRAFT", "PEER", "META", "TAIL"]
 # Words that put a requirement on task 6's ground (the evaluation integrity review, EI-18): such a requirement
 # must name U-INT-4 or U-TOP-5 under "Depends on", so that task 6's decisions reach it when they land.
 INTEGRITY_TERMS = re.compile(r"\bharness\b|\bsplits?\b|\bgains?\b|\bverified (?:results )?table\b|\bvalidation\b"
                              r"|\b(?:search|report)[- ]role\b|\btest (?:event|split|set)\b", re.I)
 TASK6_BLOCKING = {"U-INT-4", "U-TOP-5"}
+# A clause that states one of task 6's rules cites it as IR-n, and rests on one of its four blocking rows.
+IR_CITE = re.compile(r"\bIR-\d+")
+TASK6_ALL = TASK6_BLOCKING | {"A-INT-1", "A-INT-3"}
+TIER = re.compile(r"(?:Logic|Enforcement)\b")
 STAGE_COLUMNS = ["Stage", "Generator", "Judged", "Assessor", "Verdict", "Guard", "Limit", "At the limit", "Nesting"]
 DEPARTS = " (departs)"
 # The pointer a task-2 register row carries in its decision cell, e.g.
@@ -146,7 +160,8 @@ def parse_requirements(files: list[Path], problems: list):
     blocks = {}
     for path in files:
         current, field, in_code = None, None, False
-        for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+        text = HTML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), path.read_text(encoding="utf-8"))
+        for n, line in enumerate(text.split("\n"), 1):
             where = f"{path.name}:{n}"
             if line.lstrip().startswith("```"):
                 in_code = not in_code
@@ -197,6 +212,14 @@ def check_blocks(blocks: dict, defined: set, problems: list):
             for token in LOOSE_PID.findall(f.get(name, "")):
                 if not STRICT_PID.match(token):
                     problems.append(("malformed-id", f"{where}: {name} writes {token!r}; write P-<KEY>-<n>"))
+            for m in RANGE.finditer(f.get(name, "")):     # ids_in() would read "… 02" as 2, and "3 … 1" as 1 … 3
+                first, last = m.group(2), m.group(3)
+                if not re.fullmatch(r"[1-9]\d*", last) or int(last) <= int(first):
+                    problems.append(("malformed-id", f"{where}: {name} writes the range {m.group(0)!r}"))
+        for name in ("Decides", "Depends on"):
+            for token in LOOSE_GAP.findall(f.get(name, "")):
+                if not STRICT_GAP.match(token):
+                    problems.append(("malformed-id", f"{where}: {name} writes {token!r}; write U-<KEY>-<n> or A-<KEY>-<n>"))
         for name in ("Requirement", "Test"):
             bare = TAGS.sub("", f.get(name, "")).strip()
             core = bare.rstrip(" .").strip()                # "TBD [ours]." and "..." are placeholders too
@@ -212,6 +235,9 @@ def check_blocks(blocks: dict, defined: set, problems: list):
                 problems.append(("fields", f"{where}: missing field(s) {missing}"))
             if "Test" in f and not TAGS.sub("", f["Test"]).strip():
                 problems.append(("no-test", f"{where}: the Test field is empty"))
+            test = TAGS.sub("", f.get("Test", "")).strip()
+            if test and not FILLER.match(test.rstrip(" .").strip()) and not TIER.match(test):
+                problems.append(("test-tier", f"{where}: the Test field opens with neither Logic nor Enforcement"))
             for pid in ids_in(f.get("Departs from", "")):
                 if pid not in ids_in(f.get("Traces", "")):
                     problems.append(("departs", f"{where}: departs from {pid}, which it does not trace"))
@@ -246,6 +272,9 @@ def parse_register(path: Path, problems: list):
         if None in (c_id, c_task, c_alias, c_dec):
             continue
         for i, row in body:
+            if len(row) <= max(c_id, c_task, c_alias, c_dec):
+                problems.append(("structure", f"{path.name}:{i + 1}: a register row has {len(row)} cells, its header {len(header)}"))
+                continue
             m = GAP.match(row[c_id])
             if not m:
                 continue
@@ -331,6 +360,9 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
                 continue
             found = True
             for i, row in body:
+                if len(row) <= max(c_row, c_status, c_by):
+                    problems.append(("decision-table", f"{main.name}:{i + 1}: the row has {len(row)} cells, its header {len(header)}"))
+                    continue
                 where, canon = f"{main.name}:{i + 1}", row[c_row]
                 if canon not in task2:
                     problems.append(("decision-table", f"{where}: {canon!r} is not a task-2 row of the register"))
@@ -378,6 +410,9 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
         if None in (c_task, c_rows):
             continue
         for i, row in body:
+            if len(row) <= max(c_task, c_rows):
+                problems.append(("structure", f"{main.name}:{i + 1}: a row of the pending table has {len(row)} cells"))
+                continue
             m = re.match(r"(\d+)", row[c_task])
             if m:
                 got[m.group(1)] |= set(GAP.findall(row[c_rows]))
@@ -392,18 +427,31 @@ def check_dependencies(blocks: dict, owner: dict, problems: list):
     """A requirement names each row it depends on beside the clause that rests on it, and one on task 6's
     ground depends on U-INT-4 or U-TOP-5 (the evaluation integrity review, EI-18 and EI-19)."""
     for rid, b in blocks.items():
-        if rid.startswith("X-"):
-            continue
-        where, text = f"{b['file']}:{b['line']} {rid}", b["fields"].get("Requirement", "")
+        is_x = rid.startswith("X-")
+        where, text = f"{b['file']}:{b['line']} {rid}", b["fields"].get("Why" if is_x else "Requirement", "")
         deps = GAP.findall(b["fields"].get("Depends on", ""))
         named = set(GAP.findall(text))
         for gap in sorted(set(deps) - named):
-            problems.append(("inline-dependency", f"{where}: depends on {gap}, which its Requirement text does not name"))
+            problems.append(("inline-dependency", f"{where}: depends on {gap}, which its "
+                             f"{'Why' if is_x else 'Requirement'} text does not name"))
+        for clause in b["fields"].get("Depends on", "").split(";"):    # "U-TOP-2, task 3; U-INT-4, task 6"
+            said = re.search(r"\btask (\d)\b", clause)
+            for gap in GAP.findall(clause) if said else []:
+                task = owner.get(gap, (gap, None))[1]
+                if task is not None and task != said.group(1):
+                    problems.append(("task-attribution", f"{where}: gives {gap} to task {said.group(1)}; "
+                                     f"the register gives it to task {task}"))
+        if is_x:
+            continue
         canon = {owner.get(gap, (gap, ""))[0] for gap in deps}
         term = INTEGRITY_TERMS.search(text)
         if term and not canon & TASK6_BLOCKING:
             problems.append(("integrity-dependency", f"{where}: names {term.group(0)!r} and depends on neither "
                              f"{' nor '.join(sorted(TASK6_BLOCKING))}"))
+        cite = IR_CITE.search(text)
+        if cite and not canon & TASK6_ALL:
+            problems.append(("integrity-dependency", f"{where}: cites {cite.group(0)} and depends on none of "
+                             f"{', '.join(sorted(TASK6_ALL))}"))
 
 
 def check_stage_table(files: list[Path], problems: list):
