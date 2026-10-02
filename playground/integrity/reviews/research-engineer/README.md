@@ -11,3 +11,8 @@ Written by the `research-engineer` reviewer of `docs/integrity/blocking-decision
 
 Each runs with `python3 <script>`, needs nothing outside the standard library, and uses fixed
 seeds. `null_control.py` takes about a second.
+
+**Added at the closure check (2026-10-02).** `closure_checks.py` tests the second version's new
+statistics: the repeat count of IR-8.1, a paired gain's tolerance, the correlated flags of IR-3.6's
+control, and the null control's guard-removed arm in a gated loop. It is kept unchanged, as written
+by the same reviewer, and runs in a few seconds.

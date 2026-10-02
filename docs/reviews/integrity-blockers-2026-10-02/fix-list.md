@@ -125,3 +125,37 @@ lines. The owner contested seven points of the list, and the coordinator accepts
    and task 2's choice to suspend is recorded as its own statement.
 7. **The corpus cost.** The review's "970 × 7 × 3" overcounts. The owner counts 11
    check-configurations: about 33,000 calls, or about 100,000 with the false-positive sizing.
+
+## 6. The closure checks, and the last fixes (2026-10-02)
+
+Each wave-1 reviewer checked its own findings against the second version (`adc3484`). The three
+reports are kept verbatim as `closure-*.md`.
+
+| Reviewer | Wave-1 findings fixed | New defects |
+|---|---|---|
+| `system-architect` | all 30, findings and tensions | 5 MINOR (N1–N5) |
+| `research-engineer` | 16 of 19; B1 holds; B2 and m3 partly fixed | 1 MAJOR (N1), 3 MINOR (N2–N4) |
+| `paper-analyst` | all 16, and the R6 note | 3 MINOR (N1–N3) |
+
+The paper-analyst also read the three external sources from their own text, and found each
+paraphrase faithful.
+
+The last fixes, all applied by the owner (SA = system-architect, RE = research-engineer, PA =
+paper-analyst):
+
+| ID | Source | Fix |
+|---|---|---|
+| C-1 | RE B2 residual (MAJOR) | IR-3.3 also bounds the total size of a code tree's content that is neither pinned nor produced by a job, not only each file. The control also plants weights chunked into many small text files. |
+| C-2 | RE N1 (MAJOR) | IR-10.3: a near-duplicate across a boundary that packaging built is removed from the role packaging built, and the count is recorded; it never refuses the task. Across a boundary the protocol defines, flagged pairs are reported, with an optional purged report scored beside the full one. The threshold is calibrated against the expected number of false flags over all cross-role pairs, or each flag is confirmed by a stricter second check. |
+| C-3 | RE M4 residual | IR-23.4: a paired gain's tolerance carries the re-fit noise of both rows, √2 × σ_r per pair. |
+| C-4 | RE N2 | IR-3.6's control: give each honest row its own baseline draw, or set the pass bound from the shared-denominator distribution by simulation. Note the same overdispersion of the flag in production. |
+| C-5 | RE N3 | The null control's guard-removed arms pass on "above 3 SE" alone, and the formula's prediction is recorded as a diagnostic. The guarded arm's test, 0 ± 3 SE, stays as it is. |
+| C-6 | RE N4 | IR-8.1's repeat count is n = ⌈2(3σ/δ)²⌉, or σ is defined as the SD of the per-repeat difference of interleaved pairs. |
+| C-7 | SA N1 | E_base's corrected records are of task scope, released once per (new baseline key, identity), and every run refers to them. A correction's manifest version inherits the task's admission with no new sealed check, and is not counted against k. IR-14.5 names the correction kind as its exception. |
+| C-8 | SA N2 | On a change to the runner, E_base is re-scored on search under the new runner, with no read of report. Its admission records are kept only if the two agree within the seed noise; otherwise the task is admitted again. |
+| C-9 | SA N3 | The reporter gets an identity of its own: it runs outside every run, and its output never reaches a run. "Engine job" is defined as a job of a run. |
+| C-10 | SA N4 | The run ledger closes when the run ends, whatever its end state. |
+| C-11 | SA N5 | A listed cause gives a fresh start that is mandatory, exactly once per halted run, so that nobody chooses which runs to restart. |
+| C-12 | PA N1 | IR-19.4: OpenOOD pairs (3a) for its OOD validation with (3b) for its ID validation, so IR-19.6's disclosure applies to the ID part. |
+| C-13 | PA N2 | Cite ScientistOne's value mismatches as evidence that seed variance biases headline numbers in general. The training-seed claim rests on the null-control simulation. |
+| C-14 | PA N3 | The cost is split per stage in Figure 10(b); what the paper lacks is the split between tokens and machines. |
