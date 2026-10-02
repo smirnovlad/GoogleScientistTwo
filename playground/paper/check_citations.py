@@ -33,7 +33,7 @@ This is the control behind TODO task 1's "every statement there cites its locati
    Separate a quote's parts with "..." or "[...]" and each part is checked on its own.
 
 Usage:
-  python3 playground/paper/check_citations.py            # checks the deliverables, exit 1 on any failure
+  python3 playground/paper/check_citations.py            # checks docs/paper/ and docs/requirements*, exit 1 on any failure
   python3 playground/paper/check_citations.py FILE...    # checks the given files
   python3 playground/paper/check_citations.py --selftest # proves each check can fail
 Needs .cache/ (playground/paper/fetch_sources.sh): the PDF text for checks 2 and 4, the refs for 4.
@@ -403,7 +403,12 @@ def default_files() -> list[Path]:
              "artifacts.md"]
     files = [PAPER / n for n in names if (PAPER / n).exists()]
     # Documents split into a folder keep their parts there (README: "Keep a file under about 600 lines").
-    return files + sorted((PAPER / "stages").glob("*.md")) + sorted((PAPER / "claims").glob("*.md"))
+    files += sorted((PAPER / "stages").glob("*.md")) + sorted((PAPER / "claims").glob("*.md"))
+    # The requirements (TODO task 2) cite the paper too, and mix its statements with our decisions,
+    # which is where a reading of ours could pass as the paper's.
+    # ⛔ WHY NOT a checker of their own: these rules are the paper folder's, and one copy of them stays true.
+    requirements = ROOT / "docs/requirements.md"
+    return files + ([requirements] if requirements.exists() else []) + sorted((ROOT / "docs/requirements").glob("*.md"))
 
 
 def selftest() -> int:
