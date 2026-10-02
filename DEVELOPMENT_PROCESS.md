@@ -436,6 +436,8 @@ payload could change between snapshot and operation-ID derivation; the ID now
 comes from the captured snapshot, with a regression test.
 `python3 -m unittest discover -s tests -v` passes 25 tests, including a
 two-process race, charged timeout recovery, tampering, and payload isolation.
+The test suite is split by core flow, input identity, integrity and
+concurrency, with shared fixtures, so every file stays below the 600-line cap.
 `python3 examples/mock_run.py` shows one
 executor call across first use and replay, with a known USD 0.12 mock charge.
 `git diff --check` passes.
