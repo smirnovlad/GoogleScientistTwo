@@ -143,21 +143,21 @@ Every required part has at least one element [ours]. The first version of this f
 | P-LIM-4 | the limitation stage's limit, with no symbol, whose value is 16 rounds | [§3.1] [App. A.2] | SPECIFIED; what it counts AMBIGUOUS (A-TOP-2); what passes on at the limit AMBIGUOUS (A-LIM-1) | A-LIM-1, A-TOP-2, U-TOP-7 | R-PRIM-3, R-STG-1 | stage config LIM: limit (what it counts), at-limit policy |
 | P-SEED-1 | initial idea generation: the limitations → h_0 | [§3.1] [Fig. 4] (image) | SPECIFIED (quoted); its agent AMBIGUOUS (A-SEED-2) | A-SEED-2 | R-STG-2 | stage config SEED: generator |
 | P-SEED-2 | Novelty Checker: h_0 and two retrieved papers → a novelty score | [§3.1] [App. A.2] | SPECIFIED (quoted); the score UNSPECIFIED (U-SEED-2) | U-SEED-2 | R-PRIM-7, R-STG-2 | stage config SEED: assessor and rule, a score and no verdict |
-| P-SEED-3 | Idea Generator Agent adds scored ideas until the pool holds N_seed | [§3.1] | SPECIFIED (quoted); N_seed UNSPECIFIED (U-SEED-1); filter or ranking AMBIGUOUS (A-SEED-1) | U-SEED-1, A-SEED-1, U-SEED-3 | R-STG-2 | stage primitive: a count stop; stage config SEED: judged → refined, limit, fan-out |
+| P-SEED-3 | Idea Generator Agent adds scored ideas until the pool holds N_seed | [§3.1] | SPECIFIED (quoted); N_seed UNSPECIFIED (U-SEED-1); filter or ranking AMBIGUOUS (A-SEED-1) | U-SEED-1, A-SEED-1, U-SEED-3 | R-PRIM-2, R-STG-2 | stage primitive: a count stop; stage config SEED: judged → refined, limit, fan-out |
 | P-SEED-4 | the pool H_0 sorted by novelty score, descending | [§3.1] | SPECIFIED (quoted) | A-SEED-1 | R-STG-2 | stage config SEED: at-limit policy, keep all, sorted |
 
 ### 2.3 Evaluating ideas: [stages/02](stages/02-evaluating-ideas.md)
 
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
-| P-BASE-1 | Baseline Coding Agent: G on the subset → E_base, C_base | [§3.2] | SPECIFIED (quoted); placement AMBIGUOUS (A-BASE-1); the subset UNSPECIFIED (U-BASE-1) | A-BASE-1, U-BASE-1, U-BASE-2, U-SUB-2, A-CFG-1 | R-STG-3 | stage config BASE: generator, zero rounds; nesting once per task, or inside each A_Coder call (A-BASE-1) |
-| P-SUB-1 | Subset Coding Agent implements h by modifying C_base → E_sub^h, C_sub^h | [§3.2] | SPECIFIED (quoted) | U-BASE-1, U-TOP-5 | R-STG-4 | stage config SUB: generator |
-| P-SUB-2 | Subset Critic: E_sub^h against E_base → Bad, Good or Engineer, with feedback r^h | [§3.2] | SPECIFIED (quoted); its criteria UNSPECIFIED (U-SUB-1) | U-SUB-1, U-TOP-5 | R-PRIM-7, R-STG-4, R-INT-3 | stage config SUB: assessor and rule, verdict map |
-| P-SUB-3 | Engineer → the Subset Engineering Agent refines h and C_sub^h | [§3.2] | SPECIFIED (quoted); its model AMBIGUOUS (A-CFG-1) | A-CFG-1, U-SUB-2 | R-STG-4 | stage primitive: the refine step; stage config SUB: judged → refined |
+| P-BASE-1 | Baseline Coding Agent: G on the subset → E_base, C_base | [§3.2] | SPECIFIED (quoted); placement AMBIGUOUS (A-BASE-1); the subset UNSPECIFIED (U-BASE-1) | A-BASE-1, U-BASE-1, U-BASE-2, U-SUB-2, A-CFG-1 | R-STG-3, R-INT-1 (departs) | stage config BASE: generator, zero rounds; nesting once per task, or inside each A_Coder call (A-BASE-1) |
+| P-SUB-1 | Subset Coding Agent implements h by modifying C_base → E_sub^h, C_sub^h | [§3.2] | SPECIFIED (quoted) | U-BASE-1, U-TOP-5 | R-STG-4, R-INT-1 (departs) | stage config SUB: generator |
+| P-SUB-2 | Subset Critic: E_sub^h against E_base → Bad, Good or Engineer, with feedback r^h | [§3.2] | SPECIFIED (quoted); its criteria UNSPECIFIED (U-SUB-1) | U-SUB-1, U-TOP-5 | R-PRIM-7, R-STG-4 (departs), R-INT-3 | stage config SUB: assessor and rule, verdict map |
+| P-SUB-3 | Engineer → the Subset Engineering Agent refines h and C_sub^h | [§3.2] | SPECIFIED (quoted); its model AMBIGUOUS (A-CFG-1) | A-CFG-1, U-SUB-2 | R-STG-4, R-INT-1 (departs) | stage primitive: the refine step; stage config SUB: judged → refined |
 | P-SUB-4 | the subset stage's limit N_eng; at the limit, Bad and pruned | [§3.2] [App. A.2] | SPECIFIED; what it counts AMBIGUOUS (A-TOP-2) | A-TOP-2 | R-PRIM-3, R-PRIM-4, R-STG-4 | stage config SUB: limit (what it counts), at-limit policy, discard |
-| P-FULL-1 | Full-Set Coding Agent adapts C_sub^h to the whole benchmark suite | [§3.2] | SPECIFIED (quoted) | A-ART-12, U-ART-4, U-BENCH-1 | R-STG-5 | stage config FULL: generator |
-| P-FULL-2 | Full-Set Critic and Engineer validate and engineer on the full benchmark | [§3.2] [Fig. 5] (image) | SPECIFIED (quoted); reference AMBIGUOUS (A-FULL-1); limit AMBIGUOUS (A-FULL-2); verdicts UNSPECIFIED (U-FULL-1) | A-FULL-1, A-FULL-2, U-FULL-1, U-TOP-5 | R-STG-5, R-INT-3 | stage primitive; stage config FULL: assessor and rule, judged → refined, limit |
-| P-FULL-3 | the terminal decision d^h | [§3.2] [Fig. 5] (image) | SPECIFIED (quoted); its vocabulary only in Figure 5 (U-FULL-1) | U-FULL-1 | R-PRIM-7, R-STG-5 | stage config FULL: verdict map, at-limit policy |
+| P-FULL-1 | Full-Set Coding Agent adapts C_sub^h to the whole benchmark suite | [§3.2] | SPECIFIED (quoted) | A-ART-12, U-ART-4, U-BENCH-1 | R-STG-5, R-INT-1 (departs) | stage config FULL: generator |
+| P-FULL-2 | Full-Set Critic and Engineer validate and engineer on the full benchmark | [§3.2] [Fig. 5] (image) | SPECIFIED (quoted); reference AMBIGUOUS (A-FULL-1); limit AMBIGUOUS (A-FULL-2); verdicts UNSPECIFIED (U-FULL-1) | A-FULL-1, A-FULL-2, U-FULL-1, U-TOP-5 | R-STG-5, R-INT-1 (departs), R-INT-3 | stage primitive; stage config FULL: assessor and rule, judged → refined, limit |
+| P-FULL-3 | the terminal decision d^h | [§3.2] [Fig. 5] (image) | SPECIFIED (quoted); its vocabulary only in Figure 5 (U-FULL-1) | U-FULL-1 | R-PRIM-7, R-STG-5 (departs) | stage config FULL: verdict map, at-limit policy |
 | P-CODER-1 | the unified coder A_Coder(G, h) → h, E^h, C^h, d^h, r^h | [§3.2, Eq. 2] | SPECIFIED (Eq. 2); baseline inputs AMBIGUOUS (A-BASE-1); a pruned idea's return UNSPECIFIED (U-CODER-1) | A-BASE-1, U-CODER-1 | R-PRIM-8, R-STG-6 | stage config SUB and FULL: nesting, both in one call per idea |
 
 ### 2.4 Refining ideas: [stages/03](stages/03-refining-ideas.md)
@@ -165,22 +165,22 @@ Every required part has at least one element [ours]. The first version of this f
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
 | P-EVO-1 | round 0: the top-N_0 seeds → A_Coder → R_0 | [§3.3] | SPECIFIED (quoted); AMBIGUOUS against App. A.2's rounds (A-EVO-1), INCONSISTENT only under A-EVO-2's reading 2 | A-EVO-1, A-EVO-2 | R-STG-7 | stage config EVO: generator in round 0, fan-out N_0 |
-| P-EVO-2 | round k ≥ 1: A_Evolve reads all earlier traces → N_k evolved ideas | [§3.3] | SPECIFIED (quoted); what it reads UNSPECIFIED (U-EVO-2) | U-EVO-2 | R-STG-7 | stage config EVO: judged → refined, the population rebuilt from all traces by A_Evolve |
-| P-EVO-3 | exploration: the next N_e unevaluated seeds join the evolved ideas | [§3.3] | SPECIFIED (quoted); running out of seeds UNSPECIFIED (U-EVO-3) | U-EVO-3 | R-STG-7 | stage config EVO: generator in later rounds, fan-out N_e |
+| P-EVO-2 | round k ≥ 1: A_Evolve reads all earlier traces → N_k evolved ideas | [§3.3] | SPECIFIED (quoted); what it reads UNSPECIFIED (U-EVO-2) | U-EVO-2 | R-PRIM-2, R-STG-7 | stage config EVO: judged → refined, the population rebuilt from all traces by A_Evolve |
+| P-EVO-3 | exploration: the next N_e unevaluated seeds join the evolved ideas | [§3.3] | SPECIFIED (quoted); running out of seeds UNSPECIFIED (U-EVO-3) | U-EVO-3 | R-PRIM-2, R-STG-7 | stage config EVO: generator in later rounds, fan-out N_e |
 | P-EVO-4 | each candidate of round k → A_Coder → R_k | [§3.3, Eq. 3] | SPECIFIED (Eq. 3); parallelism UNSPECIFIED (U-TOP-4) | U-TOP-4 | R-PRIM-8, R-STG-7 | stage config EVO: assessor, the nested A_Coder; fan-out, one call per candidate |
-| P-EVO-5 | the stop test: S successes over all rounds so far, or round K | [§3.3] | SPECIFIED (the formula); when it runs UNSPECIFIED (U-EVO-1); K AMBIGUOUS (A-EVO-2) | U-EVO-1, A-EVO-2 | R-STG-7 | stage primitive: the stop test; stage config EVO: limit, K rounds and S successes |
-| P-EVO-6 | zero successes at round K → the whole run ends | [§3.3] | SPECIFIED (quoted); what it leaves UNSPECIFIED (U-EVO-4) | U-EVO-4 | R-STG-7 | stage config EVO: at-limit policy, stop the run |
-| P-SEL-1 | Selector: every Good idea with its results and code → h_best, E_best, C_best | [§3.3, Eq. 4] | SPECIFIED (Eq. 4); its criterion UNSPECIFIED (U-SEL-1) | U-SEL-1, U-SEL-2, U-TOP-5 | R-PRIM-7, R-STG-8, R-INT-3 | stage config SEL: assessor and rule, zero rounds |
+| P-EVO-5 | the stop test: S successes over all rounds so far, or round K | [§3.3] | SPECIFIED (the formula); when it runs UNSPECIFIED (U-EVO-1); K AMBIGUOUS (A-EVO-2) | U-EVO-1, A-EVO-2 | R-PRIM-2, R-STG-7 | stage primitive: the stop test; stage config EVO: limit, K rounds and S successes |
+| P-EVO-6 | zero successes at round K → the whole run ends | [§3.3] | SPECIFIED (quoted); what it leaves UNSPECIFIED (U-EVO-4) | U-EVO-4 | R-PRIM-4, R-STG-7 | stage config EVO: at-limit policy, stop the run |
+| P-SEL-1 | Selector: every Good idea with its results and code → h_best, E_best, C_best | [§3.3, Eq. 4] | SPECIFIED (Eq. 4); its criterion UNSPECIFIED (U-SEL-1) | U-SEL-1, U-SEL-2, U-TOP-5 | R-PRIM-7, R-STG-8 (departs), R-INT-3 | stage config SEL: assessor and rule, zero rounds |
 
 ### 2.5 Ablation: [stages/04](stages/04-ablation.md)
 
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
 | P-ABL-1 | Ablation Planner: h_best → N_p executable plans | [§3.4] | SPECIFIED (quoted); N_p UNSPECIFIED (U-ABL-1) | U-ABL-1, A-CFG-1 | R-PRIM-8, R-STG-9 | stage config ABL: generator, fan-out N_p |
-| P-ABL-2 | Ablation Coding Agent runs each plan on C_best → E_abl | [§3.4] | SPECIFIED (quoted); whether its code stays UNSPECIFIED (U-ABL-3) | U-ABL-3 | R-PRIM-8, R-STG-9 | stage config ABL: generator, one coder per plan |
-| P-ABL-3 | Ablation Critic: E_abl → Good or Refine, with critique r_abl | [§3.4] | SPECIFIED (quoted); a reject verdict INCONSISTENT (A-ABL-1); what it reads UNSPECIFIED (U-ABL-6) | A-ABL-1, U-ABL-5, U-ABL-6, U-TOP-5 | R-PRIM-7, R-STG-9 | stage config ABL: assessor and rule, verdict map |
-| P-ABL-4 | Refine → A_FullEng, guided by r_abl → h_new, E_new, C_new | [§3.4] | SPECIFIED (quoted); its validation UNSPECIFIED (U-ABL-2); its model AMBIGUOUS (A-CFG-1) | U-ABL-2, A-CFG-1 | R-STG-9 | stage primitive: the refine step; stage config ABL: judged → refined, E_abl judged and h_best refined by A_FullEng |
-| P-ABL-5 | Result Comparison: the core state is replaced only if E_new is preferred | [§3.4] | SPECIFIED (quoted); criterion AMBIGUOUS (A-ABL-3); the failed branch INCONSISTENT (A-ABL-2) | A-ABL-3, A-ABL-2, U-TOP-5 | R-PRIM-5, R-PRIM-6, R-STG-9, R-INT-3 | stage config ABL: guard, with its failure branch |
+| P-ABL-2 | Ablation Coding Agent runs each plan on C_best → E_abl | [§3.4] | SPECIFIED (quoted); whether its code stays UNSPECIFIED (U-ABL-3) | U-ABL-3 | R-PRIM-8, R-STG-9, R-INT-1 (departs) | stage config ABL: generator, one coder per plan |
+| P-ABL-3 | Ablation Critic: E_abl → Good or Refine, with critique r_abl | [§3.4] | SPECIFIED (quoted); a reject verdict INCONSISTENT (A-ABL-1); what it reads UNSPECIFIED (U-ABL-6) | A-ABL-1, U-ABL-5, U-ABL-6, U-TOP-5 | R-PRIM-7, R-STG-9 (departs) | stage config ABL: assessor and rule, verdict map |
+| P-ABL-4 | Refine → A_FullEng, guided by r_abl → h_new, E_new, C_new | [§3.4] | SPECIFIED (quoted); its validation UNSPECIFIED (U-ABL-2); its model AMBIGUOUS (A-CFG-1) | U-ABL-2, A-CFG-1 | R-STG-9, R-INT-1 (departs) | stage primitive: the refine step; stage config ABL: judged → refined, E_abl judged and h_best refined by A_FullEng |
+| P-ABL-5 | Result Comparison: the core state is replaced only if E_new is preferred | [§3.4] | SPECIFIED (quoted); criterion AMBIGUOUS (A-ABL-3); the failed branch INCONSISTENT (A-ABL-2) | A-ABL-3, A-ABL-2, U-TOP-5 | R-PRIM-5, R-PRIM-6 (departs), R-STG-9, R-INT-3 | stage config ABL: guard, with its failure branch |
 | P-ABL-6 | after an update, ablation planning runs again on the new h_best | [§3.4] | SPECIFIED (quoted); a second Refine UNSPECIFIED (U-ABL-4) | U-ABL-4 | R-PRIM-3, R-STG-9 | stage primitive: the re-judgement after a refine; stage config ABL: limit |
 | P-ABL-7 | the attribution rule: the gain must be attributable to the proposed mechanism | [Tab. 15] [App. B] | SPECIFIED in App. B only (quoted), absent from §3.4, whose critic has no reject (A-ABL-1); its boundary UNSPECIFIED (U-ABL-5) | A-ABL-1, U-ABL-5, A-ART-4, A-ART-13, A-EVAL-1 | R-STG-9 | stage config ABL: the assessor's rule, and a reject in the verdict map if A-ABL-1 is read so |
 
@@ -192,7 +192,7 @@ Every required part has at least one element [ours]. The first version of this f
 | P-PEER-1 | ScholarPeer reviews P_new → R_new with a score in [1, 10] | [§3.5] | SPECIFIED (quoted); its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3 | R-STG-11 | stage config PEER: assessor |
 | P-PEER-2 | a score below the threshold of 8 starts the rebuttal | [§3.5] [App. A.2] | SPECIFIED (quoted); the threshold reviewer-dependent, to calibrate [ours] | A-EVAL-3 | R-PRIM-7, R-STG-11 | stage config PEER: assessor's rule and verdict map, 8 or more → accept |
 | P-PEER-3 | Rebuttal Planner: R_new → N_t supplementary tasks | [§3.5] | SPECIFIED (quoted); N_t UNSPECIFIED (U-PEER-1) | U-PEER-1, A-CFG-1 | R-PRIM-8, R-STG-11 | stage config PEER: judged → refined, first of three refining agents; fan-out N_t |
-| P-PEER-4 | Rebuttal Coding Agent runs each task on C_best → E_reb | [§3.5] | SPECIFIED (quoted); whether its code stays UNSPECIFIED (U-PEER-2) | U-PEER-2, U-ART-15, U-TOP-5 | R-PRIM-8, R-STG-11 | stage config PEER: judged → refined, second refining agent |
+| P-PEER-4 | Rebuttal Coding Agent runs each task on C_best → E_reb | [§3.5] | SPECIFIED (quoted); whether its code stays UNSPECIFIED (U-PEER-2) | U-PEER-2, U-ART-15, U-TOP-5 | R-PRIM-8, R-STG-11, R-INT-1 (departs) | stage config PEER: judged → refined, second refining agent |
 | P-PEER-5 | Paper Enhancer: P_new, R_new, E_reb → a revised P_new | [§3.5] | SPECIFIED (quoted); its scope UNSPECIFIED (U-PEER-4) | U-PEER-4 | R-STG-11, R-INT-8 | stage config PEER: judged → refined, third refining agent |
 | P-PEER-6 | the revised manuscript is reviewed again, replacing R_new and the score | [§3.5] | SPECIFIED (quoted); what N_peer counts AMBIGUOUS (A-PEER-1); last or best UNSPECIFIED (U-TOP-7) | A-PEER-1, U-TOP-7, A-TOP-5 | R-PRIM-3, R-PRIM-4, R-STG-11 | stage primitive: the re-judgement after a refine; stage config PEER: limit, at-limit policy, keep the last |
 
@@ -201,9 +201,9 @@ Every required part has at least one element [ours]. The first version of this f
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
 | P-META-1 | Meta-Review Agent: P_new and R_new → Accept or Refine, with r_meta | [§3.6] | SPECIFIED (quoted); its criterion UNSPECIFIED (U-META-2) | U-META-2 | R-PRIM-7, R-STG-12 | stage config META: assessor and rule, verdict map |
-| P-META-2 | Accept → export P+ ← P_new and C+ ← C_best | [§3.6] | SPECIFIED (quoted) | none | R-STG-12 | stage config META: verdict map, accept → export |
-| P-META-3 | Refine → A_FullEng, guided by r_meta → h_new, E_new, C_new | [§3.6] | SPECIFIED (quoted); its model AMBIGUOUS (A-CFG-1) | A-CFG-1, U-ABL-2 | R-STG-12 | stage primitive: the refine step; stage config META: judged → refined, P_new and R_new judged and h_best refined by A_FullEng |
-| P-META-4 | Result Comparison: E_new against E_best | [§3.6] | SPECIFIED (quoted); criterion AMBIGUOUS (A-ABL-3) | A-ABL-3, A-TOP-5, U-TOP-5 | R-PRIM-5, R-PRIM-6, R-STG-12, R-INT-3 | stage config META: guard |
+| P-META-2 | Accept → export P+ ← P_new and C+ ← C_best | [§3.6] | SPECIFIED (quoted) | none | R-RUN-7 (departs), R-STG-12 | stage config META: verdict map, accept → export |
+| P-META-3 | Refine → A_FullEng, guided by r_meta → h_new, E_new, C_new | [§3.6] | SPECIFIED (quoted); its model AMBIGUOUS (A-CFG-1) | A-CFG-1, U-ABL-2 | R-STG-12, R-INT-1 (departs) | stage primitive: the refine step; stage config META: judged → refined, P_new and R_new judged and h_best refined by A_FullEng |
+| P-META-4 | Result Comparison: E_new against E_best | [§3.6] | SPECIFIED (quoted); criterion AMBIGUOUS (A-ABL-3) | A-ABL-3, A-TOP-5, U-TOP-5 | R-PRIM-5, R-PRIM-6 (departs), R-STG-12, R-INT-3 | stage config META: guard |
 | P-META-5 | strictly superior → a new core state; ablation, drafting and review run again | [§3.6] | SPECIFIED (quoted); the restart's extent AMBIGUOUS (A-META-1); budgets UNSPECIFIED (U-META-1) | A-META-1, U-META-1 | R-PRIM-5, R-PRIM-8, R-STG-12 | stage config META: nesting, the ABL, DRAFT and PEER configs inside its refine |
 | P-META-6 | otherwise the refinement is discarded and the previous outputs are exported | [§3.6] | SPECIFIED (quoted); INCONSISTENT with the loop until approval (A-TOP-3) | A-TOP-3 | R-PRIM-5, R-STG-12 | stage config META: the guard's failure branch, export |
 | P-META-7 | the meta stage's limit N_meta, or until Accept | [§3.6] [App. A.2] | SPECIFIED (quoted); a second verdict AMBIGUOUS (A-META-2) | A-META-2, A-TOP-1 | R-PRIM-3, R-PRIM-4, R-STG-12 | stage primitive: the stop test; stage config META: limit, at-limit policy |
@@ -212,7 +212,7 @@ Every required part has at least one element [ours]. The first version of this f
 
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
-| P-INT-1 | score verification, by a prompt: the Coding Agent is asked for reproducible scripts | [§4.2] | SPECIFIED (quoted); prompt or gate INCONSISTENT with App. B (A-INT-1) | A-INT-1, U-INT-4 | R-INT-1 | — (task 3) |
+| P-INT-1 | score verification, by a prompt: the Coding Agent is asked for reproducible scripts | [§4.2] | SPECIFIED (quoted); prompt or gate INCONSISTENT with App. B (A-INT-1) | A-INT-1, U-INT-4 | R-INT-1 (departs) | — (task 3) |
 | P-INT-2 | specification compliance, by an LLM filter: rule-violating solutions discarded after experimentation | [§4.2] | SPECIFIED (quoted); hook points UNSPECIFIED (U-INT-1); task rules UNSPECIFIED (U-INT-2); which agent AMBIGUOUS (A-INT-3) | U-INT-1, U-INT-2, A-INT-3 | R-INT-4 | — (task 3) |
 | P-INT-3 | reference verification, by an LLM fixer: a search-augmented LLM flags citations, the Writer Agent corrects them | [§4.2] | SPECIFIED (quoted); which writer AMBIGUOUS (A-INT-2); when UNSPECIFIED (U-INT-3) | A-INT-2, U-INT-3 | R-INT-5 | — (task 3) |
 | P-INT-4 | method–code alignment, by an LLM fixer: an audit report, then the Writer Agent corrects the paper, not the code | [§4.2] | SPECIFIED (quoted); which agents AMBIGUOUS (A-INT-2, A-INT-3); when UNSPECIFIED (U-INT-3) | A-INT-2, A-INT-3, U-INT-3 | R-INT-6 | — (task 3) |
@@ -240,7 +240,7 @@ Every required part has at least one element [ours]. The first version of this f
 | P-CFG-16 | N_t, the number of rebuttal tasks | [§3.5] [App. A.2] | UNSPECIFIED (U-PEER-1) | U-PEER-1 | R-STG-11, R-STG-13 | stage config PEER: fan-out N_t |
 | P-CFG-17 | N_a, the number of agents | [§3, Eq. 1] [App. A.2] | UNSPECIFIED: A.2 sets no value; the roster counts 27 [ours] | none | R-AGT-1 | — (task 3) |
 | P-CFG-18 | the drafting format: ICLR 2025, following PaperOrchestra | [App. A.2] | SPECIFIED | U-DRAFT-2 | R-STG-10, R-STG-13 | — (task 3) |
-| P-CFG-19 | model routing: Gemini 3.6 Flash for every agent but four, which run on Claude Code with Opus 4.8 | [App. A.2] [§4] [§4.2] | SPECIFIED; which agents run on Claude Code AMBIGUOUS (A-CFG-1) | A-CFG-1, A-CFG-2, U-CFG-1 | R-AGT-2 | — (task 3) |
+| P-CFG-19 | model routing: Gemini 3.6 Flash for every agent but four, which run on Claude Code with Opus 4.8 | [App. A.2] [§4] [§4.2] | SPECIFIED; which agents run on Claude Code AMBIGUOUS (A-CFG-1) | A-CFG-1, A-CFG-2, U-CFG-1 | R-AGT-2 (departs) | — (task 3) |
 
 ### 2.10 Agent roster: [analysis.md](analysis.md) section 7
 
@@ -262,13 +262,13 @@ The paper tests every agent below only end to end, through Tables 5–8 and Figu
 | P-ROSTER-12 | Full-Set Engineer, re-engaged as A_FullEng in §3.4 and §3.6 | [§3.2] [§3.4] [§3.6] | SPECIFIED; its backend and model AMBIGUOUS (A-CFG-1) | A-CFG-1, U-ABL-2, A-ROSTER-1 | R-STG-5, R-STG-9, R-AGT-1 | — (task 3) |
 | P-ROSTER-13 | Idea Implementer A_Coder, the composite of the §3.2 coders, critics and engineers, and of the baseline coder only if it runs per idea | [§3.2, Eq. 2] [Fig. 6] (image) | SPECIFIED; its membership follows A-BASE-1 | A-BASE-1, U-CODER-1 | R-STG-6, R-AGT-1 | — (task 3) |
 | P-ROSTER-14 | Idea Evolver A_Evolve, on Gemini | [§3.3] [App. A.2] | SPECIFIED | U-EVO-2 | R-STG-7, R-AGT-1 | — (task 3) |
-| P-ROSTER-15 | Selector A_Selector, a judge, on Gemini | [§3.3, Eq. 4] [App. A.2] | SPECIFIED; its criterion UNSPECIFIED (U-SEL-1) | U-SEL-1, U-SEL-2 | R-STG-8, R-AGT-1 | — (task 3) |
+| P-ROSTER-15 | Selector A_Selector, a judge, on Gemini | [§3.3, Eq. 4] [App. A.2] | SPECIFIED; its criterion UNSPECIFIED (U-SEL-1) | U-SEL-1, U-SEL-2 | R-STG-8 (departs), R-AGT-1 | — (task 3) |
 | P-ROSTER-16 | Ablation Planner, the Planning Agent of Figure 3 | [§3.4] [Fig. 3] (image) | SPECIFIED; its backend AMBIGUOUS (A-CFG-1): Claude Code only if it belongs to the Ablation Study Agent [inferred] | A-CFG-1, U-ABL-1 | R-STG-9, R-AGT-1 | — (task 3) |
 | P-ROSTER-17 | Ablation Coder, part of the Ablation Study Agent | [§3.4] [App. A.2] | SPECIFIED; Claude Code with Opus 4.8 [inferred] | U-ABL-3 | R-STG-9, R-AGT-1 | — (task 3) |
 | P-ROSTER-18 | Ablation Critic A_AblCritic, also written A_AblCrit, a judge, on Gemini | [§3.4] [App. A.2] | SPECIFIED; its model [inferred]; a reject INCONSISTENT (A-ABL-1) | A-ABL-1, U-ABL-5, U-ABL-6, A-TOP-5 | R-STG-9, R-AGT-1, R-AGT-9 | — (task 3) |
-| P-ROSTER-19 | Result Comparison Agent, a judge, on Gemini | [§3.4] [§3.6] | SPECIFIED; its criterion AMBIGUOUS (A-ABL-3) | A-ABL-3 | R-PRIM-6, R-STG-9, R-AGT-1 | — (task 3) |
+| P-ROSTER-19 | Result Comparison Agent, a judge, on Gemini | [§3.4] [§3.6] | SPECIFIED; its criterion AMBIGUOUS (A-ABL-3) | A-ABL-3 | R-PRIM-6 (departs), R-STG-9, R-AGT-1 | — (task 3) |
 | P-ROSTER-20 | Initial Drafter A_Draft, incorporating PaperOrchestra | [§3.5] [Bib: song2026paperorchestra] | SPECIFIED; its model [inferred] | U-DRAFT-1, U-DRAFT-2 | R-STG-10, R-AGT-1 | — (task 3) |
-| P-ROSTER-21 | Peer Reviewer A_Reviewer, a judge, which is ScholarPeer | [§3.5] [Bib: goyal2026scholarpeer] | SPECIFIED; its backbone UNSPECIFIED (U-PEER-3) | U-PEER-3, A-ROSTER-1 | R-STG-11, R-AGT-1 | — (task 3) |
+| P-ROSTER-21 | Peer Reviewer A_Reviewer, a judge, which is ScholarPeer | [§3.5] [Bib: goyal2026scholarpeer] | SPECIFIED; its backbone UNSPECIFIED (U-PEER-3) | U-PEER-3, A-ROSTER-1 | R-STG-11, R-AGT-1, R-AGT-5 (departs) | — (task 3) |
 | P-ROSTER-22 | Rebuttal Planner A_RebPlan | [§3.5] | SPECIFIED; its backend AMBIGUOUS (A-CFG-1) | A-CFG-1, U-PEER-1 | R-STG-11, R-AGT-1 | — (task 3) |
 | P-ROSTER-23 | Rebuttal Coder A_RebCoder, the Rebuttal Agent | [§3.5] [App. A.2] | SPECIFIED; Claude Code with Opus 4.8 [inferred] | U-PEER-2 | R-STG-11, R-AGT-1 | — (task 3) |
 | P-ROSTER-24 | Paper Enhancer A_Enhancer, the Draft Enhancer, on Claude Code with Opus 4.8 | [§3.5] [App. A.2] | SPECIFIED | U-PEER-4 | R-STG-11, R-AGT-1 | — (task 3) |
@@ -283,22 +283,22 @@ The paper tests every agent below only end to end, through Tables 5–8 and Figu
 |---|---|---|---|---|---|---|
 | P-ROSTER-29 | Idea Generator, Figure 3's box around seed generation and the evolver | [Fig. 3] (image) | SPECIFIED (image); its name collides (A-ROSTER-1) | A-ROSTER-1 | R-AGT-3 | — (task 3) |
 | P-ROSTER-30 | Seed Idea Generator: the Limitation Extractor and the Novelty Checker | [Fig. 3] (image) | SPECIFIED (image) | none | R-AGT-3 | — (task 3) |
-| P-ROSTER-31 | Evaluator: the two experiment agents | [Fig. 3] (image) | SPECIFIED (image); that it is A_Coder [inferred] | A-BASE-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-32 | Subset Experiment Agent: a Coding Agent and a Critic Agent in a cycle | [Fig. 3] (image) | SPECIFIED (image) | U-BASE-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-33 | Full-Set Experiment Agent: the same pair, with no separate engineer | [Fig. 3] (image) | SPECIFIED (image) | A-CFG-1, U-ABL-2 | R-AGT-3 | — (task 3) |
-| P-ROSTER-34 | Analyzer: the Ablation Study Agent and an Idea Refiner | [Fig. 3] (image) | SPECIFIED (image) | U-ABL-2 | R-AGT-3 | — (task 3) |
-| P-ROSTER-35 | Ablation Study Agent: a Planning Agent and a Coding Agent | [Fig. 3] (image) [App. A.2] | SPECIFIED; App. A.2's Claude Code group [inferred] | A-CFG-1 | R-AGT-3 | — (task 3) |
+| P-ROSTER-31 | Evaluator: the two experiment agents | [Fig. 3] (image) | SPECIFIED (image); that it is A_Coder [inferred] | A-BASE-1 | R-STG-6, R-AGT-3 | — (task 3) |
+| P-ROSTER-32 | Subset Experiment Agent: a Coding Agent and a Critic Agent in a cycle | [Fig. 3] (image) | SPECIFIED (image) | U-BASE-1 | R-STG-4, R-AGT-3 | — (task 3) |
+| P-ROSTER-33 | Full-Set Experiment Agent: the same pair, with no separate engineer | [Fig. 3] (image) | SPECIFIED (image) | A-CFG-1, U-ABL-2 | R-STG-5, R-AGT-2, R-AGT-3 | — (task 3) |
+| P-ROSTER-34 | Analyzer: the Ablation Study Agent and an Idea Refiner | [Fig. 3] (image) | SPECIFIED (image) | U-ABL-2 | R-STG-9, R-AGT-3 | — (task 3) |
+| P-ROSTER-35 | Ablation Study Agent: a Planning Agent and a Coding Agent | [Fig. 3] (image) [App. A.2] | SPECIFIED; App. A.2's Claude Code group [inferred] | A-CFG-1 | R-AGT-2, R-AGT-3 | — (task 3) |
 | P-ROSTER-36 | Idea Refiner, drawn twice, in the Analyzer and in the Meta-Review Agent box | [Fig. 3] (image) | AMBIGUOUS: one name for two roles (A-ROSTER-1) | A-ROSTER-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-37 | Writer Agent: the Initial Drafter and the Draft Enhancer | [Fig. 3] (image) [§4.2] | SPECIFIED; which one repairs the paper AMBIGUOUS (A-INT-2) | A-INT-2 | R-AGT-3, R-INT-5 | — (task 3) |
+| P-ROSTER-37 | Writer Agent: the Initial Drafter and the Draft Enhancer | [Fig. 3] (image) [§4.2] | SPECIFIED; which one repairs the paper AMBIGUOUS (A-INT-2) | A-INT-2 | R-AGT-3, R-INT-5, R-INT-6 | — (task 3) |
 | P-ROSTER-38 | Peer-Review Agent: in Figure 3 a box of two agents, in §1 the reviewer | [Fig. 3] (image) [§1] | AMBIGUOUS (A-ROSTER-1) | A-ROSTER-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-39 | Rebuttal Agent, the §3.5 planner and coder | [§3] [§4.2] [App. A.2] | SPECIFIED; its members [inferred]; the planner's backend AMBIGUOUS (A-CFG-1) | A-CFG-1 | R-AGT-3 | — (task 3) |
+| P-ROSTER-39 | Rebuttal Agent, the §3.5 planner and coder | [§3] [§4.2] [App. A.2] | SPECIFIED; its members [inferred]; the planner's backend AMBIGUOUS (A-CFG-1) | A-CFG-1 | R-AGT-2, R-AGT-3 | — (task 3) |
 | P-ROSTER-40 | Meta-Review Agent as a box: a Critic Agent and an Idea Refiner | [Fig. 3] (image) | SPECIFIED (image); its members [inferred] | A-ROSTER-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-41 | Idea Experiment Coding Agent, App. A.2's group for the coders of A_Coder | [App. A.2] | SPECIFIED; which coders it holds AMBIGUOUS (A-CFG-1) | A-CFG-1 | R-AGT-3 | — (task 3) |
-| P-ROSTER-42 | Idea Critic Agent, App. A.2's name for the subset critic, and perhaps the full-set one | [App. A.2] | SPECIFIED; its scope AMBIGUOUS (A-FULL-2) | A-FULL-2 | R-AGT-3 | — (task 3) |
-| P-ROSTER-43 | Coding Agent, a generic name | [§4.2] [Fig. 3] (image) | SPECIFIED; which session runs the checks AMBIGUOUS (A-INT-3) | A-INT-3 | R-AGT-3 | — (task 3) |
-| P-ROSTER-44 | Critic Agent, a generic name; App. C prints a page of its feedback | [Fig. 3] (image) [App. C] | SPECIFIED; which critic wrote that page AMBIGUOUS (A-ART-1) | A-ART-1 | R-AGT-3 | — (task 3) |
+| P-ROSTER-41 | Idea Experiment Coding Agent, App. A.2's group for the coders of A_Coder | [App. A.2] | SPECIFIED; which coders it holds AMBIGUOUS (A-CFG-1) | A-CFG-1 | R-AGT-2, R-AGT-3 | — (task 3) |
+| P-ROSTER-42 | Idea Critic Agent, App. A.2's name for the subset critic, and perhaps the full-set one | [App. A.2] | SPECIFIED; its scope AMBIGUOUS (A-FULL-2) | A-FULL-2 | R-STG-5, R-AGT-3 | — (task 3) |
+| P-ROSTER-43 | Coding Agent, a generic name | [§4.2] [Fig. 3] (image) | SPECIFIED; which session runs the checks AMBIGUOUS (A-INT-3) | A-INT-3 | R-AGT-3, R-INT-4 | — (task 3) |
+| P-ROSTER-44 | Critic Agent, a generic name; App. C prints a page of its feedback | [Fig. 3] (image) [App. C] | SPECIFIED; which critic wrote that page AMBIGUOUS (A-ART-1) | A-ART-1 | R-AGT-3, R-AGT-8 | — (task 3) |
 | P-ROSTER-45 | PaperOrchestra, inside the Initial Drafter | [§2] [§3.5] [Bib: song2026paperorchestra] | SPECIFIED; how it divides the work UNSPECIFIED (U-DRAFT-1) | U-DRAFT-1 | R-AGT-7 | — (task 3) |
-| P-ROSTER-46 | ScholarPeer, the in-loop reviewer and an evaluation reviewer | [§3.5] [§4] [Bib: goyal2026scholarpeer] | SPECIFIED; its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3, U-EVAL-2 | R-AGT-5 | — (task 3) |
+| P-ROSTER-46 | ScholarPeer, the in-loop reviewer and an evaluation reviewer | [§3.5] [§4] [Bib: goyal2026scholarpeer] | SPECIFIED; its configuration UNSPECIFIED (U-PEER-3) | U-PEER-3, U-EVAL-2 | R-AGT-5 (departs) | — (task 3) |
 | P-ROSTER-47 | Google Search, two reference papers per novelty check | [App. A.2] | SPECIFIED; the query UNSPECIFIED (U-SEED-2) | U-SEED-2 | R-AGT-6 | — (task 3) |
 | P-ROSTER-48 | Claude Code with Opus 4.8, the coding backend | [§4.2] [App. A.2] | SPECIFIED; which agents use it AMBIGUOUS (A-CFG-1) | A-CFG-1, U-CFG-1 | R-AGT-4 | — (task 3) |
 | P-ROSTER-49 | Antigravity with Gemini 3.8 Flash, Table 8's replacement backend | [§4.2] [Tab. 8] | SPECIFIED; its Gemini version AMBIGUOUS (A-CFG-2) | A-CFG-2 | R-AGT-4 | — (task 3) |
@@ -348,7 +348,7 @@ The paper tests every agent below only end to end, through Tables 5–8 and Figu
 | ID | Element | Location | Class | Gaps | Requirement | Component |
 |---|---|---|---|---|---|---|
 | P-EVAL-1 | task success | [Fig. 1] [Tab. 3] [Tab. 15] | AMBIGUOUS (A-EVAL-1) | A-EVAL-1, A-ABL-1 | R-MEAS-1 | — (task 3) |
-| P-EVAL-2 | the relative gain of one paper | [§4.1] | UNSPECIFIED (U-EVAL-1); its baseline AMBIGUOUS (A-EVAL-2) | U-EVAL-1, A-EVAL-2, U-TOP-5 | R-MEAS-2 | — (task 3) |
+| P-EVAL-2 | the relative gain of one paper | [§4.1] | UNSPECIFIED (U-EVAL-1); its baseline AMBIGUOUS (A-EVAL-2) | U-EVAL-1, A-EVAL-2, U-TOP-5 | R-MEAS-2 (departs) | — (task 3) |
 | P-EVAL-3 | the gain across papers: mean and median over the successes | [Tab. 4] | SPECIFIED in part | U-EVAL-1 | R-MEAS-3 | — (task 3) |
 | P-EVAL-4 | the average rating | [Tab. 3] [§3.5] | AMBIGUOUS (A-EVAL-4); reviewer set-up UNSPECIFIED (U-EVAL-2) | A-EVAL-4, U-EVAL-2 | R-MEAS-4 | — (task 3) |
 | P-EVAL-5 | ScholarPeer acceptance | [Tab. 3] [§3.5] | INCONSISTENT (A-EVAL-3) | A-EVAL-3 | R-MEAS-4 | — (task 3) |

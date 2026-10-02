@@ -98,6 +98,10 @@ after it; `P1` is needed before building; `P2` comes later.
     cannot be written before them.
   - **Output:** design documents in `docs/architecture/`, each decision recorded with its
     `⛔ WHY NOT`.
+  - **Found by task 2:** rank 1 is R-PRIM-1 to R-PRIM-10, the default stage configuration
+    (`docs/requirements/03-stages.md`) and R-RUN-4's sequence. The register proposals that the
+    requirements presume, such as U-TOP-2's retry policy and U-ART-15's access per role, are listed
+    in `docs/requirements.md`; deciding one otherwise means revising the requirement that names it.
   - **Done when:** each of these five changes touches one component, or only data, and the design
     shows which files for each:
     - a new agent;
@@ -130,7 +134,12 @@ after it; `P1` is needed before building; `P2` comes later.
   - Measure each task's compute.
   - Build a cost model for one task, checked against the paper's reported cost per task. The note
     quotes about $3,765; verify it.
-  - Decide how we are billed: API or subscription.
+  - Decide how we are billed: API or subscription. **Decided by Vlad on 2026-10-02:** the Claude
+    subscription, through `claude -p`, and no API (R-OPS-12). Budgets count calls, tokens and the
+    subscription's usage windows, and a cost in dollars is recorded only for metered work.
+  - **Found by task 2:** price more coding sessions than `docs/paper/analysis.md` section 9
+    counts: its bound leaves out the specification filter after every code-producing unit and the
+    manuscript checks after every revision (R-INT-4, R-INT-10; the elicitation's CONT-8).
   - **Found by task 1:**
     - **The $3,765 is a mean over the 33 NeurIPS successes only.** Failed runs are not costed
       (`docs/paper/claims/discussion.md`, C-DISC-3; U-COST-2).
@@ -158,6 +167,12 @@ after it; `P1` is needed before building; `P2` comes later.
 
   The integrity rules in `CLAUDE.md` already settle the first two in principle.
 
+  **Found by task 2:** the requirements cite the first version's rules by their IR- IDs, and eleven
+  of task 2's decisions adopt them, marked provisional in `docs/requirements.md`. When the review
+  closes, recheck those rows and every clause that cites an IR- rule. The integrity review of the
+  requirements (EI-13) proposes that people also check a random sample of the audit's passes, not
+  only its flags; that is U-NOTE-4's to decide.
+
 - [ ] `P1` **7 · Test strategy and mock mode.** A mock LLM and a mock coding agent, so the whole
   state machine can be tested for $0. `infrastructure-engineer` owns it. **Found by task 1:** the
   paper gives no success criterion for any agent, and tests them only end to end (U-TOP-6). A test
@@ -174,6 +189,12 @@ after it; `P1` is needed before building; `P2` comes later.
 - [ ] `P2` **9 · Shared personas.** Once the shared persona plugin exists (a separate
   "agent-workbench" repository), decide whether this repo's generic personas move there. The
   research-specific ones stay here.
+
+- [ ] `P2` **10 · Split `DEVELOPMENT_PROCESS.md`.** Found by task 2: every task branch appends to
+  it, and it is past `CLAUDE.md`'s cap of 600 lines on two of them (639 lines on
+  `claude/integrity-blockers`, 608 on `claude/requirements`, counted 2026-10-02). Split it, by
+  period or by task, when those branches merge, so that no branch restructures a file all of them
+  write. Vlad's quotes stay verbatim, each where its section is.
 
 ## Phase 1 onwards: build
 

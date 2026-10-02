@@ -501,3 +501,107 @@ the same inputs independently. Its report goes into the review folder when it ar
      PR #1 is open.
 - **Task 6 had decided nothing** when the draft was written. If its decisions land, check every
   requirement that lists U-INT-4, U-TOP-5, A-INT-1 or A-INT-3 under *Depends on*.
+
+## 2026-10-02: the review gate opens, and the goal turns out to have moved
+
+**Vlad, verbatim,** as the coordinating session recorded it on `claude/engine`, in that branch's
+`DEVELOPMENT_PROCESS.md`, section "the goal becomes a working engine, on the subscription". This
+session did not receive it directly, and found it while answering the architect's review:
+
+> "As a result I expect to see working engine for auto research which replicates engine from paper ScientistTwo. I am going to use it based on my claude subscription – "claude -p" backend in future, take it into account. I don't wanna pay for API.
+> Don't ask me anything, deliver replicated engine."
+
+**What it changes for task 2:**
+- **No questions go to Vlad.** Every open point is decided here, with its reason and its
+  `⛔ WHY NOT`, or named as pending in the task that owns it. The elicitation's questions (Q-1 to
+  Q-17) are answered that way.
+- **Every agent runs on the subscription, through `claude -p`, and nothing may bill the API.** That
+  becomes a requirement. It forces a recorded departure from App. A.2's routing, since Gemini
+  cannot run there, and a ledger kept in the subscription's own units.
+- **The engine is being built now,** on `claude/engine`, against its own contract,
+  `docs/architecture/engine.md`. That session folds tasks 2 and 6 in when they land. Its decisions
+  on the register mostly match the ones taken here; where they differ, the requirements say so.
+
+**Other work found, outside this task's brief.** Codex sessions have built engine slices, each with a
+requirements file of its own, in `docs/requirements/`:
+- `run-journal.md` (RJ-1 to RJ-7), on `codex/run-journal`;
+- `budget-admission.md` (BA-1 to BA-6), on `codex/budget-admission`;
+- `verified-results-tables.md` (VT-1 to VT-5), on `codex/verified-tables`;
+- `runtime-integration.md`, with no IDs of its own, in the `codex/engine-integration` worktree.
+
+None is merged here. This session reads them, credits their stronger rules where it adopts them,
+and leaves their reconciliation to whoever integrates the engine.
+
+**The reviews so far,** saved verbatim in `docs/reviews/requirements-2026-10-02/`:
+- **The `system-analyst` elicitation:** 27 needs no paper element captures, 19 contradictions among
+  the inputs, and the defects a checker must plant.
+- **The `system-architect` review:** 2 blockers, 10 majors and 5 minors. The blockers:
+  - the primitive's parameter list, as drafted, could not express the draft's own stage table;
+  - the meta restart was stated three incompatible ways.
+- **The `evaluation-integrity-engineer` review:** 4 blockers, 14 majors and 6 minors. The blockers:
+  - every integrity test ran against a mock of its own guard, with no twin in which the guard is
+    off;
+  - the test split was read-only to agents, not unreachable;
+  - the draft decided when the test split is scored, which is task 6's, and P+ would have reported
+    validation numbers without saying so;
+  - nothing kept agents, or the code they write, away from results, verdicts and rules.
+
+## 2026-10-02: task 6's first decisions arrive, and the requirements are revised
+
+**Task 6's first version landed during the review,** on `claude/integrity-blockers` at d5d0d61:
+`docs/integrity/blocking-decisions.md`, rules IR-1 to IR-31 and gates G1 to G7, not yet reviewed.
+It decides its four rows, and it constrains eleven of task 2's. Four of task 2's earlier choices
+change with it:
+- **The baseline's numbers come from the task's pinned code,** scored by the harness (IR-4). The
+  Baseline Coding Agent still prepares C_base, the copy that ideas start from, but no longer
+  produces E_base.
+- **The reproduction check is sealed, and runs on the test split,** once per task, before any
+  candidate (IR-15). The first fix list had put it on the validation side; task 6 decided the other
+  way, because the published numbers it compares with are test numbers.
+- **A run ends in a freeze, one test event, and a fill of the numbers by engine code;** after that,
+  only text changes (IR-14, IR-17). This becomes the run's last stage, the tail (R-RUN-7).
+- **A manuscript gate whose repairs are spent ends the task without export** (IR-21); the first fix
+  list had only marked the export.
+
+**The revision** (this commit), from the three reviews and task 6's first version:
+- **82 requirements** (RUN 8, PRIM 10, STG 13, AGT 9, STATE 10, INT 10, MEAS 10, OPS 12), up from
+  71. The new ones include the comparison rule (R-RUN-6), the tail (R-RUN-7), no person between
+  launch and export (R-RUN-8), failing closed (R-PRIM-10), the decision trail and the verified table
+  as state (R-STATE-9, R-STATE-10), hook points as data (R-INT-10), a null-idea control
+  (R-MEAS-10), and the Claude subscription as the only way to run an agent (R-OPS-12, from Vlad's
+  instruction).
+- **Two test tiers.** Logic tests mock everything. Enforcement tests run the sandbox, the
+  permissions, the hashing and the harness for real on a toy task, each beside a twin with the guard
+  off, in which the planted attack succeeds.
+- **Departures are recorded** in a new field, *Departs from*: 23 paper elements, among them App.
+  A.2's routing (R-AGT-2) and every agent that produces its own results (R-INT-1).
+- **The decisions:** 15 confirmed, 18 refined, none replaced. Eleven rows adopt a rule of task 6's
+  first version, and are marked provisional in the decisions table and in their register pointers.
+- **The questions for Vlad** became *Decided here, not asked*, ten decisions, each with its reason.
+- **The checker** now also fails a dependency that the requirement's text does not name, a
+  requirement on task 6's ground that does not depend on U-INT-4 or U-TOP-5, and a missing tail
+  row. Its self-test moved to its own module, 40 cases.
+- **Every finding has a disposition** in `docs/reviews/requirements-2026-10-02/fix-list.md`.
+
+**Checks run on the revision:** `requirement_coverage.py`, 0 problems (177 elements: 172 traced, 5
+left out; 33 of 33 rows decided); `check_citations.py`, 27 files, 0 problems; `trace_coverage.py`
+and `register_coverage.py`, 0 problems; every self-test passes; pyflakes is clean; the largest file
+is 536 lines; a scan of the diff for paths, e-mail addresses and keys finds none, and finds the line
+planted to prove that it can.
+
+## HANDOFF, 2026-10-02 (task 2: revision committed; closure checks and the Codex gate are next)
+
+- **Done:** the first draft, the review gate (three reviews, saved verbatim), and the revision above,
+  with its fix list.
+- **Next:**
+  1. Closure checks, in parallel, by the same three personas, each on its own findings, saved
+     verbatim beside the reviews. Fix what they find.
+  2. The `/codex` gate on `git diff claude/paper-analysis...HEAD`, with `-c model="gpt-6-astra"`
+     and no `--base`. Record the verdict and every HIGH or MEDIUM finding, with its disposition.
+  3. Tick task 2 in `TODO.md` with its proof; open the PR against `claude/paper-analysis` while PR
+     #1 is open.
+- **When task 6's review closes:** check every requirement that cites an IR- rule, and the eleven
+  rows marked provisional, against the reviewed rules.
+- **For the engine's integrator:** the Codex contracts (RJ, BA, VT, and the runtime integration)
+  move beside their components on merge, never into `docs/requirements/`, which the checker
+  enforces. The Codex slices use the package name `scientist_two`, the engine `scientisttwo`.

@@ -3,13 +3,15 @@
 The completeness control of TODO task 2 (docs/requirements.md, section "Controls"). It reads:
   - docs/requirements.md and docs/requirements/*.md: requirements, each a heading
     "### R-<AREA>-n · <title>" followed by its fields as top-level list items
-    ("- **Requirement.** ...", then Traces, Why ours, Decides, Depends on, Test, in that order);
+    ("- **Requirement.** ...", then Traces, Departs from, Why ours, Decides, Depends on, Test, in
+    that order);
     decisions to leave an element out, "### X-n · <title>" with "Leaves out" and "Why"; the table of
     decisions on the register's task-2 rows; and the table of rows left to other tasks;
   - docs/paper/traceability.md, Part 2, whose "Requirement" column must name, for each P- ID, the
     requirements and leave-outs that trace it;
   - docs/paper/unspecified.md, the register, whose task-2 rows must each point to their decision;
-  - the paper elements, defined as trace_coverage.py defines them.
+  - the paper elements, defined as trace_coverage.py defines them, and the value-and-mechanism pairs
+    of analysis.md section 6 ("P-LIM-4 uses P-CFG-1").
 
 Problem kinds (any one makes the exit status 1):
   unmapped          a defined P- ID that no requirement traces and no X- decision leaves out
@@ -20,26 +22,36 @@ Problem kinds (any one makes the exit status 1):
   no-test           a requirement whose Test field is empty
   no-source         a requirement that traces no P- ID and gives no reason under "Why ours"
   no-reason         an X- decision with no element under "Leaves out", or no reason under "Why"
+  placeholder       a Requirement or Test field that holds only a placeholder (TBD, TODO, ?, —)
+  malformed-id      a P- ID in a trace field written with a dash, case or padding of the wrong kind
+  departs           a "Departs from" field names a P- ID that the requirement does not trace
+  split-pair        a value and the mechanism that uses it (analysis.md section 6) share no requirement
+  stage-table       the default stage configuration lacks a stage (Table 1's eleven and the tail) or a
+                    parameter column, or has an empty cell
   column            a Requirement cell of traceability.md that differs from what the requirements say
   unknown-ref       a cell of a table here names an R- or X- ID that is not defined
   unknown-row       a Decides or Depends-on field names an ID that no register row holds
   boundary          a requirement decides a row that task 2 does not own, or depends on one it does
+  inline-dependency a Depends-on row that the Requirement text does not name beside its clause
+  integrity-dependency  a Requirement that names the harness, a data role, a gain or the verified
+                    table, and depends on neither U-INT-4 nor U-TOP-5 (task 6's blocking rows)
   undecided         a task-2 register row that no requirement decides
   decision-table    the decisions table: a missing, repeated or foreign row, a bad status, or a
                     "Carried by" cell that differs from the requirements that decide the row
   pointer           a task-2 register row without its pointer, or whose pointer disagrees with the table
   pending-table     the table of rows left to other tasks differs from the Depends-on fields
-  structure         a file, a section or a table column is missing
+  structure         a file, a section or a table column is missing, or a file of docs/requirements/
+                    defines no requirement
 
 Usage:
   python3 playground/paper/requirement_coverage.py             # check the real files
   python3 playground/paper/requirement_coverage.py --write     # fill traceability.md's column, then check
   python3 playground/paper/requirement_coverage.py --selftest  # plants each defect, shows it is caught
+                                                               # (requirement_coverage_selftest.py)
 """
 
 import re
 import sys
-import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -57,12 +69,26 @@ FIELD = re.compile(r"^- \*\*([A-Za-z ]+)\.\*\*(.*)$")
 REQ_ID = re.compile(r"\b(?:R-[A-Z]+-\d+|X-\d+)\b")
 GAP = re.compile(r"\b[UA]-[A-Z]+-\d+\b")
 TAGS = re.compile(r"\[[^\]]*\]|\([^)]*\)")
-R_FIELDS = ["Requirement", "Traces", "Why ours", "Decides", "Depends on", "Test"]
+R_FIELDS = ["Requirement", "Traces", "Departs from", "Why ours", "Decides", "Depends on", "Test"]
 R_REQUIRED = {"Requirement", "Traces", "Test"}
 X_FIELDS = ["Leaves out", "Why"]
 AREAS = ["RUN", "PRIM", "STG", "AGT", "STATE", "INT", "MEAS", "OPS"]   # reading order, then X-
 STATUSES = ("confirmed", "refined", "replaced")
 PLACEHOLDER = "— (task 2)"
+FILLER = re.compile(r"^(?:tbd|todo|tba|\?+|—|–|-|…)$", re.I)
+# A P- ID with the wrong dash, case or padding: "P–ABL–1", "p-abl-1", "P-ABL-01". Only the strict form counts.
+LOOSE_PID = re.compile(r"\bP[-‐–—][A-Z]+[-‐–—]\d+\b", re.I)
+STRICT_PID = re.compile(r"^P-[A-Z]+-[1-9]\d*$")
+USES = re.compile(r"(P-[A-Z]+-\d+) uses (P-[A-Z]+-\d+(?: and P-[A-Z]+-\d+)*)")
+STAGE_TABLE = r"^##\s+The default stage configuration"
+STAGE_KEYS = ["LIM", "SEED", "BASE", "SUB", "FULL", "EVO", "SEL", "ABL", "DRAFT", "PEER", "META", "TAIL"]
+# Words that put a requirement on task 6's ground (the evaluation integrity review, EI-18): such a requirement
+# must name U-INT-4 or U-TOP-5 under "Depends on", so that task 6's decisions reach it when they land.
+INTEGRITY_TERMS = re.compile(r"\bharness\b|\bsplits?\b|\bgains?\b|\bverified (?:results )?table\b|\bvalidation\b"
+                             r"|\b(?:search|report)[- ]role\b|\btest (?:event|split|set)\b", re.I)
+TASK6_BLOCKING = {"U-INT-4", "U-TOP-5"}
+STAGE_COLUMNS = ["Stage", "Generator", "Judged", "Assessor", "Verdict", "Guard", "Limit", "At the limit", "Nesting"]
+DEPARTS = " (departs)"
 # The pointer a task-2 register row carries in its decision cell, e.g.
 # "**Task 2 decided it: confirmed, in R-PRIM-4, R-STG-1.**"
 POINTER = re.compile(r"\*\*Task 2 decided it: ([a-z]+), in ([^*]+?)\.\*\*")
@@ -155,8 +181,9 @@ def parse_requirements(files: list[Path], problems: list):
 
 
 def check_blocks(blocks: dict, defined: set, problems: list):
-    """Field rules for every block; returns {P- ID: {R-/X- IDs that trace it}}."""
-    traced = defaultdict(set)
+    """Field rules for every block; returns {P- ID: {R-/X- IDs that trace it}} and
+    {P- ID: {R- IDs that depart from it}}."""
+    traced, departs = defaultdict(set), defaultdict(set)
     for rid, b in blocks.items():
         where, f = f"{b['file']}:{b['line']} {rid}", b["fields"]
         allowed = X_FIELDS if rid.startswith("X-") else R_FIELDS
@@ -166,6 +193,15 @@ def check_blocks(blocks: dict, defined: set, problems: list):
         known = [name for name in b["order"] if name in allowed]
         if known != sorted(known, key=allowed.index):
             problems.append(("fields", f"{where}: fields out of order {known}"))
+        for name in ("Traces", "Leaves out", "Departs from"):
+            for token in LOOSE_PID.findall(f.get(name, "")):
+                if not STRICT_PID.match(token):
+                    problems.append(("malformed-id", f"{where}: {name} writes {token!r}; write P-<KEY>-<n>"))
+        for name in ("Requirement", "Test"):
+            bare = TAGS.sub("", f.get(name, "")).strip()
+            core = bare.rstrip(" .").strip()                # "TBD [ours]." and "..." are placeholders too
+            if name in f and ((bare and (not core or FILLER.match(core))) or (name == "Requirement" and not bare)):
+                problems.append(("placeholder", f"{where}: the {name} field holds only a placeholder"))
         if rid.startswith("X-"):
             ids = ids_in(f.get("Leaves out", ""))
             if not ids or not TAGS.sub("", f.get("Why", "")).strip():
@@ -176,6 +212,11 @@ def check_blocks(blocks: dict, defined: set, problems: list):
                 problems.append(("fields", f"{where}: missing field(s) {missing}"))
             if "Test" in f and not TAGS.sub("", f["Test"]).strip():
                 problems.append(("no-test", f"{where}: the Test field is empty"))
+            for pid in ids_in(f.get("Departs from", "")):
+                if pid not in ids_in(f.get("Traces", "")):
+                    problems.append(("departs", f"{where}: departs from {pid}, which it does not trace"))
+                else:
+                    departs[pid].add(rid)
             ids = ids_in(f.get("Traces", ""))
             bare = TAGS.sub("", f.get("Traces", "")).strip().rstrip(".").strip()
             if not ids and bare != "none":
@@ -186,7 +227,7 @@ def check_blocks(blocks: dict, defined: set, problems: list):
             if pid not in defined:
                 problems.append(("dangling-trace", f"{where}: {pid} is not a defined paper element"))
             traced[pid].add(rid)
-    return traced
+    return traced, departs
 
 
 def parse_register(path: Path, problems: list):
@@ -216,11 +257,13 @@ def parse_register(path: Path, problems: list):
     return owner, task2, lines
 
 
-def expected_cell(pid: str, traced: dict) -> str:
-    return ", ".join(sorted(traced.get(pid, ()), key=id_key)) or PLACEHOLDER
+def expected_cell(pid: str, traced: dict, departs: dict) -> str:
+    """The cell's text: the requirements and leave-outs in reading order, a departure marked."""
+    refs = sorted(traced.get(pid, ()), key=id_key)
+    return ", ".join(r + (DEPARTS if r in departs.get(pid, ()) else "") for r in refs) or PLACEHOLDER
 
 
-def check_trace(path: Path, defined: set, traced: dict, all_ids: set, problems: list, write: bool):
+def check_trace(path: Path, defined: set, traced: dict, departs: dict, all_ids: set, problems: list, write: bool):
     """The Requirement column of traceability.md, Part 2; with write, fill it first."""
     if not path.exists():
         problems.append(("structure", f"{path} does not exist"))
@@ -241,7 +284,7 @@ def check_trace(path: Path, defined: set, traced: dict, all_ids: set, problems: 
             if pid not in defined or col >= len(row):
                 continue                       # trace_coverage.py owns these defects
             seen.add(pid)
-            want = expected_cell(pid, traced)
+            want = expected_cell(pid, traced, departs)
             if write and row[col] != want:
                 row[col] = want
                 lines[i] = "| " + " | ".join(row) + " |"
@@ -329,7 +372,7 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
     bounds = section(lines, PENDING)
     if bounds is None:
         problems.append(("structure", f"{main.name} has no section 'What the requirements leave to other tasks'"))
-        return decided
+        return decided, table_rows
     for header, body in tables(lines, *bounds):
         c_task, c_rows = column(header, "Task"), column(header, "Rows")
         if None in (c_task, c_rows):
@@ -342,7 +385,62 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
         if want[task] != got[task]:
             missing, extra = sorted(want[task] - got[task]), sorted(got[task] - want[task])
             problems.append(("pending-table", f"{main.name}: task {task}: missing {missing}, not depended on {extra}"))
-    return decided
+    return decided, table_rows
+
+
+def check_dependencies(blocks: dict, owner: dict, problems: list):
+    """A requirement names each row it depends on beside the clause that rests on it, and one on task 6's
+    ground depends on U-INT-4 or U-TOP-5 (the evaluation integrity review, EI-18 and EI-19)."""
+    for rid, b in blocks.items():
+        if rid.startswith("X-"):
+            continue
+        where, text = f"{b['file']}:{b['line']} {rid}", b["fields"].get("Requirement", "")
+        deps = GAP.findall(b["fields"].get("Depends on", ""))
+        named = set(GAP.findall(text))
+        for gap in sorted(set(deps) - named):
+            problems.append(("inline-dependency", f"{where}: depends on {gap}, which its Requirement text does not name"))
+        canon = {owner.get(gap, (gap, ""))[0] for gap in deps}
+        term = INTEGRITY_TERMS.search(text)
+        if term and not canon & TASK6_BLOCKING:
+            problems.append(("integrity-dependency", f"{where}: names {term.group(0)!r} and depends on neither "
+                             f"{' nor '.join(sorted(TASK6_BLOCKING))}"))
+
+
+def check_stage_table(files: list[Path], problems: list):
+    """The default stage configuration: every stage a row, every parameter a column, no empty cell."""
+    for path in files:
+        lines = path.read_text(encoding="utf-8").split("\n")
+        bounds = section(lines, STAGE_TABLE)
+        if bounds is None:
+            continue
+        for header, body in tables(lines, *bounds):
+            if [h for h, want in zip(header, STAGE_COLUMNS) if not h.startswith(want)] or len(header) != len(STAGE_COLUMNS):
+                problems.append(("stage-table", f"{path.name}: the columns are {header}, the parameters are {STAGE_COLUMNS}"))
+            seen = [row[0] for _, row in body]
+            for key in STAGE_KEYS:
+                if seen.count(key) != 1:
+                    problems.append(("stage-table", f"{path.name}: stage {key} has {seen.count(key)} row(s)"))
+            for i, row in body:
+                if row[0] not in STAGE_KEYS:
+                    problems.append(("stage-table", f"{path.name}:{i + 1}: {row[0]!r} is not a stage of the default configuration"))
+                if len(row) != len(header) or any(not TAGS.sub("", c).strip() for c in row):
+                    problems.append(("stage-table", f"{path.name}:{i + 1}: stage {row[0]} has a missing or empty cell"))
+            return
+    problems.append(("structure", "no requirement file has the section 'The default stage configuration'"))
+
+
+def check_pairs(paper: Path, traced: dict, problems: list):
+    """A value of App. A.2 and the stage element that uses it share a requirement (analysis.md section 6)."""
+    source = paper / "analysis.md"
+    text = source.read_text(encoding="utf-8") if source.exists() else ""
+    for m in USES.finditer(text):
+        mechanism = m.group(1)
+        for value in re.findall(r"P-[A-Z]+-\d+", m.group(2)):
+            a = {r for r in traced.get(mechanism, ()) if r.startswith("R-")}
+            b = {r for r in traced.get(value, ()) if r.startswith("R-")}
+            if a and b and not a & b:
+                problems.append(("split-pair", f"{mechanism} uses {value}, but they share no requirement: "
+                                 f"{sorted(a, key=id_key)} against {sorted(b, key=id_key)}"))
 
 
 def check(paper: Path, main: Path, req_dir: Path, write: bool = False):
@@ -354,7 +452,14 @@ def check(paper: Path, main: Path, req_dir: Path, write: bool = False):
     if not main.exists():
         problems.append(("structure", f"{main} does not exist"))
     blocks = parse_requirements(files, problems)
-    traced = check_blocks(blocks, defined, problems)
+    for path in sorted(req_dir.glob("*.md")):
+        if not any(b["file"] == path.name and r.startswith("R-") for r, b in blocks.items()):
+            problems.append(("structure", f"{path.name} defines no requirement: a second scheme, or a stray file"))
+    if not any(r.startswith("R-") for r in blocks):
+        problems.append(("structure", "no requirement was parsed"))
+    traced, departs = check_blocks(blocks, defined, problems)
+    check_stage_table(files, problems)
+    check_pairs(paper, traced, problems)
     for pid in sorted(defined, key=sort_key):
         refs = traced.get(pid, set())
         if not refs:
@@ -363,175 +468,63 @@ def check(paper: Path, main: Path, req_dir: Path, write: bool = False):
             problems.append(("left-and-traced", f"{pid} is left out by {sorted(r for r in refs if r.startswith('X-'))} "
                              f"and traced by {sorted((r for r in refs if r.startswith('R-')), key=id_key)}"))
     owner, task2, reg_lines = parse_register(paper / "unspecified.md", problems)
-    check_trace(paper / "traceability.md", defined, traced, set(blocks), problems, write)
-    decided = check_decisions(main, blocks, owner, task2, reg_lines, problems)
-    summary = {"defined": len(defined), "blocks": blocks, "traced": traced, "task2": task2, "decided": decided}
+    check_trace(paper / "traceability.md", defined, traced, departs, set(blocks), problems, write)
+    decided, table_rows = check_decisions(main, blocks, owner, task2, reg_lines, problems)
+    check_dependencies(blocks, owner, problems)
+    summary = {"defined": defined, "blocks": blocks, "traced": traced, "departs": departs,
+               "task2": task2, "decided": decided, "owner": owner, "table": table_rows}
     return problems, summary
 
 
 def report(write: bool) -> int:
     problems, s = check(PAPER, REQ_MAIN, REQ_DIR, write)
-    reqs = [r for r in s["blocks"] if r.startswith("R-")]
+    reqs = sorted((r for r in s["blocks"] if r.startswith("R-")), key=id_key)
     leaves = [r for r in s["blocks"] if r.startswith("X-")]
-    by_r = {p for p, refs in s["traced"].items() if any(r.startswith("R-") for r in refs)}
-    by_x = {p for p, refs in s["traced"].items() if all(r.startswith("X-") for r in refs)}
+    per_key = defaultdict(lambda: [0, 0, 0, 0])          # defined, traced, departed from, left out
+    for pid in s["defined"]:
+        key, refs = pid.rsplit("-", 1)[0], s["traced"].get(pid, set())
+        row = per_key[key]
+        row[0] += 1
+        row[1] += any(r.startswith("R-") for r in refs)
+        row[2] += bool(s["departs"].get(pid))
+        row[3] += bool(refs) and all(r.startswith("X-") for r in refs)
+    print(f"{'key':<11}{'defined':>8}{'traced':>8}{'departs':>9}{'left out':>10}")
+    for key in sorted(per_key):
+        print(f"{key:<11}" + "".join(f"{v:>{w}}" for v, w in zip(per_key[key], (8, 8, 9, 10))))
+    totals = [sum(v[i] for v in per_key.values()) for i in range(4)]
+    print(f"{'total':<11}" + "".join(f"{v:>{w}}" for v, w in zip(totals, (8, 8, 9, 10))))
     per_area = defaultdict(int)
     for r in reqs:
         per_area[r[2:].rsplit("-", 1)[0]] += 1
-    print(f"paper elements: {s['defined']} defined; {len(by_r)} traced by a requirement; {len(by_x)} left out")
-    print(f"requirements: {len(reqs)} ({', '.join(f'{a} {per_area[a]}' for a in sorted(per_area, key=lambda a: id_key(f'R-{a}-0')))}); "
+    print(f"requirements: {len(reqs)} ({', '.join(f'{a} {n}' for a, n in per_area.items())}); "
           f"leave-out decisions: {len(leaves)}")
-    print(f"task-2 register rows: {len(s['task2'])}; decided by a requirement: {len(set(s['task2']) & set(s['decided']))}")
+    statuses = defaultdict(int)
+    for status, _by in s["table"].values():
+        statuses[status] += 1
+    print(f"task-2 register rows: {len(s['task2'])}; decided by a requirement: {len(set(s['task2']) & set(s['decided']))}; "
+          f"in the decisions table: {', '.join(f'{n} {k}' for k, n in sorted(statuses.items())) or 'none'}")
+    departures = defaultdict(list)
+    for pid, rids in s["departs"].items():
+        for rid in rids:
+            departures[rid].append(pid)
+    for rid in sorted(departures, key=id_key):
+        print(f"  departs: {rid} from {', '.join(sorted(departures[rid], key=sort_key))}")
+    pending = defaultdict(set)
+    for rid, b in s["blocks"].items():
+        for gap in GAP.findall(b["fields"].get("Depends on", "")):
+            canon, task = s["owner"].get(gap, (gap, "?"))
+            pending[task].add(canon)
+    for task in sorted(pending):
+        print(f"  pending, task {task}: {len(pending[task])} row(s): {', '.join(sorted(pending[task]))}")
     for kind, message in problems:
         print(f"{kind}: {message}")
     print(f"{len(problems)} problem(s)")
     return 1 if problems else 0
 
 
-# ---------------------------------------------------------------------------------------------
-# Self-test: a clean miniature of the real files, and one planted defect per problem kind.
-
-SOURCE = "# A source\n## A stage · P-AAA-1 … 2\n### P-BBB-1 · a definition\n- **U-AAA-1 · a gap.**\n"
-TRACE = """# Traceability
-## Part 2
-| ID | Element | Requirement | Component |
-|---|---|---|---|
-| P-AAA-1 | a step | R-RUN-1 | x |
-| P-AAA-2 | a step | R-RUN-1, R-STG-1 | x |
-| P-BBB-1 | a figure | X-1 | x |
-## Part 3
-"""
-REGISTER = """# Register
-## The register
-| ID (entry) | Class | Question | Decision it forces [ours] | Task | Priority | Aliases (entry) |
-|---|---|---|---|---|---|---|
-| U-AAA-1 (an) | UNSPECIFIED | q | d **Task 2 decided it: confirmed, in R-STG-1.** | 2 | blocks 1 | U-AAA-2 (an) |
-| U-BBB-1 (an) | UNSPECIFIED | q | d | 3 | later | none |
-## Why these rows merge
-"""
-MAIN = """# Requirements
-## Decisions on the register's task-2 rows
-| Row | Priority | Status | Decision | Reason | Carried by |
-|---|---|---|---|---|---|
-| U-AAA-1 | blocks 1 | confirmed | d | r | R-STG-1 |
-## Elements left out
-### X-1 · A figure
-- **Leaves out.** P-BBB-1 [Fig. 1].
-- **Why.** Nothing to reproduce [ours].
-## What the requirements leave to other tasks
-| Task | Rows the requirements depend on |
-|---|---|
-| 3 · components | U-BBB-1 |
-"""
-AREA1 = """# Area
-### R-RUN-1 · A run
-- **Requirement.** It runs [§3].
-- **Traces.** P-AAA-1 … 2 [§3].
-- **Test.** It ran [ours].
-### R-STG-1 · A stage
-- **Requirement.** It stages [ours].
-- **Traces.** P-AAA-2 [§3.1].
-- **Why ours.** A reason [ours].
-- **Decides.** U-AAA-2 [ours].
-- **Depends on.** U-BBB-1 [ours].
-- **Test.** It staged:
-  - first case [ours].
-"""
-
-
-def selftest() -> int:
-    """Each planted defect must produce exactly the expected problem kinds; the clean twin none."""
-    def edit(text, old, new):
-        assert old in text, old
-        return text.replace(old, new)
-    cases = {  # name: ({file: text} changes to the clean set, expected kinds)
-        "clean": ({}, set()),
-        "an element nobody traces": ({"area": edit(AREA1, "P-AAA-1 … 2 [§3]", "P-AAA-2 [§3]"),
-                                      "trace": edit(TRACE, "| P-AAA-1 | a step | R-RUN-1 |", f"| P-AAA-1 | a step | {PLACEHOLDER} |")},
-                                     {"unmapped"}),
-        "a placeholder left in the column": ({"trace": edit(TRACE, "| R-RUN-1 | x |", f"| {PLACEHOLDER} | x |")}, {"column"}),
-        "a one-way link": ({"trace": edit(TRACE, "| R-RUN-1, R-STG-1 |", "| R-RUN-1 |")}, {"column"}),
-        "a requirement that does not exist": ({"trace": edit(TRACE, "| R-RUN-1, R-STG-1 |", "| R-RUN-1, R-STG-9 |")},
-                                              {"column", "unknown-ref"}),
-        "left out and traced": ({"area": edit(AREA1, "P-AAA-2 [§3.1]", "P-AAA-2, P-BBB-1 [§3.1]"),
-                                 "trace": edit(TRACE, "| X-1 |", "| R-STG-1, X-1 |")}, {"left-and-traced"}),
-        "a trace to nothing": ({"area": edit(AREA1, "P-AAA-2 [§3.1]", "P-AAA-2, P-CCC-1 [§3.1]")}, {"dangling-trace"}),
-        "an ID defined twice": ({"area": AREA1 + "### R-RUN-1 · Again\n- **Requirement.** x [ours].\n"
-                                 "- **Traces.** P-AAA-1 [§3].\n- **Test.** y [ours].\n"}, {"duplicate-id"}),
-        "a missing field": ({"area": edit(AREA1, "- **Traces.** P-AAA-1 … 2 [§3].\n", "")},
-                            {"fields", "unmapped", "column"}),
-        "fields out of order": ({"area": edit(AREA1, "- **Why ours.** A reason [ours].\n- **Decides.** U-AAA-2 [ours].\n",
-                                              "- **Decides.** U-AAA-2 [ours].\n- **Why ours.** A reason [ours].\n")}, {"fields"}),
-        "text outside a field": ({"area": edit(AREA1, "- **Test.** It ran [ours].\n", "- **Test.** It ran [ours].\nStray text.\n")},
-                                 {"fields"}),
-        "an empty test": ({"area": edit(AREA1, "- **Test.** It ran [ours].", "- **Test.** [ours]")}, {"no-test"}),
-        "no trace and no reason": ({"area": AREA1 + "### R-OPS-1 · Ours\n- **Requirement.** x [ours].\n"
-                                    "- **Traces.** none.\n- **Test.** y [ours].\n"}, {"no-source"}),
-        "a leave-out with no reason": ({"main": edit(MAIN, "- **Why.** Nothing to reproduce [ours].", "- **Why.** [ours]")},
-                                       {"no-reason"}),
-        "deciding another task's row": ({"area": edit(AREA1, "- **Decides.** U-AAA-2 [ours].", "- **Decides.** U-AAA-2, U-BBB-1 [ours]."),
-                                         "main": edit(MAIN, "| 3 · components | U-BBB-1 |", "| 3 · components | U-BBB-1 |")},
-                                        {"boundary"}),
-        "depending on a task-2 row": ({"area": edit(AREA1, "- **Depends on.** U-BBB-1 [ours].", "- **Depends on.** U-BBB-1, U-AAA-1 [ours].")},
-                                      {"boundary", "pending-table"}),
-        "a row the register lacks": ({"area": edit(AREA1, "- **Depends on.** U-BBB-1 [ours].", "- **Depends on.** U-BBB-1, U-ZZZ-9 [ours].")},
-                                     {"unknown-row"}),
-        "a task-2 row nobody decides": ({"area": edit(AREA1, "- **Decides.** U-AAA-2 [ours].\n", ""),
-                                         "main": edit(MAIN, "| R-STG-1 |\n", "|  |\n"),
-                                         "register": edit(REGISTER, " **Task 2 decided it: confirmed, in R-STG-1.**", "")},
-                                        {"undecided", "pointer"}),
-        "a bad status": ({"main": edit(MAIN, "| confirmed |", "| agreed |")}, {"decision-table"}),
-        "a table that disagrees": ({"main": edit(MAIN, "| R-STG-1 |\n", "| R-RUN-1 |\n")}, {"decision-table"}),
-        "a row missing from the table": ({"main": edit(MAIN, "| U-AAA-1 | blocks 1 | confirmed | d | r | R-STG-1 |\n", "")},
-                                         {"decision-table"}),
-        "a register row without its pointer": ({"register": edit(REGISTER, " **Task 2 decided it: confirmed, in R-STG-1.**", "")},
-                                               {"pointer"}),
-        "a pointer that disagrees": ({"register": edit(REGISTER, "confirmed, in R-STG-1", "refined, in R-STG-1")}, {"pointer"}),
-        "a pending table that drifts": ({"main": edit(MAIN, "| 3 · components | U-BBB-1 |", "| 3 · components | U-BBB-1, U-AAA-1 |")},
-                                        {"pending-table"}),
-        "no decisions section": ({"main": edit(MAIN, "## Decisions on the register's task-2 rows", "## Decisions")},
-                                 {"structure"}),
-        "a pointer naming the wrong requirement": ({"register": edit(REGISTER, "confirmed, in R-STG-1", "confirmed, in R-RUN-1")},
-                                                   {"pointer"}),
-    }
-    failed = 0
-    for name, (changes, want) in cases.items():
-        texts = {"source": SOURCE, "trace": TRACE, "register": REGISTER, "main": MAIN, "area": AREA1} | changes
-        with tempfile.TemporaryDirectory() as tmp:
-            paper, req_dir = Path(tmp) / "paper", Path(tmp) / "requirements"
-            paper.mkdir()
-            req_dir.mkdir()
-            (paper / "analysis.md").write_text(texts["source"], encoding="utf-8")
-            (paper / "traceability.md").write_text(texts["trace"], encoding="utf-8")
-            (paper / "unspecified.md").write_text(texts["register"], encoding="utf-8")
-            (Path(tmp) / "requirements.md").write_text(texts["main"], encoding="utf-8")
-            (req_dir / "01-area.md").write_text(texts["area"], encoding="utf-8")
-            got = {kind for kind, _ in check(paper, Path(tmp) / "requirements.md", req_dir)[0]}
-        ok = got == want
-        failed += not ok
-        print(f"{'ok  ' if ok else 'FAIL'} {name}: got {sorted(got) or 'no problem'}, expected {sorted(want) or 'no problem'}")
-    with tempfile.TemporaryDirectory() as tmp:     # --write fills the column, and the result is clean
-        paper, req_dir = Path(tmp) / "paper", Path(tmp) / "requirements"
-        paper.mkdir()
-        req_dir.mkdir()
-        (paper / "analysis.md").write_text(SOURCE, encoding="utf-8")
-        blank = TRACE.replace("| R-RUN-1 |", f"| {PLACEHOLDER} |").replace("| R-RUN-1, R-STG-1 |", f"| {PLACEHOLDER} |")
-        (paper / "traceability.md").write_text(blank, encoding="utf-8")
-        (paper / "unspecified.md").write_text(REGISTER, encoding="utf-8")
-        (Path(tmp) / "requirements.md").write_text(MAIN, encoding="utf-8")
-        (req_dir / "01-area.md").write_text(AREA1, encoding="utf-8")
-        before = {k for k, _ in check(paper, Path(tmp) / "requirements.md", req_dir)[0]}
-        after = {k for k, _ in check(paper, Path(tmp) / "requirements.md", req_dir, write=True)[0]}
-        filled = (paper / "traceability.md").read_text(encoding="utf-8") == TRACE
-    ok = before == {"column"} and after == set() and filled
-    failed += not ok
-    print(f"{'ok  ' if ok else 'FAIL'} --write fills the column: before {sorted(before)}, after {sorted(after) or 'no problem'}, "
-          f"identical to the clean file: {filled}")
-    return 1 if failed else 0
-
-
 def main(argv: list[str]) -> int:
     if argv[1:] == ["--selftest"]:
+        from requirement_coverage_selftest import selftest   # the control lives beside the checker it tests
         return selftest()
     if argv[1:] in ([], ["--write"]):
         return report(write=argv[1:] == ["--write"])
