@@ -29,3 +29,23 @@ Full review comments:
 
 - [P2] Allow task-scoped baseline correction jobs — docs/integrity/decisions/u-top-5-which-split.md:45-45
   When a scoring defect affects E_base, IR-41.2 requires its corrected identities to execute once in task scope, and IR-5.3 explicitly assigns their records there. This exhaustive allowlist permits correction events only in run scope and refuses everything else, so the required baseline correction cannot execute. Include task-scoped E_base corrections in the permitted correction kind while preserving their once-per-baseline-key identity.
+
+## Pass 2, on `157cec7` (gate: FAIL, three [P1] and one [P2])
+
+The four findings of pass 1 hold as fixed. Verbatim, with local path prefixes cut as above:
+
+The runner-version and task-scoped correction fixes are present, but audit calibration and search-budget counting remain inconsistent. Citation/register checks pass; no secrets, email addresses, absolute local paths, or register edits outside the four pointer additions were found.
+
+Full review comments:
+
+- [P1] Give calibration re-fits distinct, resumable identities — docs/integrity/decisions/a-int-1-gates-or-audit.md:42-42
+  The second same-seed fit required here has exactly the same IR-32.1 identity as the first audit re-fit: kind, audit scope/key, runner version, row, arguments, seed and setting are unchanged. IR-33.1 therefore returns the first record instead of executing another fit, and IR-36.1 likewise permits only one release per check × row × seed. Calibration consequently either measures zero differences or violates the release rules. Add a fixed calibration-replicate identifier or separate job kind, with corresponding audit-unit accounting.
+
+- [P1] Account for uncertainty in the estimated audit tolerance — docs/integrity/decisions/a-int-1-gates-or-audit.md:42-42
+  The stated z thresholds assume a known Gaussian standard deviation, but σ_r is estimated from only c differences; the cost table explicitly illustrates c = 2. Even with Gaussian honest noise, this does not deliver the claimed 0.0027 row-level false-positive rate. Simulating the specified procedure with five report seeds, true difference SD 1, packaging floor 0.1 and c = 2 flags approximately 34% of honest rows. A reference-fit floor need not bound a candidate's noise. Specify a finite-sample calibrated prediction threshold that accounts for variance estimation and reuse of calibration observations.
+
+- [P1] Count scoring batches rather than individual seed results — docs/integrity/decisions/u-top-5-which-split.md:37-38
+  IR-32.1 gives every seed and setting its own identity, but this rule counts released results per identity against the stage's 1 + N_eng limit. With the documented five-seed configuration and N_eng = 2, the first candidate evaluation already needs five releases against a cap of three, before any refinement. It must therefore stop incomplete or fail IR-24(e), despite satisfying IR-9's coverage requirement. Define the capped unit as one complete evaluation batch across its required seeds/settings, while retaining per-identity attempt accounting.
+
+- [P2] Make the clock-randomness control distinguishable from noise — docs/integrity/decisions/a-int-1-gates-or-audit.md:85-85
+  Under the revised IR-23.4, each clock-seeded row calibrates its tolerance from its own repeated fits, so stationary clock randomness increases σ_r along with the discrepancies being tested. Even with perfectly known Gaussian noise, such a row is flagged at approximately 0.0027, not the required 99% detection rate; increasing its noise amplitude does not help because the tolerance scales too. Specify an independently detectable violation or revise the claimed detection guarantee, then test both arms using the actual calibration procedure, as required by [R4](docs/integrity/README.md#L63).

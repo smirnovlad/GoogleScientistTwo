@@ -2,7 +2,7 @@
 
 **For** task 3's contracts of the scoring runner and of the run state, and task 2's stages, which read only what these rules allow. The terms and the cross-cutting rules IR-32 to IR-40 are in the [index](../blocking-decisions.md) [ours].
 
-**Status:** third version, 2026-10-02, after the closure checks, applying C-1 to C-14 and the Codex gate's four findings; this file applies C-2, C-5, C-7, C-11, C-12, C-13 and C-14 [ours]. **From the second version, after the wave-1 review, it also applies:** F-1, F-4, F-6, F-10, F-12, F-14, F-21, F-28, F-30, F-31, F-38, F-43 and F-44, and the parts of F-3, F-5, F-7, F-9, F-11, F-17, F-19, F-22, F-24, F-35, F-40 and F-46 that bear on U-TOP-5; and the coordinator's amendments A1 and A6 (the reads of report decided in place), A2 (costs as usage, not bills), A4 (job arguments) and A5 (C_base's hash check) [ours].
+**Status:** third version, 2026-10-02, after the closure checks, applying C-1 to C-14 and the Codex gate's four findings, and the second Codex pass's four findings; this file applies C-2, C-5, C-7, C-11, C-12, C-13 and C-14 [ours]. **From the second version, after the wave-1 review, it also applies:** F-1, F-4, F-6, F-10, F-12, F-14, F-21, F-28, F-30, F-31, F-38, F-43 and F-44, and the parts of F-3, F-5, F-7, F-9, F-11, F-17, F-19, F-22, F-24, F-35, F-40 and F-46 that bear on U-TOP-5; and the coordinator's amendments A1 and A6 (the reads of report decided in place), A2 (costs as usage, not bills), A4 (job arguments) and A5 (C_base's hash check) [ours].
 
 *Row U-TOP-5, aliases U-NOTE-1 and U-ART-5, of [unspecified.md](../../paper/unspecified.md); the full entries are in analysis.md section 10.1, note-check.md and artifacts.md* [ours].
 
@@ -34,8 +34,8 @@
 - **IR-13 · Search scorings belong to the engine, and are bounded.** [ours]
   - IR-13.1 Engine code triggers a search scoring once, at the end of each result-producing unit of work (U-CFG-2); agent code cannot trigger one [ours].
   - IR-13.2 Inside a session, agent code may call a format check, which runs its predict step on fit items and returns pass or fail, never a score [ours].
-  - IR-13.3 The run ledger counts each candidate's released search results per identity, with the attempts beside them (IR-33.5). One counter per candidate, its stage's limit, bounds its search scorings and its refinements together; a G2 retry, if task 2 allows one, uses up a refinement (IR-40.1) [ours].
-  - IR-13.4 The cap derives from the stage's limit and is never a second number: for an idea on the subset, 1 + N_eng under A-TOP-2's proposal [ours].
+  - IR-13.3 The run ledger counts each candidate's search batches. A batch is one search scoring of one unit of work across every seed and setting it requires (IR-9), with the fits it needs; it counts once against the cap, whether it completes or fails, however many identities it holds. Attempts are still counted per identity (IR-33). One counter per candidate, its stage's limit, bounds its batches and its refinements together; a G2 retry, if task 2 allows one, uses up a refinement (IR-40.1) [ours].
+  - IR-13.4 The cap derives from the stage's limit and is never a second number: for an idea on the subset, 1 + N_eng batches under A-TOP-2's proposal, whatever the seed count [ours].
 - **IR-14 · The freeze, and the run's one test event.** [ours]
   - IR-14.1 Engine code writes the freeze when the last decision that can change code or rows has been made: the meta-review stage ends with `Accept`, with N_meta spent, or with a refinement discarded. It is computed from run state alone, written atomically and content-hashed; a crash while writing it rewrites the same hash. No freeze, no test event (hook G6) [ours].
   - IR-14.2 *ours* is the row of C_best in the run state when the freeze is written, which is the code exported as C+ [ours].

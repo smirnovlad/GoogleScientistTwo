@@ -16,3 +16,6 @@ seeds. `null_control.py` takes about a second.
 statistics: the repeat count of IR-8.1, a paired gain's tolerance, the correlated flags of IR-3.6's
 control, and the null control's guard-removed arm in a gated loop. It is kept unchanged, as written
 by the same reviewer, and runs in a few seconds.
+
+The owner's own script, `playground/integrity/audit_tolerance.py` (written for the second Codex
+pass, 2026-10-02), backs IR-23.4's finite-sample tolerance and its control.
