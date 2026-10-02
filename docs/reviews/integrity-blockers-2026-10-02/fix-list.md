@@ -103,3 +103,25 @@ coordinator verified each before acting on it, and sent the owner five amendment
 | A4 | F-3, F-32 | A job's identity includes the job arguments that engine code passes to the entry points, such as task 2's mechanism switches. Those arguments reach only the agent's own entry points, never a scoring item. |
 | A5 | F-15 | C_base is scored as a row, unless its code hash equals E_base's, in which case E_base's records stand for it. Task 2 keeps C_base as the pinned code, so the equality is the setup check. |
 | A6 | A1 | The coordinating session reached the same decision, relayed through task 2, and asked for one clause to be stated: any read of the report split that could feed a decision is a violation. The runner refuses it, the run halts as an integrity failure, and the audit counts it. Its engine contract (`docs/architecture/engine.md` §5 on `origin/claude/engine`) gives the same reading. |
+
+## 5. Outcome of the fix round (2026-10-02)
+
+The owner applied F-0 to F-46 and A1 to A6, and wrote the second version: the index and four
+decision files. The citation checker finds 0 problems in the 5 files, and each file is under 600
+lines. The owner contested seven points of the list, and the coordinator accepts all seven:
+
+1. **F-24.** Read literally, it would stop G4 and G5 after the test event, since analysis.md
+   section 4.2 lists their questions as decisions. IR-17 makes the exception explicit: G3 to G5
+   run in the tail, and their fixes edit text only.
+2. **F-14.** The T+L gap applies at every boundary that packaging builds. A boundary that the
+   protocol itself defines keeps its borders, so the published comparison stays on the same data.
+3. **F-17.** §4.3 says "33 target problems"; that they are Table 3's 33 successes is inferred, and
+   marked so.
+4. **F-5's sketch.** It listed G4 and G5 as filters, against its own table, which makes them a
+   nested primitive. The sketch now follows the table.
+5. **F-10 against F-3.** A late fresh start is allowed only for a cause on the campaign's list,
+   within its bound, and the old run counts as a failure.
+6. **A3.** The register gives U-TOP-2 to task 3, not task 2. IR-33.3 defers to "U-TOP-2's owner",
+   and task 2's choice to suspend is recorded as its own statement.
+7. **The corpus cost.** The review's "970 × 7 × 3" overcounts. The owner counts 11
+   check-configurations: about 33,000 calls, or about 100,000 with the false-positive sizing.

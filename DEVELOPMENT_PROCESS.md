@@ -652,26 +652,29 @@ that selection exploited on validation. So the coordinating session was told dir
 the lineage rule and the rule of released results per identity, which its harness will also need to
 meet.
 
-## HANDOFF, 2026-10-02 (task 6's `P0` part: the owner applies the fix list)
+**The second version.** The owner applied F-0 to F-46 and A1 to A6. The result is an index,
+`docs/integrity/blocking-decisions.md`, and four decision files in `docs/integrity/decisions/`,
+920 lines in all. The citation checker finds 0 problems; each file is under 600 lines; the 147
+sub-IDs that are referenced are all defined; and nothing private appears. The owner contested
+seven points of the fix list, with reasons, and all seven are accepted (`fix-list.md`, section 5).
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: the closure review of the second version)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
   which sits on top of `claude/paper-analysis`. PR #1 is still open.
 - **Done and pushed:**
-  - the relaunch note and the brief, recorded verbatim above;
-  - `docs/integrity/README.md`, the brief of the decisions document, with R1, R5 and R10 updated
-    for the split by decision;
-  - `docs/integrity/blocking-decisions.md`, its first version (`a2e7eb0`);
-  - the three wave-1 reviews and `fix-list.md`, in `docs/reviews/integrity-blockers-2026-10-02/`;
-  - the reviewer's scripts, in `playground/integrity/reviews/research-engineer/`.
-- **In progress:** the owner applies `fix-list.md`.
+  - the brief, `docs/integrity/README.md`;
+  - the decisions: `docs/integrity/blocking-decisions.md` and `docs/integrity/decisions/`, in their
+    second version;
+  - wave 1's three reviews and `fix-list.md`, in `docs/reviews/integrity-blockers-2026-10-02/`.
+- **In progress:** each wave-1 reviewer checks its own findings against the second version.
 - **Next steps:**
-  1. Check the owner's fixes against the fix list, then commit.
-  2. Have each reviewer check its own findings in a closure pass, and save the reports.
-  3. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
+  1. Save the closure reports verbatim, and fix what they find.
+  2. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
      A-INT-3), and nothing else in `docs/paper/unspecified.md`.
-  4. Record the outcome in `TODO.md`, under task 6's `P0` part.
-  5. Run the Codex gate on `git diff claude/paper-analysis...HEAD`, then open a PR into
-     `claude/paper-analysis` while PR #1 is open.
+  3. Record the outcome in `TODO.md`, under task 6's `P0` part.
+  4. Run the Codex gate on `git diff claude/paper-analysis...HEAD`.
+  5. Open a PR into `claude/paper-analysis`, and send its link to the coordinating session, which
+     folds the rules into `claude/engine`.
 - **If this session is lost:** run `bash playground/paper/fetch_sources.sh` (the cache is per
-  worktree), read `docs/integrity/README.md`, then the status line of
-  `docs/integrity/blocking-decisions.md`.
+  worktree), then read `docs/integrity/README.md` and the index.
