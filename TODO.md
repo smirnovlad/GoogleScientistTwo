@@ -57,7 +57,7 @@ after it; `P1` is needed before building; `P2` comes later.
   - **Done when:** a reader can explain every stage and every loop limit from `docs/paper/` alone,
     and every statement there cites its location in the paper.
 
-- [ ] `P0` **2 · Requirements.** Write `docs/requirements.md`:
+- [x] `P0` **2 · Requirements.** Write `docs/requirements.md`:
   - the goal in one line;
   - each requirement with its acceptance test, traced to the paper, or marked as our own decision
     with its reason.
@@ -67,6 +67,11 @@ after it; `P1` is needed before building; `P2` comes later.
   in `docs/paper/unspecified.md` that task 2 owns (17 of them block).
   **Done when:** every paper element in `traceability.md` maps to a requirement or to a recorded
   decision to leave it out.
+  **Done, 2026-10-02, on `claude/requirements`:** 82 requirements and 5 leave-outs;
+  `requirement_coverage.py` maps all 177 elements (172 traced, 5 left out) and decides all 33
+  task-2 rows, 0 problems, with 54 self-test cases that each plant a defect beside a clean twin;
+  `check_citations.py`, 27 files, 0 problems. Reviewed by three personas, twice closed, and by
+  Codex twice; every finding is disposed in `docs/reviews/requirements-2026-10-02/fix-list.md`.
 
 - [ ] `P0` **3 · Components and their contracts.**
   - **Who:** owner `system-architect`, reviewed in parallel by the other personas.

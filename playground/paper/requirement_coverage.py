@@ -47,8 +47,8 @@ Problem kinds (any one makes the exit status 1):
                     "Carried by" cell that differs from the requirements that decide the row
   pointer           a task-2 register row without its pointer, or whose pointer disagrees with the table
   pending-table     the table of rows left to other tasks differs from the Depends-on fields
-  structure         a file, a section or a table column is missing, a table row has fewer cells than its
-                    header, or a file of docs/requirements/ defines no requirement
+  structure         a file, a section or a table column is missing, a table row has more or fewer cells
+                    than its header, or a file of docs/requirements/ defines no requirement
 
 Usage:
   python3 playground/paper/requirement_coverage.py             # check the real files
@@ -272,7 +272,7 @@ def parse_register(path: Path, problems: list):
         if None in (c_id, c_task, c_alias, c_dec):
             continue
         for i, row in body:
-            if len(row) <= max(c_id, c_task, c_alias, c_dec):
+            if len(row) != len(header):
                 problems.append(("structure", f"{path.name}:{i + 1}: a register row has {len(row)} cells, its header {len(header)}"))
                 continue
             m = GAP.match(row[c_id])
@@ -360,7 +360,7 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
                 continue
             found = True
             for i, row in body:
-                if len(row) <= max(c_row, c_status, c_by):
+                if len(row) != len(header):
                     problems.append(("decision-table", f"{main.name}:{i + 1}: the row has {len(row)} cells, its header {len(header)}"))
                     continue
                 where, canon = f"{main.name}:{i + 1}", row[c_row]
@@ -410,7 +410,7 @@ def check_decisions(main: Path, blocks: dict, owner: dict, task2: dict, reg_line
         if None in (c_task, c_rows):
             continue
         for i, row in body:
-            if len(row) <= max(c_task, c_rows):
+            if len(row) != len(header):
                 problems.append(("structure", f"{main.name}:{i + 1}: a row of the pending table has {len(row)} cells"))
                 continue
             m = re.match(r"(\d+)", row[c_task])
@@ -435,7 +435,7 @@ def check_dependencies(blocks: dict, owner: dict, problems: list):
             problems.append(("inline-dependency", f"{where}: depends on {gap}, which its "
                              f"{'Why' if is_x else 'Requirement'} text does not name"))
         for clause in b["fields"].get("Depends on", "").split(";"):    # "U-TOP-2, task 3; U-INT-4, task 6"
-            said = re.search(r"\btask (\d)\b", clause)
+            said = re.search(r"\btask (\d+)\b", clause)
             for gap in GAP.findall(clause) if said else []:
                 task = owner.get(gap, (gap, None))[1]
                 if task is not None and task != said.group(1):

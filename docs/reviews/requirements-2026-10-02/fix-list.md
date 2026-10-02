@@ -76,7 +76,7 @@ already covered, and what it missed.
 | CONT-16 | CLAUDE.md's rules began as the note's proposals | Accepted: one line in *How to read* |
 | CONT-17, Q-16 | Where task 2 files a gap it finds | Decided here: as a requirement with its reason in `docs/requirements.md`, or as a row pending in its owning task; the register stays task 1's |
 | Q-14 | Is matching the paper's numbers part of the goal | Decided here: no; the fair targets are traceability.md's Part 3, the mechanics and the planted behaviours |
-| Part 6 | The checker's defects | Already caught: CHK-2 to CHK-5, 7, 8, 10 to 14, 18 to 20 and 22. Added: placeholders in a field (CHK-1), split pairs (CHK-15), the stage table (CHK-16), malformed IDs (CHK-17), a file with no requirement (CHK-21), and printing the pending rows and departures. The self-test moved to its own module, to keep both files under 600 lines. Added in the third revision: CHK-6, an X- decision now has a *Depends on* field for the rows it rests on, checked like a requirement's; CHK-9 declined, since a check of a reason's content would only test its wording, and the analyst's scan found a source named in all 19 untraced requirements |
+| Part 6 | The checker's defects | Already caught: CHK-2 to CHK-5, 7, 8, 10 to 14, 18 to 20 and 22. Added: placeholders in a field (CHK-1), split pairs (CHK-15), the stage table (CHK-16), malformed IDs (CHK-17), a file with no requirement (CHK-21), and printing the pending rows and departures. The self-test moved to its own module, to keep both files under 600 lines. Added in the third revision: CHK-6, an X- decision now has a *Depends on* field for the rows it rests on, checked like a requirement's; an X- decision's decider and date stay in the file's header, which dates every decision and gives it to task 2, so no field is added for them; CHK-9 declined, since a check of a reason's content would only test its wording, and the analyst's scan found a source named in all 19 untraced requirements |
 
 ## From the system-architect review
 
@@ -214,7 +214,7 @@ rules, never its fix list, and stay provisional on its next review. Every dispos
 | NEW-1 · blocker · seed luck survives the tail | task 6's IR-14.4 fits every frozen row again at the report seeds; R-RUN-7 cites it, and its enforcement test plants seed-dependent training noise with the expected values stated |
 | NEW-2 · the precondition decides nothing exported | the export mark *attribution not established*, read by R-MEAS-1. ⛔ The alternative, an unmet precondition at the limit as `Reject`, declined: it would end tasks that Figure 7 sends to drafting |
 | NEW-3 · the precondition re-reads E_best | paired fresh fits of C_best and the control in one job (R-STG-9) |
-| NEW-4 · the author scopes the switch | a scope check at the code hook, before any veto, against the description recorded before scoring; a floor against E_base; a text edit never repairs a switch finding (R-STG-4, R-STG-9, R-INT-6); the planted corpus is task 6's (IR-31) |
+| NEW-4 · the author scopes the switch | a scope check at the code hook, before any veto, against the description recorded before scoring; a floor against E_base; a text edit never repairs a switch finding (R-STG-4, R-STG-9, R-INT-6); the planted corpus is task 6's (IR-31); corrected in the fourth revision: IR-31.1 does not list this check, so task 6 is asked to extend it |
 | NEW-5 · prose binds any cell after the test event | numbers in the text bind only to *ours* or a reference row; other rows only in rendered tables (R-INT-8) |
 | NEW-6 · the floor measures nothing | spread across search seeds at admission; margins derived from α per gate, given its scorings; α's default 0.05, ours under IR-7.1 (R-RUN-6) |
 | NEW-7 · the null is empty | the null redraws its randomness, runs through the loop, and states its rate beforehand (R-MEAS-10) |
@@ -243,3 +243,44 @@ rules, never its fix list, and stay provisional on its next review. Every dispos
 | IR-34 · resume from the last finished stage | R-STATE-7's finer grain meets it, as Q-5 decided |
 | the coordinating session · task 3 starts from engine.md, departures recorded | *The engine as built*; R-PRIM-6's agent becomes optional by profile, which brings it into line |
 | the coordinating session · F-46 decided without asking Vlad | relayed to task 6, which decided it in place (A1, A6); R-INT-3 records it |
+
+## The fourth revision: after the narrow closure checks
+
+The narrow closure checks of fd9bcf9 and the second Codex review, all saved verbatim in this folder:
+`codex-review-2.md`, `system-analyst-closure-2.md`, `system-architect-closure-2.md` and
+`evaluation-integrity-engineer-closure-3.md`. Every disposition is *accepted* unless it says
+otherwise.
+
+| Finding | Source | Disposition, and where |
+|---|---|---|
+| the ablation's fresh fits are E_best's released records | Codex P1; integrity ND-1, NEW-3 | the in-loop precondition is a filter, its bias stated; attribution is measured at the test event from *ours* and its frozen control, paired per report seed, under a pre-registered test (R-STG-9, R-MEAS-1). ⛔ A third seed list declined: it changes IR-9.3 and IR-10.2, and the test event already gives undecided draws |
+| the sealed check once per manifest version | Codex P1; integrity §3 | once per baseline key (IR-15.2); roles fixed after the first attempt; an unchanged-key test case (R-STG-3) |
+| a time metric needs E_base timed again | Codex P1 | E_base is timed in the test event's job for a time metric (R-RUN-7, IR-8.1, IR-14.4) |
+| a post-test failure still counted a success | Codex P1 | the tail's end state, a lost artifact, abandonment and suspension fail every reading, with a fixture (R-MEAS-1) |
+| the writable-mount twin cannot succeed | Codex P1 | the twin asserts the write while the hash check still refuses; a second twin turns both off (R-INT-2) |
+| critics missing from the failure table | Codex P2; architect NEW-1; analyst NEW-3 | rows for both critics, the Result Comparison Agent and the initial idea; every cell names a vocabulary term; a role with no row fails to load (03-stages.md, R-PRIM-10) |
+| row width checked only up to the needed columns | Codex P2 | every row must match its header's width, with a self-test case |
+| one-digit task numbers in attribution | Codex P2 | any task number, with a self-test case |
+| suspension listed as a stage outcome; no outcome for an undone promotion | architect N3-1 | suspension interrupts a stage; *promotion undone* travels up to the promoting stage, which restores and takes its failure branch (R-PRIM-2, R-STG-9, R-STG-12, R-STATE-3) |
+| bounds classed three ways; two suspensions with no lift | architect N3-2; analyst C-1 | R-RUN-8's table of bounds by level, each with what it does and what lifts it; a job's limits release a failure; a harness fault past its attempts is lifted by an amendment, which task 6 is asked to confirm |
+| an item's re-run spends its parent's refinement | architect N3-3 | the item has its own counter, limit one re-run, as IR-40.1's one counter per candidate (R-INT-4) |
+| two definitions of a unit | architect NEW-3 | R-OPS-5 gives units and composites one record each |
+| keys from a place in the run | architect NEW-5 | keys by scope: task, run or audit; a harness job keyed by IR-32.1's identity (R-STATE-7) |
+| the engine read at cba39df, one departure | architect NEW-6 | re-read at c1850a5: six more departures listed, and the index no longer says one |
+| outages of outside systems become research outcomes | analyst C-2 | an outside system unreachable past its retries suspends the run, with tests (R-PRIM-10, R-RUN-8) |
+| a suspended run has no exit | analyst C-3; integrity's minor | abandonment under the rule, flagged outside it; a run suspended at report time counts as a failure, flagged (R-RUN-8, R-MEAS-3) |
+| a lost frozen artifact has no outcome; admission failures | analyst C-4 | an eleventh outcome, *frozen artifact lost*; *not admitted* covers both admission failures (R-RUN-5) |
+| no budget unit tested; refusal list incomplete | analyst NEW-5, NEW-6 | a machine-hours case (R-OPS-4); R-STG-13 refuses without budgets, wall-clock bounds, guardrail bounds and the reconciliation bound |
+| a blind retry passes R-STATE-7's test | analyst NEW-7 | a recoverable unit is reconciled with no further call, with a case; the bound is task 3's (R-STATE-7) |
+| the duplicate rule's owner | analyst MISS-20 | presumed as task 3's, in the presumed-proposals table |
+| the switch-scope check's error rate | integrity NEW-4 | measured as IR-31 measures task 6's checks, which task 6 is asked to extend; the bundled description stated as detection only (R-STG-4) |
+| the scan reports a zero with no positive control | integrity NEW-10 | a planted report value in a copy of the run is found (R-INT-3) |
+| α collides with task 6's | integrity §3 | renamed α_gate (R-RUN-6, R-STG-13) |
+| the margin from a point estimate of σ | integrity NEW-6 | an upper 95% bound on the spread (R-RUN-6) |
+| the determinism exemption cited to IR-9.3 | integrity §3 | marked as ours (R-RUN-2, R-MEAS-7) |
+| R-MEAS-3 cited IR-39.3 for its cap | integrity §3 | cited as a presumption on U-EVAL-1 |
+| the envelope's "no result" | integrity §3 | released as failed (R-RUN-2) |
+| the judge's prompt hidden from development | integrity NEW-9 | a process rule, as IR-29.5 (R-MEAS-5) |
+| "about half" assumes equal noises | integrity NEW-1 | stated (R-RUN-7) |
+| the end-to-end null rate has no test of its own | integrity NEW-7 | declined for now: R-STG-9's and R-RUN-7's nulls cover two gates, and task 6's null control (its U-TOP-5 file) covers the loop |
+| clauses are not counted against twins by the checker | integrity NEW-10 | declined: a clause count would read wording, not guards; the narrow reviews read them |

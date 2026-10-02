@@ -18,12 +18,12 @@ its numeric gates read, and how a run ends [§3] [ours].
   - G's paper, and its code at a pinned commit, which is the baseline row, with the packaging diff that a person signs off (task 6's IR-4.1) [§4.1] [ours];
   - the task rules that the specification filter checks [§4.2];
   - the data roles, fit, search and report, each a hashed index file built when the task is packaged, with the screening subset a named part of search (IR-10; U-TOP-5) [§3.2] [ours];
-  - one seed list per role, which no agent chooses, and whether the method is declared deterministic (task 6's IR-9.3, IR-10.2) [ours];
+  - one seed list per role, which no agent chooses (task 6's IR-9.3, IR-10.2); and whether the method is declared deterministic, a field of ours, so that R-MEAS-7's seed flag does not fire on a method meant to be deterministic [ours];
   - the settings a rebuttal task may declare, registered in advance (R-STG-11) [ours];
   - the published reference numbers, labelled as published, and the baseline tolerance (R-STG-3) [Tab. 1] [ours];
   - the comparison rule (R-RUN-6) [ours];
   - the evaluation entry points that the harness runs (U-INT-4) [App. B] [Tab. 15] [ours];
-  - the compute envelope that bounds every row, the baseline's included: the harness stops a job that exceeds it, and the row has no result [ours].
+  - the compute envelope that bounds every row, the baseline's included: a job that exceeds it is stopped and released as failed, and the row's aggregate is invalid (IR-33.4, IR-9.4) [ours].
 
   The engine and the harness are task-generic: a new task is a manifest and a package, never code [ours]. The subset and the full benchmark are chosen when the task is packaged, never by an agent, and the harness scores every setting the manifest lists (IR-9) [§3.2] [§4.1] [ours]. The manifest's schema is task 3's (U-TOP-1, A-TOP-4) [ours].
 - **Traces.** P-STATE-1 [§3, Eq. 1]; P-STATE-2 [App. B] [Tab. 15]; P-BENCH-2 [§4.1]; P-ROSTER-32 [Fig. 3] (image).
@@ -33,7 +33,7 @@ its numeric gates read, and how a run ends [§3] [ours].
 - **Test.** Logic: a manifest missing any field above, a seed list included, fails to load before any spend, and the message names the field; a second fixture task, added as a manifest and a package only, runs end to end with no code change [ours]. Enforcement, on the toy task [ours]:
   - a coding agent scripted to drop one setting of the full benchmark from its own run changes nothing reported, since the harness scores every listed setting; in the twin whose harness takes the agent's list, the setting disappears [ours];
   - a manifest edited after its hash was registered makes the next harness job refuse to run; in the twin that checks no registered hash, the job runs under the edited manifest [ours];
-  - a row whose job exceeds the compute envelope is stopped and has no result; in the twin with no envelope, its result enters the next decision [ours].
+  - a row whose job exceeds the compute envelope is stopped and released as failed, no gate passes, and a resume does not run it again; in the twin with no envelope, its result enters the next decision [ours].
 
 ### R-RUN-3 · A run's output can be the next run's task
 
@@ -68,17 +68,18 @@ its numeric gates read, and how a run ends [§3] [ours].
   - an ablation reject [App. B];
   - a manuscript gate failed: before the freeze, no manuscript version passes its hooks within their repairs (R-INT-10; A-INT-1) [ours];
   - the test event done, not exported: after the test event, the tail's gates fail within their repairs, and the test-event records are reported all the same (task 6's IR-39.3; A-INT-1) [ours];
-  - the baseline not reproduced, at admission: the task is not admitted, and no run starts (R-STG-3; task 6's IR-15.7) [ours];
+  - not admitted: at the task's admission, the baseline is not reproduced, or its preparation fails after retries, and no run starts (R-STG-3; task 6's IR-15.7) [ours];
   - an integrity halt: the setup itself failed, by a hash mismatch, a record its writer did not write, or a read of the report role that could feed a decision (IR-6.5, IR-14.6, IR-35.1; U-INT-4) [ours];
   - an error after retries: an agent's failure at a role whose failure stops the run (R-PRIM-10; U-TOP-2) [ours];
-  - abandoned: a suspended run that a person ends (R-RUN-8) [ours].
+  - a frozen artifact lost: a frozen row's code or artifact is missing from its store and cannot be restored, with no agent write to explain it, and the run ends as a failure with that cause (task 6's IR-35, its tail stage) [ours];
+  - abandoned: a suspended run ended under R-RUN-8's rule [ours].
 
   The record gives the stage, the reason, the last valid core state, the cost and, for a failure, the key of the failing unit [§3.3] [§3.6] [§4.2] [ours]. An outcome is final: a run with an outcome never resumes, and a failed task stays in every count and ledger. A suspended run has not ended (R-RUN-8) [ours].
 - **Traces.** P-TOP-5 [§3.3] [§3.6] [§4.2]; P-BENCH-4 [Tab. 3].
-- **Why ours.** The paper ends a failed task without a record and names 1 of its 21 failures [§3.3] [Tab. 3] [App. B]. The last six outcomes come from our own guards: task 6's gates and setup checks, its admission, the retry policy and the suspended state. A run that failed a gate after its test event would otherwise vanish from the report while its writer had read every frozen row's test numbers (the integrity closure, NEW-13) [ours].
+- **Why ours.** The paper ends a failed task without a record and names 1 of its 21 failures [§3.3] [Tab. 3] [App. B]. The last seven outcomes come from our own guards: task 6's gates, setup checks, tail and admission, the retry policy and the suspended state. A run that failed a gate after its test event would otherwise vanish from the report while its writer had read every frozen row's test numbers (the integrity closure, NEW-13) [ours].
 - **Decides.** U-EVO-4 [ours].
 - **Depends on.** U-TOP-2, task 3, the retry policy; A-INT-1 and U-INT-4, task 6, the gates and the setup checks [ours].
-- **Test.** Logic, in mock mode: one scenario per outcome, ten in all, each ends with exactly that outcome, its stage, its cost and, for a failure, the failing unit's key; the failed scenarios appear in the ledger and count as failures in the success report (R-MEAS-1); a resume requested for a run that has its outcome is refused [ours].
+- **Test.** Logic, in mock mode: one scenario per outcome, eleven in all, each ends with exactly that outcome, its stage, its cost and, for a failure, the failing unit's key; the failed scenarios appear in the ledger and count as failures in the success report (R-MEAS-1); a resume requested for a run that has its outcome is refused [ours].
 
 ### R-RUN-6 · One comparison rule per task serves every numeric gate
 
@@ -88,20 +89,20 @@ its numeric gates read, and how a run ends [§3] [ours].
   - guardrail metrics, each with a non-inferiority bound against the same reference, compute among them, read from the compute the harness records for every attempt of the row (IR-5; U-INT-4) [ours];
   - completeness: a result that lacks a setting or a seed of the manifest's lists, or holds an invalid or non-finite value, passes no gate (IR-9.2, IR-9.4) [ours].
 
-  **The noise floor.** At the task's admission the harness measures the baseline's spread across the manifest's search seeds, each a separate fit, on the settings and aggregate that each gate's entry reads (IR-4.2; U-TOP-5). Each gate's margin is derived, never chosen: the smallest that keeps that gate's false-pass rate for a change that does nothing, given the number of scorings the loop allows it (IR-13.4), at most α, whose default is 0.05; a run whose floor cannot be computed does not start. The gates' values are task 2's (IR-7.1); how run-to-run variance is estimated, and the number of repeated runs, are task 6's (U-EVAL-4, U-ART-12), and the seed floor task 5's (IR-9.3) [ours]. Every decision record names the rule's hash and the manifest's. The reported gain reads the same metric fields under the formula of U-EVAL-1, task 6's, and the rule's other values, the guardrails' bounds and the aggregation, are task 5's, set before the task's admission [ours].
+  **The noise floor.** At the task's admission the harness measures the baseline's spread across the manifest's search seeds, each a separate fit, on the settings and aggregate that each gate's entry reads (IR-4.2; U-TOP-5). Each gate's margin is derived, never chosen: the smallest that keeps that gate's false-pass rate for a change that does nothing, given the number of scorings the loop allows it (IR-13.4) and computed from a 95% upper confidence bound on the spread across the s seeds, at most α_gate, whose default is 0.05; a run whose floor cannot be computed does not start. α_gate bounds a gate's false passes, and is not task 6's α, which belongs to its success test (A-EVAL-1). The gates' values are task 2's (IR-7.1); how run-to-run variance is estimated, and the number of repeated runs, are task 6's (U-EVAL-4, U-ART-12), and the seed floor task 5's (IR-9.3) [ours]. Every decision record names the rule's hash and the manifest's. The reported gain reads the same metric fields under the formula of U-EVAL-1, task 6's, and the rule's other values, the guardrails' bounds and the aggregation, are task 5's, set before the task's admission [ours].
 - **Traces.** none.
 - **Why ours.** In the paper, LLM agents make every comparison: the critics, the Selector and the Result Comparison Agent [§3.2] [§3.3] [§3.4] [§3.6]. The first draft's four gates each named a rule fixed in advance, with nothing tying them together (MISS-9); one margin cannot fit gates of different noise (SA-13); a rule that ignores a missing setting, a second metric or compute passes a result that drops its losing setting or scales its compute (EI-9, EI-10) [App. B] [ours]. The first revision's floor read a run-to-run spread that is about 0 when seeds come from a fixed list, and did not exist when the configuration loaded; a change that does nothing passes a subset veto of margin 0 in about 0.75 of runs when the loop allows three scorings (the integrity closure, NEW-6, model A, n = 200,000) [ours].
 - **Depends on.** U-EVAL-1, U-ART-12 and U-EVAL-4, task 6; U-INT-4 and U-TOP-5, task 6, the records the rule reads and the role they come from [ours].
 - **Test.** Logic, with fixture result records [ours]:
   - changing the subset entry's margin changes the subset veto and leaves the Selector's band unchanged [ours];
   - a result better on the primary metric that omits its losing setting, lacks one seed, holds a NaN, or breaks a guardrail's bound, compute of its failed attempts included, passes no gate, while its twin under a rule with no completeness check and no guardrails passes [ours];
-  - a toy baseline that is deterministic given its seed has a same-seed spread of 0 and a cross-seed spread σ: the floor reads σ, a margin of 0 is refused, and the margin computed for α loads; admission records without the spread stop the run before it starts [ours];
+  - a toy baseline that is deterministic given its seed has a same-seed spread of 0 and a cross-seed spread σ: the floor reads σ, a margin of 0 is refused, and the margin computed for α_gate loads; admission records without the spread stop the run before it starts [ours];
   - every decision record names both hashes [ours].
 
 ### R-RUN-7 · The run ends in a tail that freezes, scores the test split once, and exports
 
 - **Requirement.** Once the last decision that can change code or rows has been made, when meta-review ends with `Accept`, with N_meta spent or with a refinement discarded, the run's sequence ends in a tail stage, run once [§3.6] [ours]:
-  1. the freeze, the one test event and the final fill, as task 6 sets them: at the test event every frozen row but E_base is fitted again from its code hash, with its job arguments, at each report seed, disjoint from the search seeds, and the report split is scored once; E_base's report results are those of its admission (IR-14.4, IR-15.1, IR-17; U-TOP-5) [ours];
+  1. the freeze, the one test event and the final fill, as task 6 sets them: at the test event every frozen row but E_base is fitted again from its code hash, with its job arguments, at each report seed, disjoint from the search seeds, and the report split is scored once; E_base's report results are those of its admission, except for a time or throughput metric, for which E_base is timed again in the same job as the frozen rows (IR-8.1, IR-14.4, IR-15.1, IR-17; U-TOP-5) [ours];
   2. one revision of the text by the writer, with no change to code, rows or roles (IR-17) [ours];
   3. the manuscript gates on the final version, each check run again after any repair, with at most 2 repairs per hook invocation; when they are spent, the run ends with *test event done, not exported* (R-INT-10; task 6's IR-21.6, IR-39.3; A-INT-1) [ours];
   4. the export (R-STATE-6), whose record lists every frozen row whose search and report gains differ in sign; when the method's own row is one of them, the export is marked *not confirmed on test* [§3.6] [ours].
@@ -117,16 +118,30 @@ its numeric gates read, and how a run ends [§3] [ours].
   - a tail writer scripted to fail the reference check three times ends the run with *test event done, not exported*, and its test-event records are in the report [ours];
   - a fixture whose method row gains on search and loses on report is exported marked *not confirmed on test*, and the row is listed [ours].
 
-  Enforcement, on the toy task, whose models depend on their training seed: a search over 20 candidates that do nothing picks a winner, and over at least 100 seeded runs its reported test gain is 0 within ±3 SE; in the twin that scores the searched artifact on the report split without fitting it again, the reported gain is about half the search gain, as stated before the run [ours].
+  Enforcement, on the toy task, whose models depend on their training seed: a search over 20 candidates that do nothing picks a winner, and over at least 100 seeded runs its reported test gain is 0 within ±3 SE; in the twin that scores the searched artifact on the report split without fitting it again, the reported gain is about half the search gain when the fit's noise equals the evaluation's, as stated before the run [ours]. For a time metric, E_base's timing in the test event's job, not its admission timing, enters the gain [ours].
 
 ### R-RUN-8 · No person decides anything between launch and export
 
-- **Requirement.** Between launch and export no person makes a decision about a run, and no run is restarted, re-seeded or dropped because of a result (task 6's IR-18.4; U-TOP-5). Every stop either ends the run with its outcome record, or suspends it: a budget, a wall-clock bound, a usage window of the subscription, a billing check, or an infrastructure failure that outlasts its retries suspends the run with its reason [Abstract] [ours]. A suspended run resumes from its record (R-STATE-7); suspended time counts toward no bound; and resuming, or raising a budget, follows a rule fixed before the task's admission, applied to every run of its class, each recorded as an amendment appended to the run's record. A resume or a raise outside the rule flags the report, and a person may end a suspended run, whose outcome is then *abandoned* [ours].
+- **Requirement.** Between launch and export no person makes a decision about a run, and no run is restarted, re-seeded or dropped because of a result (task 6's IR-18.4; U-TOP-5) [Abstract] [ours]. Every bound and fault falls in one class, by its level [ours]:
+
+  | Level | Bound or fault | What it does | What lifts it |
+  |---|---|---|---|
+  | agent call or session | an error, a timeout, a malformed output, or the session's budget | an agent failure, retried, then mapped by its role (R-PRIM-10) [ours] | nothing: it is final for that step [ours] |
+  | harness job | agent code's failure, its time or memory limit, or the compute envelope | a released failed result, never run again (IR-33.4) [ours] | nothing: it is the row's result [ours] |
+  | harness job | a fault of the harness or the machine, past the manifest's attempts | the run suspended (IR-33.3) [ours] | an amendment recording the repair, which grants new attempts under the same identity, every attempt reported (IR-33.5) [ours] |
+  | outside system | the LLM backend, a coding backend, search, bibliographic lookup or the drafting system unreachable past its retries | the run suspended [ours] | the system answering a probe again [ours] |
+  | subscription | a usage-limit answer, or a failed billing check | the run suspended (R-OPS-12) [ours] | the window's reset, or the environment fixed [ours] |
+  | task | its budget, or its wall-clock bound | the run suspended (R-OPS-4) [ours] | a raise, by an amendment under the rule [ours] |
+
+  A suspended run resumes from its record (R-STATE-7), and suspended time counts toward no bound. Resuming, raising a budget or a bound, and abandoning a run follow a rule fixed before the task's admission, applied to every run of its class, each recorded as an amendment appended to the run's record; a resume, a raise or an abandonment outside the rule flags the report. A run still suspended when a report is computed counts as a failure in every denominator, flagged as suspended [ours]. The values of the bounds are task 5's (U-COST-1), and the retry policy task 3's (U-TOP-2) [ours].
 - **Traces.** none.
-- **Why ours.** The paper's engine runs "without human intervention" [Abstract]; a stop that waited for a person would make that untestable, and Vlad asked for an engine that delivers on its own (DEVELOPMENT_PROCESS.md, 2026-10-02) [ours]. A budget raised, or a run resumed, only where its search records look promising selects runs by their results (the integrity closure, NEW-12) [ours].
-- **Depends on.** U-TOP-5, task 6 [ours].
+- **Why ours.** The paper's engine runs "without human intervention" [Abstract]; a stop that waited for a person would make that untestable, and Vlad asked for an engine that delivers on its own (DEVELOPMENT_PROCESS.md, 2026-10-02) [ours]. A budget raised, a run resumed or a run abandoned only where its search records look promising selects runs by their results (the integrity closure, NEW-12; the analyst's second closure, C-3). A bound that suspended a run at one level and released a result at another let a resume re-run agent code that had timed out, and an outage of an outside system turned ideas `Bad` or lost a run after its one test event (the analyst's second closure, C-1, C-2; the architect's, N3-2). The amendment that grants new attempts is our reading of IR-33.3, which task 6 is asked to confirm [ours].
+- **Depends on.** U-TOP-5, task 6; U-COST-1, task 5; U-TOP-2, task 3 [ours].
 - **Test.** Logic, in mock mode [ours]:
   - the run log of every outcome scenario holds no human-input event between launch and export [ours];
-  - a run suspended at its budget resumes from its record once the budget is raised under the rule, and the amendment is in its record; a raise for one run of a class outside the rule flags the report [ours];
+  - a run suspended at its budget resumes from its record once the budget is raised under the rule, and the amendment is in its record; a raise, or an abandonment, for one run of a class outside the rule flags the report [ours];
   - a run suspended at a mock usage window resumes when the window resets, and the suspended time counts toward no wall-clock bound [ours];
-  - a suspended run that a person ends has the outcome *abandoned* [ours].
+  - agent code that times out is released as failed, and a resume does not run it again; a Subset Coding Agent session stopped at its budget ends in that role's outcome [ours];
+  - the backend scripted to refuse connections through a coding agent's retries suspends the run, and no idea becomes `Bad`; the bibliographic lookup unreachable in the tail suspends the run, which after the resume exports with one test event [ours];
+  - a harness fault past its attempts suspends the run, and an amendment recording the repair lets it resume with the attempts reported [ours];
+  - a report computed while one run is suspended counts it as a failure, flagged; a suspended run abandoned under the rule has the outcome *abandoned* [ours].

@@ -638,18 +638,42 @@ bound α, whose default, 0.05, is ours.
 - **Bookkeeping:** all 17 questions listed with their answers; the engine's branch mapped with its
   one remaining departure; the register's pointers moved to task 6's second version.
 
-## HANDOFF, 2026-10-02 (task 2: third revision committed; a narrow closure check and Codex are next)
+## 2026-10-02: the narrow closure checks, and the fourth revision
 
-- **Done:** the draft, the review gate, two revisions, the closure checks and their dispositions,
-  in `docs/reviews/requirements-2026-10-02/fix-list.md`.
+**The narrow checks of fd9bcf9** ran in parallel with a second Codex review, all saved verbatim:
+- **`system-architect`:** "Task 3 can start rank 1 now", once the engine's departures are re-read;
+  three new majors: suspension listed as a stage outcome and no outcome for an undone promotion,
+  bounds classed three ways, and an item's re-run spending its parent's refinement.
+- **`evaluation-integrity-engineer`:** the blocker NEW-1 and all four contradictions with task 6
+  closed; one new major, ND-1: under task 6's identity rules the ablation's "fresh fits" are the
+  very records the vetoes selected, so the precondition could not attribute anything.
+- **`system-analyst`:** every new checker rule fires on a mutated copy of a real file; four new
+  majors around the suspended state: bounds, outages of outside systems, a run that never leaves
+  suspension, and an outcome task 6 defines that the list missed.
+- **Codex:** 5 P1 and 3 P2, among them the same ablation flaw, found independently.
+
+**The fourth revision** (this commit) answers each, in `fix-list.md`'s last section:
+- attribution is measured at the test event, from *ours* and its frozen mechanism-off control,
+  paired per report seed; the in-loop precondition is a filter, with its bias stated;
+- R-RUN-8 holds one table of bounds by level, each with what it does and what lifts it; outages of
+  outside systems suspend; abandonment follows the rule; a run still suspended counts as a failure;
+- *promotion undone* joins the outcome vocabulary, and suspension leaves it; eleven outcomes;
+- the failure table names a vocabulary term in every row, covers every role, and a role without
+  one fails to load;
+- the engine section is re-read at c1850a5, with seven departures in place of one;
+- the checker compares every row with its header's width and reads any task number; 54 cases.
+
+## HANDOFF, 2026-10-02 (task 2: fourth revision committed; the last Codex pass and the PR are next)
+
+- **Done:** the requirements, through four revisions and three rounds of review, each saved
+  verbatim with its dispositions in `docs/reviews/requirements-2026-10-02/fix-list.md`.
 - **Next:**
-  1. A narrow closure check of the majors and the blocker, by the same personas, saved verbatim.
-  2. The `/codex` gate on the delta, with `-c model="gpt-6-astra"`, no `--base`, the range named in
-     the instructions (`git diff claude/paper-analysis...HEAD` while PR #1 is open).
-  3. Tick task 2 in `TODO.md` with its proof; open the PR against `claude/paper-analysis`.
+  1. A last `/codex` pass on the fourth revision's delta, with `-c model="gpt-6-astra"`, no
+     `--base`, the range named in the instructions; fix any P1, record the rest.
+  2. Open the PR against `claude/paper-analysis` while PR #1 is open, then update from `main` once
+     PR #1 merges.
+- **Asked of task 6, outside its rows:** confirm that an amendment recording a repaired fault may
+  renew IR-33.3's attempts; extend IR-31's measurement to the switch-scope check.
 - **When the review of task 6's second version closes:** check every requirement that cites an IR-
   rule, and the eleven rows marked provisional.
-- **This file is over 600 lines;** TODO task 10 splits it, which needs the parallel sessions'
-  entries merged first.
-- **For the engine's integrator:** the Codex contracts move beside their components on merge, never
-  into `docs/requirements/`, which the checker enforces.
+- **This file is over 600 lines;** TODO task 10 splits it once the parallel branches merge.
