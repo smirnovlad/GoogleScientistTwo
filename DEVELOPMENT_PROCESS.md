@@ -547,3 +547,31 @@ and "Where you are" are new, and its section "Base branch" is gone.
   `claude/paper-analysis`.
 - `bash playground/paper/fetch_sources.sh` filled this worktree's own `.cache/`: every sha256
   matches, ScientistOne's TeX included.
+
+**The brief for the decisions.** Before any persona works, `docs/integrity/README.md` states what
+the decisions document must meet: ten requirements, R1 to R10, each with its acceptance test, and
+the questions each of the four decisions must answer. The owner and every reviewer read that one
+file. The owner, the `evaluation-integrity-engineer` persona, drafts
+`docs/integrity/blocking-decisions.md` from it.
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: the four decisions are being drafted)
+
+- **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
+  which sits on top of `claude/paper-analysis`. PR #1 is still open.
+- **Done and pushed:**
+  - the relaunch note and the brief, recorded verbatim above;
+  - `docs/integrity/README.md`, the brief of the decisions document.
+- **In progress:** the owner drafts `docs/integrity/blocking-decisions.md`.
+- **Next steps:**
+  1. Review it in parallel: `research-engineer` and `system-architect`, as the brief asks, and
+     `paper-analyst` for what the decisions say about the paper. Save each review verbatim in
+     `docs/reviews/integrity-blockers-2026-10-02/`.
+  2. Have the owner fix the findings, then have each reviewer check its own findings.
+  3. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
+     A-INT-3), and nothing else in `docs/paper/unspecified.md`.
+  4. Record the outcome in `TODO.md`, under task 6's `P0` part.
+  5. Run the Codex gate on `git diff claude/paper-analysis...HEAD`, then open a PR into
+     `claude/paper-analysis` while PR #1 is open.
+- **If this session is lost:** run `bash playground/paper/fetch_sources.sh` (the cache is per
+  worktree), read `docs/integrity/README.md`, then the status line of
+  `docs/integrity/blocking-decisions.md`.
