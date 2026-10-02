@@ -49,3 +49,23 @@ Full review comments:
 
 - [P2] Make the clock-randomness control distinguishable from noise — docs/integrity/decisions/a-int-1-gates-or-audit.md:85-85
   Under the revised IR-23.4, each clock-seeded row calibrates its tolerance from its own repeated fits, so stationary clock randomness increases σ_r along with the discrepancies being tested. Even with perfectly known Gaussian noise, such a row is flagged at approximately 0.0027, not the required 99% detection rate; increasing its noise amplitude does not help because the tolerance scales too. Specify an independently detectable violation or revise the claimed detection guarantee, then test both arms using the actual calibration procedure, as required by [R4](docs/integrity/README.md#L63).
+
+## Pass 3, on `1bb01eb` (gate: PASS, four [P2])
+
+The findings of pass 2 hold as fixed. Verbatim, with local path prefixes cut as above:
+
+The calibration identities, batch counting, and revised clock control address the previous findings, but statistical guarantees and isolation claims still need correction. Citation and cross-reference checks passed; no disclosure matches or register edits beyond the four pointer additions were found.
+
+Full review comments:
+
+- [P2] State the distributional assumptions of the audit tolerance — docs/integrity/decisions/a-int-1-gates-or-audit.md:42-43
+  The Student-t threshold has the advertised calibration for independent, zero-mean Gaussian differences, but no rule restricts admitted fit noise to that distribution. Even with identical reference and candidate noise, independent Bernoulli(0.01) fit disturbances produce approximately 8.8% flagged rows at M=20 and n=5, rather than 0.27%. IR-23.8's allowance for noisier candidates does not address this same-distribution case. Specify and validate the threshold's applicability, or calibrate it for the admitted noise distribution before using the claimed false-positive rate.
+
+- [P2] Simulate shared calibration estimates for paired gains — playground/integrity/audit_tolerance.py:91-97
+  This simulation always draws independent calibration estimates for the two rows, whereas IR-23.4 supplies one estimate per kind of fit. When both rows have the same kind, s_o=s_b; at correlation −1, the comparison reduces to |z|>c·s_k and has the single-row flag rate, approximately 0.00269. Consequently, the control's promised upper rate of 0.00098 is false for a permitted production case. Include shared-estimate cases and correct the control's bound rather than treating this independent-estimate simulation as the worst case.
+
+- [P2] Account for seed-based detection of the scoring role — docs/integrity/decisions/u-top-5-which-split.md:31-31
+  Identical paths and environments do not establish this invariant: IR-10.2 gives search and report disjoint seed lists, and fit code receives its seed. A fit can record whether its seed belongs to the known search list in its artifact, allowing predict to distinguish report from search without inspecting either split's inputs. This permits phase-specific behavior despite the claimed setup protection. Add this attack to the controls and either prevent the information flow or classify it as detection-only, consistent with [R3](docs/integrity/README.md#L62).
+
+- [P2] Count exposure through reported tables when retiring auditors — docs/integrity/decisions/a-int-3-checker-and-auditor.md:24-24
+  A builder can read final-test integrity verdicts through the reporter's published per-task table, then change an engine prompt without ever reading the audit store directly. The store logs the reporter's identity, not that builder, so this retirement check leaves the auditor eligible despite feedback-driven optimization. This uses the intended reporting path, not administrator access. Track exposure through reporter outputs or retire the auditor conservatively after publication to preserve the [held-out-judge rule](CLAUDE.md#L48).

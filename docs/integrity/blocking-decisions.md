@@ -2,7 +2,7 @@
 
 **For** the task 3 sessions that write the contracts of the scoring runner and of the integrity audit, and the task 2 sessions that cite these rules by their IR- IDs [ours].
 
-**Status:** third version, 2026-10-02, after the closure checks, applying C-1 to C-14 and the Codex gate's four findings, the second Codex pass's four findings, and task 2's request on IR-33.3; this file applies C-1 (in section 11), C-2 (in section 10), C-7, C-8 and C-9 (in the rule map and the terms), C-10 and C-11. The second version, after the wave-1 review, applied fix-list.md F-0 to F-46. The first version is commit `a2e7eb0`; the three reviews and the [fix list](../reviews/integrity-blockers-2026-10-02/fix-list.md) are kept beside it [ours].
+**Status:** third version, 2026-10-02, after the closure checks and the Codex gate's three passes, applying C-1 to C-14 and the Codex gate's four findings, the second Codex pass's four findings, and task 2's request on IR-33.3; this file applies C-1 (in section 11), C-2 (in section 10), C-7, C-8 and C-9 (in the rule map and the terms), C-10 and C-11. The second version, after the wave-1 review, applied fix-list.md F-0 to F-46. The first version is commit `a2e7eb0`; the three reviews and the [fix list](../reviews/integrity-blockers-2026-10-02/fix-list.md) are kept beside it [ours].
 
 **This file applies:** F-0 (the split), F-3 (identities, attempts, resume, halts), F-5 (the tail stage, the gates on the primitive), F-9 (controls on the production setup, the fixtures), F-22 (sub-IDs, hook names), F-29 (the reporter, the reported table, the run registry), F-36 (App. B's five tasks), F-37 (guard-off builds) and F-46 (the reads of the test split besides its one use). It also applies the coordinator's amendments, which came after the fix list: A1 and A6 (section 7 decided in place), A2 (LLM work runs on a subscription, never an API), A3 (IR-33.3's exhaustion branch), A4 (job arguments in IR-32.1) and A5 (C_base's hash check, in the U-INT-4 file). Each decision file lists the fixes and amendments it applies [ours].
 
@@ -71,7 +71,7 @@
 | IR-8 | time, judge and rollout metrics | 8.1–8.4 | U-INT-4 [ours] |
 | IR-9 | every setting, every seed, valid outputs only | 9.1–9.4 | U-INT-4 [ours] |
 | IR-10 | three roles, two seed lists, the overlap checks and the near-duplicate detector | 10.1–10.5 | U-TOP-5 [ours] |
-| IR-11 | the read table of every job | 11.1–11.4 | U-TOP-5 [ours] |
+| IR-11 | the read table of every job; derived seeds | 11.1–11.5 | U-TOP-5 [ours] |
 | IR-12 | every decision of the loop reads search, or no data role | none | U-TOP-5 [ours] |
 | IR-13 | search scorings belong to the engine, one counter per candidate | 13.1–13.4 | U-TOP-5 [ours] |
 | IR-14 | the freeze, the row *ours*, and the test event with its report re-fits | 14.1–14.6 | U-TOP-5 [ours] |
@@ -282,6 +282,7 @@ A short screen for task 5, from Tables 13 and 16; whether each task's protocol p
 - **Exploits inside valid outputs, and transductive use of inputs.** An output that passes the schema yet games an edge case of the metric, or a predict step that adapts on search or report inputs where the protocol forbids it: detection only, by G2 and I2 [ours].
 - **Every LLM check misses.** G2, G4's near-miss judge, G5, task 2's switch-scope check, I2 and I4 detect at measured rates; a hack unlike the planted corpus is missed at an unknown rate, and text addressed to a judge may sway it [ours].
 - **The words around a bound number.** G3 binds each number to a cell, not the sentence around it, so an ablation row's value can be described as the method's; and text written against validation numbers can overclaim once the final fill puts test numbers beside them. Detection only, by G5, I4 and the reporting judge [ours].
-- **People.** Administrators can read every store; IR-15.6's seal against the packagers and IR-29.6's definition of having seen the auditor's verdicts are recorded by access logs, not enforced; IR-18.5 protects final-test tasks only if the engine's configuration is frozen before them, which the campaign record shows but cannot enforce [ours].
+- **People.** Administrators can read every store; IR-15.6's seal against the packagers and IR-29.6's logged reads of the auditor's verdicts are recorded by access logs, not enforced, while a published table retires the auditor for later runs whoever reads it; IR-18.5 protects final-test tasks only if the engine's configuration is frozen before them, which the campaign record shows but cannot enforce [ours].
 - **Partial seed games.** An entry point that uses its seed for only part of its randomness escapes IR-3.6's flag; I1's re-fit at the same seed catches only the part of the randomness the seed does not fix [ours].
+- **Fit disturbances too rare for the packaging check.** IR-23.4's check sees only what M reference pairs show; a kind whose fits are rarely disturbed can pass it, and an honest row of that kind then fails I1 at a rate the check does not bound, 0.053 in the script's example (`playground/integrity/audit_tolerance.py`) [ours].
 - **A crash to re-roll from outside the sandbox.** Agent code that kills the runner or its node, rather than its own process, gets a re-run under the same identity (IR-33.3): bounded, logged and reported, and contained by the sandbox's limits, but not prevented if the sandbox is escaped [ours].
