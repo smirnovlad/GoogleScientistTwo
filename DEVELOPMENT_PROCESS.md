@@ -554,18 +554,51 @@ the questions each of the four decisions must answer. The owner and every review
 file. The owner, the `evaluation-integrity-engineer` persona, drafts
 `docs/integrity/blocking-decisions.md` from it.
 
-## HANDOFF, 2026-10-02 (task 6's `P0` part: the four decisions are being drafted)
+**The first version.** The owner wrote `docs/integrity/blocking-decisions.md` (`a2e7eb0`), 419
+lines, as 31 rules, IR-1 to IR-31:
+- **U-INT-4:** a locked, hashed harness computes every number a decision reads or a report
+  quotes. It runs agent code's entry points itself, on artifacts that recorded fit jobs made. The
+  baseline is the task's own code at its pinned commit, never an agent's reimplementation.
+- **U-TOP-5:** three disjoint data roles per task, fit, search (validation) and report (test). Every
+  decision in the loop reads search, or no data. The test split is read in one test event per run,
+  after a freeze, plus one sealed baseline check per task.
+- **A-INT-1:** both readings of the paper, in three layers. The setup prevents, seven gates block
+  inside the run, and the CoE audit runs once after export and only measures.
+- **A-INT-3:** five roles in separate sessions: the author, the in-loop checker and fixer, a
+  development auditor, and a held-out reporting auditor, whose model family differs from every
+  family that wrote what it reads.
+
+The owner flagged three changes for Vlad to see:
+- **The sealed baseline check bends a rule of `CLAUDE.md`.** The rule says the test set is used
+  "once, at the end". The check reads the test split once per task, before any candidate is
+  scored, and releases only pass or fail. The published numbers it checks against are test
+  numbers, and a failure found only at the end would waste a whole run.
+- **The CoE audit no longer gates.** The register's proposal ran the audits as gates before export
+  and again at evaluation; an audit that gates becomes the engine's optimisation target.
+- **A third model family.** The reporting auditor needs one, neither Claude nor Gemini.
+
+**Checked here before the review**, beyond the citation checker's 0 problems:
+- ScientistOne's section labels: §6.1 is a real subsection, and the appendix letters D, E.1, E.2
+  and F match the order of its files;
+- each quoted ScientistOne line says what the document says it says, and 13 + 4 = 17 of its 22
+  score-verification errors;
+- every quote sits within the lines its anchor names, or on the PDF page its tag names;
+- the 40 or so register rows in the "Rows it constrains" tables exist, with the owning tasks the
+  document gives them.
+
+## HANDOFF, 2026-10-02 (task 6's `P0` part: the first version is under review)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
   which sits on top of `claude/paper-analysis`. PR #1 is still open.
 - **Done and pushed:**
   - the relaunch note and the brief, recorded verbatim above;
-  - `docs/integrity/README.md`, the brief of the decisions document.
-- **In progress:** the owner drafts `docs/integrity/blocking-decisions.md`.
+  - `docs/integrity/README.md`, the brief of the decisions document;
+  - `docs/integrity/blocking-decisions.md`, its first version (`a2e7eb0`).
+- **In progress:** three reviews of the first version, in parallel: `research-engineer` and
+  `system-architect`, as the brief asks, and `paper-analyst` for what the document says about the
+  paper.
 - **Next steps:**
-  1. Review it in parallel: `research-engineer` and `system-architect`, as the brief asks, and
-     `paper-analyst` for what the decisions say about the paper. Save each review verbatim in
-     `docs/reviews/integrity-blockers-2026-10-02/`.
+  1. Save each review verbatim in `docs/reviews/integrity-blockers-2026-10-02/`.
   2. Have the owner fix the findings, then have each reviewer check its own findings.
   3. Add a pointer to each decision in the four register rows (U-INT-4, U-TOP-5, A-INT-1,
      A-INT-3), and nothing else in `docs/paper/unspecified.md`.
