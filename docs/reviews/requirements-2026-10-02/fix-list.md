@@ -294,3 +294,17 @@ otherwise.
 | P2 · audit-scope keys lack a per-unit part | the audit's identity with the check, the row and the input it reads (R-STATE-7; IR-36.1) |
 | P2 · R-RUN-6 still names a fresh fit for the ablation's reference | C_best's released search records, a filter only (R-RUN-6) |
 | task 6's reply, 2026-10-02 | it confirms the amendment that renews IR-33.3's attempts, and adds the switch-scope check to IR-31.1; both recorded (R-RUN-8, R-STG-4) |
+
+### Task 6's final P0 version, dd4b3de (its PR #3)
+
+Every IR- ID the requirements cite (85 IDs and sub-IDs) exists at dd4b3de with the same subject. Three
+changes needed text:
+
+| Change at dd4b3de | Disposition, and where |
+|---|---|
+| IR-15.2 · the sealed check is also keyed by the runner's version after a runner check finds a change | R-STG-3 says so |
+| IR-32.1 · a replicate index joins a job's identity | R-STG-9's reasoning holds, since a replicate runs on the same seed; its sentence says so |
+| IR-11.5 · a fit receives a seed derived from its role seed | R-MEAS-7 says so |
+| IR-36.1 · an audit's unit is check × row × seed | R-STATE-7's audit-scope key follows it |
+| IR-13.3 · the cap counts complete evaluation batches | no change: R-RUN-6 counts the scorings a gate gets, which IR-13.4 bounds in batches |
+| IR-23.4 · I1's tolerance becomes a finite-sample rule | no change: no requirement restates it |

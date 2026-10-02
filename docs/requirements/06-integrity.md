@@ -5,8 +5,8 @@ The paper's integrity rests on prompts and LLM checks, and nothing in its setup 
 (`docs/paper/stages/07-integrity.md`) [§4.2] [ours]. CLAUDE.md's integrity rules make these
 requirements. Task 6 owns four decisions they rest on: U-INT-4, the harness; U-TOP-5, the data
 roles; A-INT-1, gates or audit; A-INT-3, who checks [ours]. Its second version,
-`docs/integrity/blocking-decisions.md` at adc3484 on its own branch, applies its first review's fix
-list and states rules IR-1 to IR-41, the gates G2 to G5 and the hooks G1, G6 and G7; these
+`docs/integrity/blocking-decisions.md` at dd4b3de on its own branch, the final version of its P0 part,
+applies its first review's fix list and states rules IR-1 to IR-41, the gates G2 to G5 and the hooks G1, G6 and G7; these
 requirements cite them by ID, list the four rows under *Depends on*, and decide only task 2's rows,
 U-INT-1 and U-INT-3, with the values task 6 leaves to task 2 (IR-7.1, IR-21.1) [ours]. Every test
 here that proves a guard is an enforcement test, with a twin or a positive control for each of its

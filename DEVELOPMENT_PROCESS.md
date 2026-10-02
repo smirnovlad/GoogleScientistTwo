@@ -677,6 +677,7 @@ becomes a finite-sample procedure.
   saved verbatim, with dispositions in `docs/reviews/requirements-2026-10-02/fix-list.md`; task 2
   ticked in `TODO.md` with its proof; the PR opened against `claude/paper-analysis`.
 - **Next:** retarget the PR to `main` once PR #1 merges, and update from `main`.
-- **When task 6 commits its next pass:** check R-RUN-6's use of IR-13.4 against IR-13's batch
-  count, R-INT-7 against IR-23.4's new tolerance, and the eleven rows marked provisional.
+- **Task 6's P0 part is final at dd4b3de (its PR #3).** Every cited IR- ID was checked there;
+  four citations changed (IR-15.2, IR-32.1, IR-11.5, IR-36.1), and the provisional marks now wait on
+  PR #3's merge.
 - **This file is over 600 lines;** TODO task 10 splits it once the parallel branches merge.

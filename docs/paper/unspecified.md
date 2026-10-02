@@ -1,6 +1,6 @@
 # What the paper leaves open: the decision register
 
-Revised 2026-10-02 by TODO task 2: each of task 2's 33 rows now ends with a pointer, *Task 2 decided it*, giving its status and the requirements of `docs/requirements.md` that carry the decision, and, where the decision adopts a rule of task 6's second version (adc3484), which rules; `playground/paper/requirement_coverage.py` checks every pointer against that file [ours].
+Revised 2026-10-02 by TODO task 2: each of task 2's 33 rows now ends with a pointer, *Task 2 decided it*, giving its status and the requirements of `docs/requirements.md` that carry the decision, and, where the decision adopts a rule of task 6's second version (final for its P0 part at dd4b3de), which rules; `playground/paper/requirement_coverage.py` checks every pointer against that file [ours].
 
 Revised 2026-09-28 after the persona review: F-UN-1 and F-UN-2 of `docs/reviews/paper-analysis-2026-09-27/fix-list.md`. Ten new IDs are registered, three reclassifications carried, the floor at N_0 = 1 corrected from 18 to 17 (D-2), the `blocks` priority ranked by the system architect's list, fixes F-1 to F-17 closed with their statuses, and two new ones, F-18 and F-19 [ours]. Corrected the same day after the blind-reader quiz: as printed, Listing 1 fits no row exactly, and the subset row comes closest (A-NOTE-1), as analysis.md section 3.5 now says; F-20 records the same claim in note-check.md [ours].
 

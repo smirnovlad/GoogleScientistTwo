@@ -1,6 +1,6 @@
 # Requirements: the ScientistTwo research engine
 
-Written 2026-10-02 for TODO task 2, and revised twice the same day: after its review gate, and after the closure checks of that review and task 6's second version [ours].
+Written 2026-10-02 for TODO task 2, and revised the same day after its review gate, its closure checks and three Codex passes, and checked against task 6's final P0 version [ours].
 
 **For** task 3, which designs the components that meet these requirements, and for tasks 4 to 8.
 **Holds** the goal, every requirement with its acceptance test, the decisions on the 33 rows of the
@@ -24,7 +24,7 @@ about it rests on `docs/paper/`, whose conventions this file follows [ours].
   - *Depends on*: rows owned by tasks 3 to 7 that it rests on, pending there [ours];
   - *Test*: one acceptance test, whose cases a reader can run by hand or as code [ours].
 - **Paper or ours.** A location tag means the paper says it; `[ours]` marks our decision or reading. CLAUDE.md's integrity and engineering rules, which many requirements cite, began as proposals of the initial note (N-81, N-84, N-85, N-87, N-92, N-93, N-95, N-97 and N-98 of `docs/paper/note-check.md`); Vlad committed them on 2026-09-27, so they bind as our decisions, never as the paper's (the elicitation's CONT-16) [ours].
-- **Clauses that rest on another task.** A clause that rests on a row another task owns names that row beside it, and lists it under *Depends on*; a clause that states one of task 6's rules cites it by its IR- ID, and depends on one of task 6's four blocking rows. Task 6's second version, `docs/integrity/blocking-decisions.md` at adc3484 on its own branch, applies its first review's fixes and is not yet reviewed again, so these clauses are provisional, and the decisions table marks the rows that rest on it [ours].
+- **Clauses that rest on another task.** A clause that rests on a row another task owns names that row beside it, and lists it under *Depends on*; a clause that states one of task 6's rules cites it by its IR- ID, and depends on one of task 6's four blocking rows. Task 6's second version, `docs/integrity/blocking-decisions.md`, is final for its P0 part at dd4b3de, after its Codex gate, and is under review in its PR #3; these clauses are provisional until it merges, and the decisions table marks the rows that rest on it [ours].
 - **Requirements supersede candidates.** Where a requirement differs from a candidate in `docs/paper/traceability.md` or a proposal in the register, the requirement holds, and the register's pointer says so (CONT-11) [ours].
 - **Tests, in two tiers.** Each test says its tier [ours]:
   - *logic* tests mock every outside system, the sandbox and the harness included, and check control flow, counts and records (R-OPS-1) [ours];
@@ -220,7 +220,7 @@ stays open in its task, which may decide it otherwise and then revises the requi
 | A-TOP-4, U-TOP-1 (3) | G is a paper with its code at a commit, and an export can become G [ours] | R-RUN-2, R-RUN-3 |
 | U-ART-15 (3) | access is declared per agent role, and a stage may only narrow it; this replaces the register's proposal of a policy per stage, which cannot keep a stage's filter from writing where its coder writes [ours] | R-OPS-8 |
 | A-NOTE-1 (3) | the stage table's cells, written in R-PRIM-2's vocabulary, such as the meta stage's nested pass [ours] | 03-stages.md |
-| U-INT-4, U-TOP-5, A-INT-1, A-INT-3 (6) | task 6's second version, IR-1 to IR-41, before its second review [ours] | every clause that cites an IR- rule |
+| U-INT-4, U-TOP-5, A-INT-1, A-INT-3 (6) | task 6's second version at dd4b3de, IR-1 to IR-41, until its PR #3 merges [ours] | every clause that cites an IR- rule |
 | A-EVAL-1, U-EVAL-1 (6) | success in the second reading is a pre-registered one-sided test, never the sign of a point estimate; the third reading applies the same kind of test to *ours* minus its control at the report seeds; and a failed run with a measured gain counts at no more than it [ours] | R-MEAS-1, R-MEAS-3 |
 | U-SEED-2, U-EVO-2 (3) | the duplicate rule that SEED and A_Evolve apply is task 3's, written with the score's query and A_Evolve's inputs [ours] | R-STG-2, R-STG-7 |
 | task 6, outside its rows | IR-33.3's attempt bound may be renewed by an amendment that records a repaired fault, every attempt reported; the switch-scope check is measured as IR-31 measures task 6's checks. Task 6 confirmed both on 2026-10-02, and is writing them into its decision files [ours] | R-RUN-8, R-STG-4 |
@@ -228,4 +228,4 @@ stays open in its task, which may decide it otherwise and then revises the requi
 - **Task 3 starts from the blocking rows of task 2,** decided above, in the architect's order of `docs/paper/unspecified.md`: rank 1, the primitive, is R-PRIM-1 to R-PRIM-10 with the default stage configuration, its table of failures after retries and R-RUN-4's sequence; it starts from the engine as built, whose departures are listed above, the primitive's narrow set of parameters among them [ours].
 - **Task 5 prices more sessions than analysis.md section 9 counts.** Its bound excludes the integrity sessions, while R-INT-4 runs the filter after every code-producing unit and R-INT-10 the manuscript hooks after every revision; the elicitation (CONT-8) and task 6's section 3.7 count them [ours].
 - **Values task 6 leaves to task 2** are decided here: the gates' preconditions and their margins (IR-7.1) in R-RUN-6, R-STG-4 and R-STG-9; G2's retry and every exhaustion value before the freeze (IR-21.1) in R-INT-4 and R-INT-10; and what a three-verdict critic does when its precondition fails in R-STG-4 and R-STG-9 [ours].
-- **When the review of task 6's second version closes,** every requirement that cites an IR- rule, and every row the decisions table marks, is checked against the reviewed rules [ours].
+- **When task 6's PR #3 merges, or changes a rule,** every requirement that cites an IR- rule, and every row the decisions table marks, is checked against the reviewed rules [ours].
