@@ -12,8 +12,12 @@ benchmark is not the goal.
 
 ## Status
 
-Initialised on 2026-09-27. Nothing is designed or built yet. The first task is a rigorous analysis
-of the paper: see [TODO.md](TODO.md).
+Initialised on 2026-09-27. The paper analysis is complete on the
+`claude/paper-analysis` lineage. This branch adds a first executable engine
+component, the [run journal](scientist_two/run_journal/README.md), with a
+credential-free example and tests. The six-stage controller, task environments,
+locked evaluator, drafting and reviewer backends are still open work in
+[TODO.md](TODO.md).
 
 ## Start here
 
@@ -38,3 +42,8 @@ docs/process/              how we work across sessions, worktrees and accounts
 
 Folders for the analysis (`docs/paper/`), the requirements, the architecture and the code are
 created by the tasks that fill them.
+
+The run-journal slice lives in `scientist_two/run_journal/`; its scoped
+requirements are in `docs/requirements/run-journal.md`. Run
+`python3 -m unittest discover -s tests -v` and `python3 examples/mock_run.py`
+from the repository root to verify it without credentials.

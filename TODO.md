@@ -4,7 +4,10 @@ The ordered task list. Tick an item `- [x]` when it is done, and name the commit
 proves it. Add work you discover here, never only in chat. Priorities: `P0` blocks everything
 after it; `P1` is needed before building; `P2` comes later.
 
-## Phase 0: understand the paper, then decide the design (no engine code yet)
+## Phase 0: understand the paper, then decide the design
+
+A scoped run-journal foundation has been implemented on `codex/run-journal` in
+parallel. Its interface remains subject to tasks 2, 3 and 6 before integration.
 
 - [x] `P0` **1 · A rigorous analysis of the paper.**
   - **Done, 2026-09-28,** on the branch `claude/paper-analysis`. The proof:
@@ -164,6 +167,8 @@ after it; `P1` is needed before building; `P2` comes later.
   state machine can be tested for $0. `infrastructure-engineer` owns it. **Found by task 1:** the
   paper gives no success criterion for any agent, and tests them only end to end (U-TOP-6). A test
   per agent is therefore our own requirement.
+  - **Partial foundation:** `codex/run-journal` has a credential-free mock executor and
+    operation-level recovery tests. The six-stage mock state machine remains open.
 
 - [ ] `P2` **8 · The build plan.** Phases, each with a "done when".
   - **Order:** by risk. Environments and the evaluation harness come first, and agents come last.

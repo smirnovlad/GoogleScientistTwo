@@ -402,3 +402,54 @@ gap, the reviewer score calibration gap and incomplete resume state.
 - **Task 4's follow-on:** task 6 must choose an independent reporting judge
   (`U-EVAL-3`); task 5 must price models, tasks and compute. Neither is silently
   supplied by the reuse candidates.
+
+## 2026-10-02: first executable engine component
+
+**Vlad, verbatim:**
+
+> "Btw will it be possible to run such engine using claude subscription? not API"
+
+**Subscription finding.** Anthropic's current Claude plan guidance says an
+authenticated Claude Code CLI (`claude -p`) or Agent SDK can consume plan usage,
+including after a proposed June 2026 billing change was paused. A configured
+`ANTHROPIC_API_KEY` instead uses API billing. We therefore plan a local subscription
+adapter with explicit detection of API-key override and usage-limit handling.
+This does not imply unlimited runs or settle the terms for a shared product;
+task 5 must measure the plan's practical capacity and any separate compute cost.
+The official sources are linked in the reuse survey's Claude Agent SDK section.
+
+**Worktree and scope.** `codex/run-journal` branches from `codex/reuse-survey` and
+adds a standalone, standard-library run journal. Its scoped requirements are
+`docs/requirements/run-journal.md`. One hierarchical work key records exactly
+one paid operation. The store saves a run manifest and input snapshot, stages
+referenced artifacts, records a durable start before dispatch, and publishes an
+output before its terminal event. Recovery uses a stable operation ID without
+needing the caller's original artifact path. Ambiguous outcomes block another
+execution; known and unknown charges are tracked separately. A root registry
+detects a missing dispatched operation directory, and event checksums detect
+edits or missing committed events.
+
+**Review and verification.** System-architect and infrastructure-engineer
+reviews found dispatch, artifact, cost and recovery gaps; the implementation
+and focused tests were revised. A final architecture pass found that a mutable
+payload could change between snapshot and operation-ID derivation; the ID now
+comes from the captured snapshot, with a regression test.
+`python3 -m unittest discover -s tests -v` passes 25 tests, including a
+two-process race, charged timeout recovery, tampering, and payload isolation.
+`python3 examples/mock_run.py` shows one
+executor call across first use and replay, with a known USD 0.12 mock charge.
+`git diff --check` passes.
+
+## HANDOFF, 2026-10-02 (run journal ready for integration review)
+
+- **Done on `codex/run-journal`:** first executable engine slice, scoped contract,
+  tests, mock example, and README. The reuse survey branch remains separate.
+- **Still open:** tasks 2, 3 and 6 set the production contracts, integrity
+  boundary and evaluator. Task 7 needs whole-engine mock mode. The run journal
+  has no stage controller, real Claude adapter, budget guard or sandbox yet.
+- **Integration path:** review the scoped run-journal contract against the task 2
+  requirements and task 3 architecture when they land; integrate only after
+  resolving conflicts. Then implement a local `claude -p` coding backend and
+  measure subscription limits before long research runs.
+- **Local verification:** from the `codex-run-journal` worktree root, run
+  `python3 -m unittest discover -s tests -v` and `python3 examples/mock_run.py`.
