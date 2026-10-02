@@ -640,6 +640,18 @@ acting on it, I checked the instruction on `origin/claude/engine`.
 - **The reply to task 2:** nothing it adopted contradicts our decisions. It got the conditions
   under which its mechanism switches and its suspension rule keep the integrity rules.
 
+**The coordinating session agreed.** Through task 2, the coordinating session ("Google
+Autoresearch") relayed its own decision on F-46. It is the same reading as A1, with one clause made
+explicit: any read of the report split that could feed a decision is a violation. Its engine
+contract, `docs/architecture/engine.md` §5 on `origin/claude/engine`, gives the same reading. The
+owner received the clause as A6.
+
+That contract's task manifest gives the validation and test splits the same seeds, `[0, 1, 2]`.
+That is the case of the research-engineer's blocker B1: the test numbers would inherit the seed luck
+that selection exploited on validation. So the coordinating session was told directly, together with
+the lineage rule and the rule of released results per identity, which its harness will also need to
+meet.
+
 ## HANDOFF, 2026-10-02 (task 6's `P0` part: the owner applies the fix list)
 
 - **Where:** the worktree `.claude/worktrees/integrity-blockers`, on `claude/integrity-blockers`,
